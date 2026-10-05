@@ -1,0 +1,5 @@
+# 生成物，随时可重新生成，不进版本库
+art/out/
+audio/out/
+node_modules/
+.chrome-tmp/
