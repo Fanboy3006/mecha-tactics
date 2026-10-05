@@ -19,6 +19,7 @@ node tut1_playthrough.js
 | `run_bot.js [分队] [步数] [1=耐久999]` + `run_bot_inpage.js` | 肉鸽整局 |
 | `run_quit.js` | 肉鸽「撤退」「放弃本局」在浏览器自带弹窗被拦截时仍然可用（有断言） |
 | `mode_switch.js` | 默认进入肉鸽；肉鸽打到一半切走再切回，接着打同一战（7 项断言） |
+| `class_mech.js` | 分类通用机制：DASH、援护攻击、援护防御、进攻援护（有断言） |
 | `audio_cues.js` | 音频接线：各场景的曲子、Boss 判定、胜利号角、M 键静音（有断言） |
 | `gen_stage_table.js` | 重新生成 `docs/肉鸽关卡表.md` |
 

@@ -239,7 +239,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
 
 <div class="app">
   <header class="bar">
-    <div class="brand"><span class="mark">机甲战棋</span><span class="ver">试作版 v0.24 · <span id="mapSize">40×40</span> 地图</span></div>
+    <div class="brand"><span class="mark">机甲战棋</span><span class="ver">试作版 v0.25 · <span id="mapSize">40×40</span> 地图</span></div>
     <div class="hud">
       <label class="chip lvsel"><span class="lbl">关卡</span><select id="levelSel"><optgroup label="★ 肉鸽模式（推荐）"><option value="roguelike">肉鸽模式 · 混沌迷宫</option></optgroup><optgroup label="剧情模式（待施工）"><option disabled>剧情模式待施工 · 下面是原型关卡</option><option value="tut1">教学 1 · 移动</option><option value="tut2">教学 2 · 夹击与射击</option><option value="tut3">教学 3 · 地形与闪避</option><option value="defense">大规模防卫战（Lv20）</option><option value="drill">弱点演习（Lv20）</option><option value="skirmish">自由对战 · 随机地图</option></optgroup></select></label>
       <div class="chip"><span class="lbl">作战</span><b id="battleNo">1</b></div>
@@ -269,7 +269,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
       <section class="card" id="actionCard"></section>
       <section class="card logcard"><h3>作战记录</h3><ol id="log"></ol></section>
       <details class="card rules">
-        <summary>当前规则 v0.24</summary>
+        <summary>当前规则 v0.25</summary>
         <ul>
           <li>距离和射程一律按菱形计算（只算横竖步数）。</li>
           <li>命中 = 武器命中 −（闪避 + 地形闪避）；选择回避时命中减半。</li>
@@ -3040,10 +3040,13 @@ const ABIL = {
   hallelujah:{name:'超兵·哈雷路亚', desc:'HP 低于 50% 时，另一个人格接管：命中 +20、暴击 +20。'},
   veda:{name:'Veda 连接', desc:'变身为纳德雷的那一回合，命中 +30。'},
   gundam:{name:'我就是高达', desc:'每有 1 台敌机与自己相邻，命中 +10、闪避 +10（最多 +30）。'},
-  followUp:{name:'连斩', desc:'主动攻击击破敌机后，可以原地再攻击一次（不能移动）。每回合最多 1 次（Lv30 起 2 次）。'},
+  followUp:{name:'DASH+1', desc:'近卫的 DASH 每回合上限 +1（共 2 次）：一回合最多行动 3 次。'},
+  dash:{name:'DASH', desc:'（近卫）主动攻击击破敌机后，获得 3 点移动力和一次额外攻击：可以先移动再攻击，也可以原地攻击。每回合 1 次。'},
+  supportAtk:{name:'援护攻击', desc:'己方阶段，同伴主动攻击、目标没被击破时，可以跟着用一个武装攻击同一个目标（目标不能反击）。每回合 1 次。我方会询问，一路按空格默认用伤害最高的武装。'},
+  guardAtk:{name:'进攻援护', desc:'援护防御在我方阶段也能用：相邻友军攻击后被反击时，可以代为承受那次反击（自动防御）。'},
   overflowCrit:{name:'狙い撃つぜ', desc:'命中率超过 100 的部分，1:1 转为暴击率。'},
   gnShield:{name:'GN 全盾·哈罗', desc:'本回合没有移动时（架设狙击），正面受到的伤害 −30%。'},
-  guard:{name:'援护防御', desc:'敌方阶段相邻友军被攻击时，可选择代为承受并自动防御，每个敌方阶段 2 次。'},
+  guard:{name:'援护防御', desc:'敌方阶段相邻友军被攻击时，可选择代为承受并自动防御，每个敌方阶段 2 次。援护会挡下这一整轮攻击，包括对方随后的援护攻击。'},
   /* ---- v0.16 新角色：个人特技 ---- */
   seed:{name:'SEED', desc:'HP 低于 70%，或者 2 格内有 3 台以上敌机时觉醒：命中 +20、闪避 +20、暴击 +15。'},
   orbLion:{name:'奥布之狮', desc:'光环：2 格内其他友军命中 +10、受到的伤害 −5%。'},
@@ -3285,7 +3288,7 @@ const ALLY_T = [
     wp({name:'GN 长短刃', power:2400, stat:'格斗', fire:'melee', critMod:20, dmgType:'光束'}),
     wp({name:'GN 剑（步枪模式）', power:1500, fire:'direct', range:[1,3], dmgType:'光束'}),
     wp({name:'七剑·TRANS-AM 乱舞', power:1200, stat:'格斗', fire:'melee', hit:95, special:'multi', hits:7, step:10, unlock:20, cd:2, dmgType:'光束',
-        upgrades:[{lv:30, note:'Lv30：「连斩」每回合最多 2 次'}],
+        upgrades:[],
         desc:'连续 7 段判定，首段命中 95，命中后 −10、未中后 +10；每段 1200 + 格斗×5÷10，正常经过减免（装甲对多段很有效）。'}),
   ]},
   {pilot:'洛克昂', mech:'CB2', short:'CB2', trait:'overflowCrit', tags:{势力:'天人', 远近分类:'远程', 战斗分类:'狙击'}, hp:4000, armor:300, eva:10, mov:4, melee:80, shoot:160, skill:160, flying:false, w:1, h:1, abilities:['gnShield'], weapons:[
@@ -3491,6 +3494,12 @@ const PROMO_WEAPONS = {
 ALLY_T.forEach(t => {
   if (PROMO_WEAPONS[t.mech]) t.weapons.push(...PROMO_WEAPONS[t.mech]);
   if (PROMO_PASSIVE[t.mech]) t.abilities.push(PROMO_PASSIVE[t.mech]);
+  /* v0.25 分类通用机制：近卫 DASH、狙击援护攻击、重装援护防御；卡嘉莉的援护防御在我方阶段也能用 */
+  const cls = t.tags.战斗分类, add = k => { if (!t.abilities.includes(k)) t.abilities.push(k); };
+  if (cls === '近卫') add('dash');
+  if (cls === '狙击') add('supportAtk');
+  if (cls === '重装') add('guard');
+  if (t.mech === 'S2') add('guardAtk');
 });
 const FORMS = {
   /* icon：这个变身形态用哪个图标（tools/roster.mjs 也读这个字段来对账）。 */
@@ -3506,6 +3515,7 @@ const COMMANDS = {
   meteor:{name:'陨石召唤', kind:'area', cd:3, delay:2, size:3, dmg:7999,
     desc:'指定一个 3×3 区域，2 回合后的我方阶段开始时陨石落下：对区域内敌我所有单位造成 7999 物理伤害（必中，不暴击，会经过减免），区域内的空格生成 HP 1000 的陨石残骸。冷却 3 回合。'},
 };
+const ENEMY_SUPPORT = ['sniper', 'funnel'];   // v0.25：会援护攻击的敌方机型
 const ENEMY_T = {
   flagship:{pilot:'敌将', mech:'指挥舰', short:'旗舰', weak:{近战:30, 曲射:-30}, noEvade:true, hp:40000, armor:1200, eva:0, mov:3, melee:100, shoot:150, skill:150, flying:true, w:3, h:3, abilities:['barrier'], weapons:[
     wp({name:'主炮', power:3000, fire:'direct', range:[2,8], cd:1, dmgType:'光束'}),
@@ -3920,6 +3930,7 @@ const S = {mode:'idle', sel:null, origin:null, reach:[], weapon:null, target:nul
 const floats = [];
 const fullName = u => u.side === 'ally' ? `${u.pilot}·${u.mech}` : u.mech;
 
+ENEMY_SUPPORT.forEach(k => { if (ENEMY_T[k] && !ENEMY_T[k].abilities.includes('supportAtk')) ENEMY_T[k].abilities.push('supportAtk'); });
 function makeUnit(t, side, x, y){
   return {...t, shieldHp:t.shield || 0, uid:++uidc, side, x, y, lv:1, maxHp:t.hp, hp:t.hp, moved:false, movedThisRound:false, moveEva:0, acted:false, barrierLeft:3, guardLeft:2, buffs:[], debuffs:[], backlash:0, toggledTurn:0, facing: side === 'ally' ? 'up' : 'down',
     tags:{...(t.tags||{})}, abilities:[...t.abilities], weapons:t.weapons.map(w => ({...w, usesLeft:w.uses, cdLeft:0}))};
@@ -4376,7 +4387,7 @@ Hooks.on('phaseStart', c => {
   }
 }, '念动共鸣：阶段开始时群体回复');
 Hooks.on('phaseStart', c => { units.filter(u => u.side === c.side).forEach(u => { u.movedThisRound = false; if (c.side === 'ally') u.moveEva = 0; }); }, '回合开始：清除"本回合已移动"与剩余移动闪避');
-Hooks.on('phaseStart', c => { if (c.side === 'enemy') units.forEach(u => { u.guardLeft = 2 + (hasTrait(u,'steadfast') && !u.movedThisRound ? 1 : 0); }); }, '援护防御：敌方阶段开始时重置为 2 次（不动如山 +1）');
+Hooks.on('phaseStart', c => { if (c.side === 'enemy') units.forEach(u => { u.guardLeft = 2 + (hasTrait(u,'steadfast') && !u.movedThisRound ? 1 : 0); }); else units.forEach(u => { if (abilOn(u,'guardAtk')) u.guardLeft = 2; }); }, '援护防御：敌方阶段开始时重置为 2 次（不动如山 +1）；进攻援护在我方阶段开始时也重置为 2 次');
 
 /* ---------- 战斗执行 ---------- */
 function consume(w){ if (w.usesLeft != null) w.usesLeft--; if (w.cd > 0) w.cdLeft = w.cd + 1; }
@@ -4495,7 +4506,15 @@ async function battle(att, w, def, reaction, cw, {guard=false} = {}){
   if (reaction === 'evade') log(`${fullName(def)} 选择回避`, null, def.side);
   await strike(att, w, def, reaction, guard ? {zone:'front'} : {});
   if (def.hp > 0 && att.hp > 0 && reaction === 'counter' && cw){
-    if (!wStatus(def,cw,{counter:true}) && canHit(def,cw,att)) await strike(def, cw, att, null, {counter:true});
+    if (!wStatus(def,cw,{counter:true}) && canHit(def,cw,att)){
+      // v0.25 进攻援护：我方攻击后被反击时，相邻的进攻援护机体可以代为承受
+      const g = att.side === 'ally' ? units.find(m => m !== att && m.side === 'ally' && m.hp > 0 && abilOn(m,'guardAtk') && m.guardLeft > 0 && distU(m, att) === 1) : null;
+      if (g && await askGuard(def, cw, att, g, true)){
+        g.guardLeft--;
+        log(`${fullName(g)} 进攻援护：代 ${fullName(att)} 承受反击（本阶段剩 ${g.guardLeft} 次）`, null, 'ally');
+        await strike(def, cw, g, 'defend', {counter:true, zone:'front'});
+      } else await strike(def, cw, att, null, {counter:true});
+    }
     else log(`${fullName(def)} 无法反击（射程或视线不足）`, null, def.side);
   }
   refresh();
@@ -4681,7 +4700,7 @@ function setPhase(side){
   updateLimit();
   $('#battleNo').textContent = level === 'skirmish' ? battleNo : '—';
 }
-const clearSel = () => Object.assign(S, {mode:'idle', sel:null, origin:null, reach:[], weapon:null, target:null, dirs:[], dir:null, teleported:false, portalTiles:[], noUndo:false, locks:[], pickSel:null});
+const clearSel = () => Object.assign(S, {mode:'idle', sel:null, origin:null, reach:[], weapon:null, target:null, dirs:[], dir:null, teleported:false, portalTiles:[], noUndo:false, locks:[], pickSel:null, dash:false});
 function startPlayerPhase(){
   units.filter(u => u.side === 'ally').forEach(u => { u.moved = u.acted = false; });
   clearSel();
@@ -4746,9 +4765,11 @@ async function aiAct(e){
       g.guardLeft--;
       log(`${fullName(g)} 援护 ${fullName(best.p)}（本阶段剩 ${g.guardLeft} 次）`, null, 'ally');
       await battle(e, best.w, g, 'defend', null, {guard:true});
+      if (e.hp > 0) await supportAttack(e, best.p, {guard:g});
     } else {
       const r = await askReaction(e, best.w, best.p);
       await battle(e, best.w, best.p, r.reaction, r.weapon);
+      if (e.hp > 0) await supportAttack(e, best.p, {reaction:r.reaction});
     }
   } else {
     let bt = null, bd = 1e9;
@@ -5076,16 +5097,55 @@ function newCampaign(){
   startBattle(Date.now() & 0xffffff);
 }
 
+/* ---------- v0.25 援护攻击 ----------
+   己方阶段，同伴主动攻击、目标没被击破时，带「援护攻击」的机体可以用一个武装跟着打同一个目标（目标不能反击）。每回合 1 次。
+   我方会弹窗询问（默认按钮 = 伤害最高的武装，所以一路按空格就会援护）；敌方自动援护。
+   援护防御挡下的是一整轮：敌方的援护攻击也打在援护者身上。 */
+const SUPPORT_FIRES = ['melee', 'direct', 'indirect'];
+function supportOptions(att, t){
+  const out = [];
+  for (const s of units){
+    if (s === att || s.side !== att.side || s.hp <= 0 || !abilOn(s,'supportAtk') || s.supTurn === turn || s.stunned || s.disarmed) continue;
+    const ws = s.weapons.filter(w => SUPPORT_FIRES.includes(w.fire) && !w.special?.match?.(/lock|gamble/) && !wStatus(s, w, {counter:true}) && canHit(s, w, t))
+      .map(w => ({w, f:forecast(s, w, t, null)})).sort((a, b) => b.f.exp - a.f.exp);
+    if (ws.length) out.push({s, ws});
+  }
+  return out.sort((a, b) => b.ws[0].f.exp - a.ws[0].f.exp);
+}
+function askSupport(att, t, opts){
+  return new Promise(resolve => {
+    const rows = opts.map((o, i) => `<div class="opt"><h4>${fullName(o.s)}</h4>${o.ws.map((x, j) => `<button class="btn ${i === 0 && j === 0 ? 'primary' : ''}" data-sp="${i}:${j}" style="display:block;width:100%;margin:4px 0">【${x.w.name}】命中 ${x.f.hit}%　伤害 ${x.f.dmg}</button>`).join('')}</div>`).join('');
+    $('#reactDlg').innerHTML = `<div class="eyebrow">援护攻击</div>
+      <h2>${fullName(t)} 还没被击破</h2>
+      <p class="small">可以让一台带「援护攻击」的机体跟着攻击同一个目标（目标不能反击，每台每回合 1 次）。按空格 = 第一个按钮（伤害最高）。</p>
+      <div class="opts" style="grid-template-columns:repeat(${Math.min(3, opts.length + 1)},minmax(0,1fr))">${rows}<div class="opt"><h4>不援护</h4><button class="btn" data-sp="no" style="display:block;width:100%;margin:4px 0">不援护</button></div></div>`;
+    $('#reactModal').hidden = false;
+    $('#reactDlg').querySelectorAll('[data-sp]').forEach(b => b.onclick = () => { $('#reactModal').hidden = true; if (b.dataset.sp === 'no') return resolve(null); const [i, j] = b.dataset.sp.split(':').map(Number); resolve({s:opts[i].s, w:opts[i].ws[j].w}); });
+    $('#reactDlg').querySelector('[data-sp="0:0"]').focus();
+  });
+}
+async function supportAttack(att, t, {guard = null, reaction = null} = {}){
+  if (over || t.hp <= 0) return;
+  const opts = supportOptions(att, t); if (!opts.length) return;
+  const pick = att.side === 'ally' ? await askSupport(att, t, opts) : {s:opts[0].s, w:opts[0].ws[0].w};
+  if (!pick || over) return;
+  const tgt = guard && guard.hp > 0 ? guard : t;
+  pick.s.supTurn = turn;
+  log(`${fullName(pick.s)}【援护攻击】用【${pick.w.name}】攻击 ${fullName(tgt)}${tgt !== t ? '（被援护防御挡下）' : ''}`, null, pick.s.side);
+  await strike(pick.s, pick.w, tgt, guard ? 'defend' : (reaction === 'defend' || reaction === 'evade' ? reaction : null), guard ? {zone:'front'} : {});
+  refresh(); checkEnd();
+}
+
 /* ---------- 敌方攻击时的我方应对 ---------- */
-function askGuard(att, w, def, g){
+function askGuard(att, w, def, g, counter = false){
   return new Promise(resolve => {
     const fT = forecast(att, w, def, null), fG = forecast(att, w, g, 'defend', {zone:'front'});
-    $('#reactDlg').innerHTML = `<div class="eyebrow">援护防御 · 本阶段剩 ${g.guardLeft} 次</div>
-      <h2>${fullName(att)} 用【${w.name}】攻击 ${fullName(def)}</h2>
-      <p class="small">${fullName(g)} 就在旁边，可以代为承受这次攻击，并自动进入防御姿态（不能反击）。</p>
+    $('#reactDlg').innerHTML = `<div class="eyebrow">${counter ? '进攻援护' : '援护防御'} · 本阶段剩 ${g.guardLeft} 次</div>
+      <h2>${fullName(att)} 用【${w.name}】${counter ? '反击' : '攻击'} ${fullName(def)}</h2>
+      <p class="small">${fullName(g)} 就在旁边，可以代为承受这次${counter ? '反击' : '攻击（连同随后的援护攻击）'}，并自动进入防御姿态（不能反击）。</p>
       <div class="opts" style="grid-template-columns:repeat(2,minmax(0,1fr))">
         <div class="opt"><h4>援护</h4><div class="take">${fullName(g)}（按正面）承受：命中 <b>${fG.hit}%</b>　伤害 <b>${fG.dmg}</b></div><p class="small">HP ${g.hp}/${g.maxHp}</p><button class="btn primary" data-g="1">让 ${g.pilot} 援护</button></div>
-        <div class="opt"><h4>不援护</h4><div class="take">${fullName(def)}（${zname(fT.zone)}）承受：命中 <b>${fT.hit}%</b>　伤害 <b>${fT.dmg}</b></div><p class="small">之后选择反击、防御或回避。</p><button class="btn" data-g="0">不援护</button></div>
+        <div class="opt"><h4>不援护</h4><div class="take">${fullName(def)}（${zname(fT.zone)}）承受：命中 <b>${fT.hit}%</b>　伤害 <b>${fT.dmg}</b></div><p class="small">${counter ? '' : '之后选择反击、防御或回避。'}</p><button class="btn" data-g="0">不援护</button></div>
       </div>`;
     $('#reactModal').hidden = false;
     $('#reactDlg').querySelectorAll('[data-g]').forEach(b => b.onclick = () => { $('#reactModal').hidden = true; resolve(b.dataset.g === '1'); });
@@ -5911,7 +5971,7 @@ function actionHTML(){
     case 'menu': {
       const can = u.weapons.some(w => weaponUsable(u,w).ok);
       return `<h3>指令 · ${fullName(u)}</h3><p class="hint">${hasTrait(u,'autoCast') ? 'Feena 不能主动使用武器，选择待机即可。' : u.moved ? '已移动：标注「不能移动后使用」的武器不可用。' : '未移动：可使用全部已解锁武器。'}</p>
-        <div class="acts">${hasTrait(u,'autoCast') ? '' : `<button class="btn primary" data-a="attack" ${can ? '' : 'disabled'}>攻击</button>`}<button class="btn" data-a="wait">待机</button>${S.teleported || S.noUndo ? '' : '<button class="btn" data-a="undo">取消移动</button>'}${u.transform && !u.transformed ? '<button class="btn" data-a="transform">脱装 · 纳德雷</button>' : ''}</div>${S.teleported ? '<p class="small">已传送，不能取消。</p>' : ''}${S.noUndo && !S.teleported ? `<p class="small">${S.extraUsed ? '额外攻击：只能攻击或待机。' : '已经变身，不能取消移动。'}</p>` : ''}${u.canFly ? `<p class="small">${u.flying ? '飞行' : '地面'}状态。起飞 / 落地要在移动前决定。</p>` : ''}<p class="small">移动后需要先选择攻击或待机，才能结束回合。</p>
+        <div class="acts">${hasTrait(u,'autoCast') ? '' : `<button class="btn primary" data-a="attack" ${can ? '' : 'disabled'}>攻击</button>`}<button class="btn" data-a="wait">待机</button>${S.teleported || S.noUndo ? '' : '<button class="btn" data-a="undo">取消移动</button>'}${u.transform && !u.transformed ? '<button class="btn" data-a="transform">脱装 · 纳德雷</button>' : ''}</div>${S.teleported ? '<p class="small">已传送，不能取消。</p>' : ''}${S.noUndo && !S.teleported ? `<p class="small">${S.extraUsed ? 'DASH / 额外攻击：只能攻击或待机。' : '已经变身，不能取消移动。'}</p>` : ''}${u.canFly ? `<p class="small">${u.flying ? '飞行' : '地面'}状态。起飞 / 落地要在移动前决定。</p>` : ''}<p class="small">移动后需要先选择攻击或待机，才能结束回合。</p>
         <div class="facerow"><span class="small">朝向（W A S D 或点方向键；待机时保持，攻击会自动转向目标）</span><div class="facepad">${['up','left','right','down'].map(f => `<button data-face="${f}" class="${u.facing === f ? 'sel' : ''}" aria-label="朝${FACE_NAME[f]}">${FACE_ARROW[f]}</button>`).join('')}</div></div>
         <p class="small kbd">⌨ WASD：改变朝向　空格：${hasTrait(u,'autoCast') ? '待机' : S.atkList && S.atkList.length ? `攻击（${S.atkList.length} 个目标，红框标出）` : '待机（没有可攻击的目标）'}</p>
         ${can ? '' : '<p class="small">没有可用的武器或射程内没有目标。</p>'}${hasTrait(u,'autoCast') && autoWeapon(u) ? `<p class="small">待机后自动释放【${autoWeapon(u).name}】。${autoWeapon(u).fire === 'support' ? '绿色区域是作用范围。' : '紫色区域是余响的范围。'}</p>` : echoWeapon(u) ? '<p class="small">紫色区域是本次行动结束后「残月的余响」的范围。</p>' : ''}${regenWeapon(u) ? '<p class="small">绿框是本次行动结束后「月华再生」的回复范围。</p>' : ''}`;
@@ -6014,7 +6074,8 @@ function actionHTML(){
         <p class="small kbd">⌨ 空格：发射</p>
         <div class="acts"><button class="btn primary" data-a="lockfire" ${S.locks.length ? '' : 'disabled'}>发射（${S.locks.length} 个目标）</button><button class="btn" data-a="back-weapon">换武器</button></div>`;
     }
-    case 'moving2': return `<h3>一击脱离 · ${fullName(u)}</h3><p class="hint">攻击完成。可以用剩下的移动力（${S.reachLeft}）继续移动：点蓝色格移动，或点自身 / 按空格原地待机。</p>
+    case 'moving2': if (S.dash) return `<h3>DASH · ${fullName(u)}</h3><p class="hint">击破目标！可以再移动 3 格（蓝色格），然后再攻击一次；点自身或按空格原地攻击。</p>`;
+      return `<h3>一击脱离 · ${fullName(u)}</h3><p class="hint">攻击完成。可以用剩下的移动力（${S.reachLeft}）继续移动：点蓝色格移动，或点自身 / 按空格原地待机。</p>
         <div class="acts"><button class="btn" data-a="wait">原地待机</button></div>`;
     case 'enemy': return `<h3>指令</h3><p class="hint">敌方行动中。敌机攻击我方时会弹出应对选择：反击、防御或回避。</p>`;
     case 'busy': return `<h3>指令</h3><p class="hint">战斗中…</p>`;
@@ -6175,8 +6236,10 @@ function onTile(x,y){
       else if (u){ S.inspect = u; refresh(); }
       break;
     case 'moving2': {
+      if (S.dash && u === S.sel){ dashArrive(); break; }
       const t = S.reach.find(t => t.x === x && t.y === y);
-      if (t){ S.moveCost += t.d; if (t.face) S.sel.facing = t.face; moveUnit(S.sel, x, y); finish(S.sel); }
+      if (t && S.dash){ if (t.face) S.sel.facing = t.face; moveUnit(S.sel, x, y); dashArrive(); }
+      else if (t){ S.moveCost += t.d; if (t.face) S.sel.facing = t.face; moveUnit(S.sel, x, y); finish(S.sel); }
       break;
     }
     case 'pick':
@@ -6234,14 +6297,21 @@ async function onAction(a){
     const t = S.target, w = S.weapon, r = aiReaction(t, u, w);
     S.mode = 'busy'; refresh();
     await battle(u, w, t, r.reaction, r.weapon);
+    if (!over && u.hp > 0 && t.hp > 0) await supportAttack(u, t);
     const foesLeft = units.some(e => e.side !== u.side);
     if (!over && u.hp > 0 && t.hp <= 0 && foesLeft){
       let why = null;
-      if (wv(u, w, 'again') && !S.extraUsed){ why = w.name; }
-      else if (u.abilities.includes('followUp')){
-        if (u.followTurn !== turn){ u.followTurn = turn; u.followCount = 0; }
-        if (u.followCount < (u.lv >= 30 ? 2 : 1)){ u.followCount++; why = '连斩'; }
+      if (abilOn(u,'dash')){
+        if (u.dashTurn !== turn){ u.dashTurn = turn; u.dashCount = 0; }
+        if (u.dashCount < dashLimit(u)){
+          u.dashCount++;
+          S.dash = true; S.noUndo = true; S.extraUsed = true; S.weapon = null; S.target = null;
+          S.reachLeft = 3; S.reach = reach(u, 3); S.mode = 'moving2';
+          log(`${fullName(u)}【DASH】击破目标：获得 3 点移动力和一次额外攻击（本回合第 ${u.dashCount}/${dashLimit(u)} 次）`, null, 'ally');
+          refresh(); return;
+        }
       }
+      if (wv(u, w, 'again') && !S.extraUsed){ why = w.name; }
       if (why){
         S.extraUsed = true; S.noUndo = true; S.weapon = null; S.target = null; S.mode = 'menu';
         log(`${fullName(u)}【${why}】击破目标，可以再攻击一次（不能移动）`, null, 'ally');
@@ -6272,11 +6342,14 @@ async function onAction(a){
     if (!over && u.hp > 0) await finish(u); else if (!over){ clearSel(); refresh(); }
   }
 }
+const dashLimit = u => abilOn(u,'dash') ? 1 + (abilOn(u,'followUp') ? 1 : 0) : 0;
 function toggleLock(t){
   const max = wv(S.sel, S.weapon, 'lockN'), i = S.locks.indexOf(t);
   if (i >= 0) S.locks.splice(i, 1); else if (S.locks.length < max) S.locks.push(t);
   refresh();
 }
+/* DASH 移动完（或原地）→ 进入只能攻击 / 待机的指令菜单 */
+function dashArrive(){ S.dash = false; S.mode = 'menu'; S.reach = []; refresh(); }
 async function afterAttack(u){
   const left = u.mov - (S.moveCost || 0);
   if (hasTrait(u,'hitAway') && left > 0 && !over){
@@ -6394,7 +6467,7 @@ document.addEventListener('keydown', e => {
   else if (S.mode === 'confirm') onAction('fire');
   else if (S.mode === 'mapconfirm') onAction('mapfire');
   else if (S.mode === 'lock'){ if (S.locks.length) onAction('lockfire'); }
-  else if (S.mode === 'moving2') onAction('wait');
+  else if (S.mode === 'moving2'){ if (S.dash) dashArrive(); else onAction('wait'); }
 });
 document.addEventListener('keydown', e => {
   const f = {w:'up', a:'left', s:'down', d:'right'}[e.key.toLowerCase()];
@@ -7247,7 +7320,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.24';
+const GAME_VERSION = 'v0.25';
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
   if (!RUN || !RUN.events) return;
