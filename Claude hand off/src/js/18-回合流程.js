@@ -55,18 +55,30 @@ async function aiAct(e){
   if (e.stunned){ e.stunned = false; e.acted = true; log(`${fullName(e)} 被骇入，本阶段无法行动`, null, 'sys'); await sleep(250); return; }
   const tiles = reach(e), players = units.filter(u => u.side === 'ally');
   if (!players.length) return;
+  /* v0.30 统一 AI（作者 10-05 定）：
+     1. 目标 = 最近的我方单位（按实际要走的步数），同距离打 HP 比例最低的；刺客型（assassin）反过来，先挑 HP 比例最低的。
+     2. 打得到目标就打：选对它期望伤害最高的武器；近战 / 短程从移动最少的格子打，远程（最大射程 ≥ 3）在射程内离目标最远的格子打。
+     3. 打不到就朝目标前进。只盯这一个目标，不会转去打别人。
+     4. 守卫型（guardZone: N）：我方进入 N 格内才启动；炮台（移动 0）自然原地不动。 */
+  if (e.guardZone && !e.awake){
+    if (players.some(p => distU(e, p) <= e.guardZone)){ e.awake = true; log(`${fullName(e)} 发现目标，开始行动`, null, 'sys'); }
+    else { e.acted = true; return; }
+  }
+  const far = reach(e, 60);
+  const steps = p => { let m = Infinity; for (const t of far) if (t.d < m && distU(e, p, t.x, t.y) <= 1) m = t.d; return m === Infinity ? 1000 + distU(e, p) : m; };
+  const hpr = p => p.hp / p.maxHp;
+  const target = [...players].sort((a, b) => e.assassin ? (hpr(a) - hpr(b) || steps(a) - steps(b)) : (steps(a) - steps(b) || hpr(a) - hpr(b)))[0];
   let best = null;
   if (e.disarmed) log(`${fullName(e)} 武装损坏，本阶段不能攻击`, null, 'sys');
   for (const t of (e.disarmed ? [] : tiles)){
     const moved = !(t.x === e.x && t.y === e.y);
     for (const w of e.weapons){
       if (wStatus(e, w, {moved})) continue;
-      for (const p of players){
-        if (!canHit(e, w, p, t.x, t.y)) continue;
-        const f = forecast(e, w, p, null, {from:[t.x, t.y]});
-        const s = f.exp + (f.dmg >= p.hp ? 2500 : 0) + (e.chase ? -30*Math.min(...players.map(q => distU(e, q, t.x, t.y))) : -t.d*4);
-        if (!best || s > best.s) best = {s, t, w, p};
-      }
+      if (!canHit(e, w, target, t.x, t.y)) continue;
+      const f = forecast(e, w, target, null, {from:[t.x, t.y]});
+      const pos = w.range[1] >= 3 ? distU(e, target, t.x, t.y) * 2 - t.d * 0.1 : -t.d;
+      const s = Math.round(f.exp / 100) * 1000 + pos;
+      if (!best || s > best.s) best = {s, t, w, p:target};
     }
   }
   focusOn(e); S.inspect = e; refresh();
@@ -89,10 +101,10 @@ async function aiAct(e){
   } else {
     let bt = null, bd = 1e9;
     for (const t of tiles){
-      const d = Math.min(...players.map(p => distU(e, p, t.x, t.y)));
+      const d = distU(e, target, t.x, t.y);
       if (d < bd || (d === bd && t.d < bt.d)){ bd = d; bt = t; }
     }
-    if (bt){ moveUnit(e, bt.x, bt.y); const near = players.reduce((a,p) => distU(e,p) < distU(e,a) ? p : a); e.facing = dirToward(e, near); refresh(); await sleep(220); }
+    if (bt){ moveUnit(e, bt.x, bt.y); e.facing = dirToward(e, target); refresh(); await sleep(220); }
   }
   e.disarmed = false;
   e.acted = true;
