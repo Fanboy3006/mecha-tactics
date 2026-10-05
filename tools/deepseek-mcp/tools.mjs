@@ -106,7 +106,7 @@ export async function dsCode(args = {}) {
     '--no-pretty',
     '--line-endings', 'lf',
     '--no-auto-lint',
-    '--message', PREAMBLE + task,
+    '--message', task.trimStart().startsWith('/') ? task : PREAMBLE + task,
     ...files,
   ];
   const [cmd, baseArgs] = [launch.cmd, launch.args];
