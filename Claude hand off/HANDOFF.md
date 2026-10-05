@@ -145,7 +145,8 @@
   - `tut2_flank_bot.js`：优先背击的脚本打完教学 2 的 3 波；
   - `tut3_terrain_sim.js [mountain|air]`：教学 3，对比"山岩落地"和"一直在空中"两种打法，各跑 4 局；
   - `defense_bot.js`：贪心脚本打大规模防卫战，输出每回合的存活情况；
-  - `keys_space.js` / `keys_esc.js`：空格快捷操作、Esc 撤回。
+  - `keys_space.js` / `keys_esc.js`：空格快捷操作、Esc 撤回；
+  - `editor.js`：关卡编辑器（刷地形、加敌人加波次、试打、原型关、导出）。
 - 脚本用 `page.setContent()` 加载片段版，并补上 `[hidden]{display:none!important}`。
 - 弹窗处理：`#reactModal`（`[data-c]` 反击 / `[data-r]` 防御回避 / `[data-g]` 援护）、`#endModal`（胜负和编队，`[data-cmd]` / `#btnForm`）、`#askModal`（结束回合确认）。
 - 每次改动后至少跑一遍相关脚本，并检查控制台没有错误。
@@ -304,6 +305,18 @@ Playwright 需要联网安装；在装不了它的机器上（例如 npm 缓存�
 - `startLevel()` 开头会关掉上一个模式留下的对话框。
 - 测试：`tests/mode_switch.js`（7 项断言）。`keys_esc`、`tut1_playthrough`、`audio_cues` 改成先选教学 1。
 - GitHub：公开仓库 `fanboy3006/mecha-tactics`，从 v0.22 开始推送（全新历史，不含 `图片库` 和作者邮箱）。这个会话不能建 Release，所以试玩下载走仓库里的 `index.html`。
+
+## 10.9 v0.27：关卡编辑器
+- 入口：「关卡」菜单最下面「工具 → 关卡编辑器」（`level = 'editor'`，`#editView`）。可编辑**全部肉鸽关（ISW-…）和原型关**（教学 1–3、防卫战、弱点演习）。
+- 工具：刷地形 / 放敌人（模板、等级、朝向，放进当前选中的波次）/ 出击点 / 移动 / 删除；波次面板可加波、删波、改「第几回合到达」；可改名字、宽高、词缀。
+- 存储：`edStore()` → localStorage `ED_KEY`，浏览器不让存时退回内存 `ED_ALL`（状态栏会提示先导出）。
+- **▶ 试打**：`edTest()` 用当前编辑结果生成 `LEVELS.edit`，`startLevel('edit')`；我方全员可选，等级用「试打我方 Lv」。打完「回编辑器」。
+- **导出**：`edExport()` → `{version, exportedAt, edits:{关卡号: override}}`（下载或复制）。
+- **写进游戏（Claude 做）**：把导出的 `edits` 原样贴进 fragment 里的 `const LEVEL_EDITS = {...}`。
+  - ISW 关：在 `NAME_A` 之前合并进 `STAGE_OVERRIDES`（`rows/enemies/waves/spots/affix/name/w/h`）；
+  - 原型关：编辑器模块末尾 `applyLevelEdit(LEVELS[id], o)`（`rows/enemies/allies/spots/waveEnemies`）。
+  - 贴完跑 `tests/editor.js` 和相关关卡的测试，再更新 `docs/肉鸽关卡表.md`（`gen_stage_table.js`）。
+- `__game.editor` → `{ED, store}`；测试 `tests/editor.js`。
 
 ## 12. 协作（Claude ↔ DSH）
 见 `C:\DSH-机战\协作\`：
