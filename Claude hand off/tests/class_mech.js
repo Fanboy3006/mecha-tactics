@@ -6,6 +6,7 @@ const fs = require('fs');
   const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => d.dismiss());
   await p.route('**/*', r => r.abort());
   await p.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>[hidden]{display:none!important}</style></head><body>${fs.readFileSync(__dirname + '/../src/artifact-fragment.html','utf8')}</body></html>`);
+  await p.waitForTimeout(300); await p.click('#titleRun'); await p.waitForTimeout(200);   // v0.29 开场模式选择：选肉鸽，回到原来的初始状态
   let bad = 0; const check = (label, ok, extra = '') => { if (!ok) bad++; console.log(`${ok ? '✓' : '✗'} ${label} ${extra}`); };
   // 准备：载入关卡，把指定单位摆好位置
   const setup = (lv, fn) => p.evaluate(([lv, fn]) => { const g = window.__game; g.setSpeed(0.01); g.startLevel(lv); document.querySelector('#endModal').hidden = true; document.querySelector('#tipCard').hidden = true; g.cheatLevel(20); return new Function('g', fn)(g); }, [lv, fn]);

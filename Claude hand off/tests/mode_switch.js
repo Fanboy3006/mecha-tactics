@@ -8,7 +8,9 @@ const fs = require('fs');
   await p.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>[hidden]{display:none!important}</style></head><body>${fs.readFileSync(__dirname + '/../src/artifact-fragment.html','utf8')}</body></html>`);
   let bad = 0; const check = (label, ok, extra = '') => { if (!ok) bad++; console.log(`${ok ? '✓' : '✗'} ${label} ${extra}`); };
   await p.waitForTimeout(300);
-  check('打开页面默认是肉鸽', await p.evaluate(() => document.querySelector('#levelSel').value === 'roguelike') && await p.isVisible('#endDlg [data-v="近卫"]'));
+  check('开场先显示模式选择（推荐肉鸽）', await p.isVisible('#titleRun') && await p.isVisible('#endDlg [data-v="tut1"]') && await p.isVisible('#endDlg [data-v="story"]'));
+  await p.click('#titleRun'); await p.waitForTimeout(300);
+  check('选肉鸽后进入肉鸽开局', await p.evaluate(() => document.querySelector('#levelSel').value === 'roguelike') && await p.isVisible('#endDlg [data-v="近卫"]'));
   const groups = await p.evaluate(() => [...document.querySelectorAll('#levelSel optgroup')].map(g => g.label));
   check('下拉菜单分三大类', groups[0].includes('肉鸽') && groups[1].includes('剧情模式（待施工）') && groups.slice(2, -1).every(g => g.startsWith('机体展示')) && groups[groups.length-1] === '工具', groups.join(' / ') + JSON.stringify([groups[0].includes('肉鸽'), groups[1], groups.slice(2,-1).every(g => g.startsWith('机体展示')), groups[groups.length-1]]));
   // 开局
