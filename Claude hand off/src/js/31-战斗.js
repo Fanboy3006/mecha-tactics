@@ -370,7 +370,30 @@ window.addEventListener('error', e => { if (RUN && !RUN.over && RUN.events) rlog
 window.addEventListener('unhandledrejection', e => { if (RUN && !RUN.over && RUN.events) rlog('error', {msg:String(e.reason && (e.reason.message || e.reason.code) || e.reason).slice(0, 200)}); });
 
 document.querySelectorAll('#levelSel option').forEach(o => { const L = LEVELS[o.value]; if (L && L.code && !o.textContent.startsWith(L.code)) o.textContent = `${L.code} ${o.textContent}`; });
-startLevel('roguelike');            // 默认入口：肉鸽模式
+startLevel('roguelike');            // 默认入口：肉鸽模式（背后先准备好肉鸽开局，再盖一层模式选择）
+/* 开场模式选择（作者 2026-10-05）：教学 / 肉鸽 / 剧情，推荐肉鸽 */
+function goMode(v){ $('#levelSel').value = v; startLevel(v); }
+async function titleScreen(){
+  const v = await dlg(`<div class="eyebrow" style="color:var(--accent)">机甲战棋 ${GAME_VERSION}</div><h2>选择模式</h2>
+    <div class="acts" style="flex-direction:column;align-items:stretch;gap:8px">
+      <button class="btn primary" data-v="roguelike" id="titleRun">★ 肉鸽模式 · 混沌迷宫（推荐）</button>
+      <button class="btn" data-v="tut1">教学关 · 第一次玩从这里开始</button>
+      <button class="btn" data-v="story">剧情模式（待施工）</button>
+    </div><p class="small">之后随时可以在顶栏「关卡」菜单里切换模式。</p>`);
+  if (v === 'story'){
+    const s = await dlg(`<h2>剧情模式 · 待施工</h2><p class="small">剧本还没写。可以先玩这些原型关卡：</p>
+      <div class="acts" style="flex-direction:column;align-items:stretch;gap:8px">
+        <button class="btn" data-v="defense">大规模防卫战（Lv20）</button>
+        <button class="btn" data-v="drill">弱点演习（Lv20）</button>
+        <button class="btn" data-v="skirmish">自由对战 · 随机地图</button>
+        <button class="btn" data-v="back">← 返回</button>
+      </div>`);
+    if (s === 'back') return titleScreen();
+    return goMode(s);
+  }
+  goMode(v);
+}
+titleScreen();
 requestAnimationFrame(draw);
 /* ============================================================================
  *  关卡编辑器（v0.27，Claude 维护）
