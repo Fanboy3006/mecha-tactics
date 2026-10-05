@@ -152,3 +152,40 @@ function relicsCard(){
   const own = RUN.relics || [];
   return `<div class="rv-card"><h3>藏品（${own.length}）</h3>${own.length ? own.map(id => { const r = RELICS[id]; return `<div class="rv-row"><span class="nm">${r.name}<small>${r.tier}</small><br><small style="margin-left:0">${r.desc}</small></span></div>`; }).join('') : '<p class="small">还没有。精英战、层底守军、黑市可以获得。</p>'}</div>`;
 }
+/* ---- 条件类（v0.31 第三步）---- */
+const relicCls = u => u && u.tags && u.tags.战斗分类;
+/* 伤害管线（genMods）里调用：按当场站位算的伤害加成，返回百分比 */
+function relicDmg(att, def, w, o = {}){
+  if (!att || att.side !== 'ally' || !RUN || !RUN.relics || !RUN.relics.length || !LV || !LV.run) return 0;
+  const [ax, ay] = o.from || [att.x, att.y];
+  const allies = units.filter(u => u.side === 'ally' && u.hp > 0 && u !== att);
+  const near = r => allies.filter(u => distU(att, u, ax, ay) <= r).length;   // att 站在 (ax, ay) 时和 u 的距离
+  let p = 0;
+  if (hasRelic('a2') && allies.some(u => relicCls(u) === '辅助' && distU(att, u, ax, ay) <= 3)) p += 10;
+  if (hasRelic('x3') && relicCls(att) === '特种') p += near(3) ? -10 : 60;
+  if (hasRelic('b3')) p += Math.min(24, near(2) * 6);
+  if (hasRelic('b4') && def) p += Math.min(30, distU(att, def, ax, ay) * 3);
+  return p;
+}
+/* 开战时的整场加成：混编、孤狼、源碳反应炉、过载广播的代价 */
+function relicBattleStart(allies){
+  if (!RUN || !RUN.relics || !RUN.relics.length) return;
+  const n = allies.length, kinds = new Set(allies.map(relicCls)).size;
+  for (const u of allies){
+    const m = u.relicMods = u.relicMods || {};
+    if (hasRelic('b1')) m.dmg = (m.dmg || 0) + 8 * kinds;
+    if (hasRelic('b2')){ if (n <= 2){ m.dmg = (m.dmg || 0) + 50; m.armorPct = (m.armorPct || 0) + 30; } else if (n >= 4) m.dmg = (m.dmg || 0) - 15; }
+    if (hasRelic('f3')) m.dmg = (m.dmg || 0) + Math.min(30, Math.floor(RUN.he / 10) * 3);
+    if (hasRelic('a3') && relicCls(u) === '辅助'){ u.maxHp = Math.max(1, Math.round(u.maxHp * .5)); u.hp = Math.min(u.hp, u.maxHp); }
+  }
+}
+Hooks.on('strikeResolved', c => {
+  if (!c.hit || !hasRelic('x2') || !LV || !LV.run || c.att.side !== 'ally' || relicCls(c.att) !== '特种' || c.def.hp <= 0) return;
+  c.def.debuffs.push({pct:10, src:'破甲弹头'});
+}, '藏品：破甲弹头');
+Hooks.on('phaseStart', c => {
+  if (c.side !== 'ally' || !hasRelic('a4') || !LV || !LV.run) return;
+  const al = units.filter(u => u.side === 'ally' && u.hp > 0), k = Math.min(5, al.filter(u => relicCls(u) === '辅助').length);
+  if (!k) return;
+  al.forEach(u => { const h = Math.min(u.maxHp - u.hp, Math.round(u.maxHp * .03 * k)); if (h > 0){ u.hp += h; addFloat(u, `+${h}`, '#9fe0b8'); } });
+}, '藏品：后勤网');

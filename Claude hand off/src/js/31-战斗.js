@@ -161,7 +161,7 @@ async function runBattle(kind, code){
         if (skLv('后勤') >= 3) u.mov += 1;
       });
       /* v0.31 藏品：出击机体的常驻加成和属性；已在场的敌人补算减益 */
-      { const al = units.filter(u => u.side === 'ally'); relicApplyAllies(al); units.filter(u => u.side === 'enemy').forEach(e => relicApplyFoe(e, al));
+      { const al = units.filter(u => u.side === 'ally'); relicApplyAllies(al); relicBattleStart(al); units.filter(u => u.side === 'enemy').forEach(e => relicApplyFoe(e, al));
         if (RUN.relics && RUN.relics.length) log(`藏品生效：${RUN.relics.map(id => RELICS[id].name).join('、')}`, null, 'sys'); }
       rlog('deploy', {units:units.filter(u => u.side === 'ally').map(u => `${u.mech}:${u.lv}[${(u.loadout || []).join('/')}]`).join(','), cap:deployCap()});
       if (c){ const f = makeUnit(tplOf('M1'), 'ally', 0, 0); f.command = 'meteorRun'; for (let k=1;k<20;k++) levelUp(f); setCommander(f); }
@@ -240,8 +240,8 @@ async function runBattleEnd(win){
   if (RUN.cmd) await cmdXP({battle:1, elite:2, guard:2, source:2, chase:2}[kind] || 1);
   if (kind === 'elite' || Math.random() < .35) await givePart(pick(Object.keys(PARTS)), '战利品');
   for (let i = 0; i < (RUN.chestParts || 0); i++) await givePart(pick(Object.keys(PARTS)), '补给箱'); RUN.chestParts = 0;
-  if (kind === 'elite') await offerRelics(['普通', '稀有'], '精英战');
-  if (kind === 'guard' || kind === 'final') await offerRelics(['稀有', '传说'], kind === 'final' ? '迷宫之主' : '层底守军');
+  if (win && kind === 'elite') await offerRelics(['普通', '稀有'], '精英战');
+  if (win && (kind === 'guard' || kind === 'final')) await offerRelics(['稀有', '传说'], kind === 'final' ? '迷宫之主' : '层底守军');
   if (RUN.chestRelic){ RUN.chestRelic = false; await offerRelics(['普通'], '补给箱'); }
   addTicket(tcls, '战后');
   await useTicket(RUN.tickets.length - 1);
@@ -297,7 +297,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.30';
+const GAME_VERSION = 'v0.31';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){

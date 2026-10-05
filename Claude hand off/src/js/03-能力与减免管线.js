@@ -156,6 +156,7 @@ function genMods(att, w, def, o = {}){
   for (const [k, v] of weakList(def, w, o)) if (v > 0){ pct += v; notes.push(`弱点·${k} +${v}%`); }
   const t = tfx(att, 'dmg', def, w, o); if (t){ pct += t; notes.push(`特技 ${t > 0 ? '+' : ''}${t}%`); }
   const b = att ? buffSum(att, 'dmg') : 0; if (b){ pct += b; notes.push(`增益 ${b > 0 ? '+' : ''}${b}%`); }
+  const rl = relicDmg(att, def, w, o); if (rl){ pct += rl; notes.push(`藏品 ${rl > 0 ? '+' : ''}${rl}%`); }
   const rm = RM();
   if (rm && att && att.side === 'ally'){
     const v = rm.atk * 2 + ((isSure(w) || w.fire === 'command') ? rm.art : 0) + (rm.overload ? 30 : 0);
