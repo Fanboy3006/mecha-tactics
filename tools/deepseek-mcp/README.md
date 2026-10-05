@@ -42,9 +42,26 @@ uv pip install --python "$env:USERPROFILE\.aider312\Scripts\python.exe" aider-ch
 
 ## 2. 接到 Claude 桌面版
 
-配置文件在 `%APPDATA%\Claude\claude_desktop_config.json`（Windows 路径一般是
-`C:\Users\<你>\AppData\Roaming\Claude\claude_desktop_config.json`）。把这一段加进 `mcpServers`
-（已经有别的服务器就在同一个对象里加一项，别整个文件替换掉）：
+**先找到配置文件在哪**——两个地方，看你装的是哪个版本：
+
+| 版本 | 路径 |
+|---|---|
+| 官网下载的 `.exe` 安装版 | `%APPDATA%\Claude\claude_desktop_config.json`，即 `C:\Users\<你>\AppData\Roaming\Claude\claude_desktop_config.json` |
+| **Microsoft Store（MSIX）版** | 被系统重定向到 `%LOCALAPPDATA%\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\claude_desktop_config.json` |
+
+不确定就用这条命令直接问出完整路径（找不到就是还没启动过桌面版）：
+
+```powershell
+Get-ChildItem "$env:APPDATA\Claude\claude_desktop_config.json",
+              "$env:LOCALAPPDATA\Packages\Claude_*\LocalCache\Roaming\Claude\claude_desktop_config.json" `
+              -ErrorAction SilentlyContinue | Select-Object FullName, LastWriteTime
+```
+
+> 本机（作者 2026-10-05）是**商店版**，`%APPDATA%\Claude` 根本不存在，真实路径是
+> `C:\Users\zxwu0\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\claude_desktop_config.json`。
+
+**然后在那个文件里加 `mcpServers`**（已经有别的服务器就在同一个对象里加一项；文件里还有 `preferences`
+之类的其它内容，**别整个文件替换掉**，只加这一段）：
 
 ```json
 {
@@ -66,8 +83,8 @@ uv pip install --python "$env:USERPROFILE\.aider312\Scripts\python.exe" aider-ch
   也不会和系统里别的 Python 抢 `aider` 这个名字。
 - 如果桌面版报 `node` 找不到，把 `command` 换成绝对路径：`"C:\\Program Files\\nodejs\\node.exe"`。
 - 环境变量只在**这个服务器进程**里生效，不会影响系统别的东西。
-- 改完配置**完全退出桌面版再启动**（托盘里也要退干净），Claude 的工具列表里就会出现
-  `ds_code` 和 `ds_status`。
+- **改之前先把桌面版完全退出**（托盘右键也要退），否则它退出时会把这个文件写回去、把你的改动冲掉；
+  改完再启动，Claude 的工具列表里就会出现 `ds_code` 和 `ds_status`。
 
 ## 3. 两个工具
 
