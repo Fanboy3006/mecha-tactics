@@ -72,14 +72,14 @@ const ALLY_T = [
     wp({name:'METEOR 全弹发射', power:2000, fire:'direct', range:[2,6], special:'lock', lockN:5, cd:2, unlock:20, dmgType:'光束',
         upgrades:[{lv:30, lockN:8, disarm:true, note:'Lv30：最多锁定 8 台；被命中的目标「武装损坏」，下一个敌方阶段不能攻击'}],
         desc:'多重锁定：在射程内选择最多 5 台敌机（直射，需要视线），逐一攻击。目标不能反击，也不能选择防御或回避。'}),
-    wp({name:'超级 DRAGOON', power:800, fire:'indirect', range:[2,8], special:'funnel', hits:16, cd:2, unlock:30, dmgType:'光束',
-        desc:'浮游炮：发射后从 8 个随机方向攻击 16 次，目标闪避减半。不需要视线。Lv30 解锁。'}),
+    wp({name:'超级 DRAGOON', power:800, fire:'indirect', range:[2,8], special:'funnel', hits:8, cd:2, unlock:30, dmgType:'光束',
+        desc:'浮游炮：发射后从 8 个随机方向攻击 8 次，目标闪避减半。不需要视线。Lv30 解锁。'}),
   ]},
   {pilot:'卡嘉莉', mech:'S2', short:'S2', mechName:'晓', trait:'orbLion', canFly:true, tags:{势力:'克莱因派', 远近分类:'远程', 战斗分类:'重装'}, hp:7000, armor:1200, eva:10, mov:5, melee:130, shoot:140, skill:130, flying:false, w:1, h:1, abilities:['beamReflect'], weapons:[
     wp({name:'光束步枪', power:1700, fire:'direct', range:[1,4], dmgType:'光束'}),
     wp({name:'光束军刀', power:1900, stat:'格斗', fire:'melee', dmgType:'光束'}),
-    wp({name:'DRAGOON', power:600, fire:'indirect', range:[2,6], special:'funnel', hits:16, cd:2, dmgType:'光束',
-        desc:'浮游炮：发射后从 8 个随机方向攻击 16 次，目标闪避减半；每段按随机方向算正面 / 侧面 / 背面加成，不附加破防。不需要视线。'}),
+    wp({name:'DRAGOON', power:600, fire:'indirect', range:[2,6], special:'funnel', hits:8, cd:2, dmgType:'光束',
+        desc:'浮游炮：发射后从 8 个随机方向攻击 8 次，目标闪避减半；每段按随机方向算正面 / 侧面 / 背面加成，不附加破防。不需要视线。'}),
     wp({name:'八咫之守', fire:'support', range:[0,3], buff:{beamRed:40}, cd:2, unlock:20, dmgType:'—',
         desc:'3 格内的其他友军光束减伤 40%，持续到下一个我方阶段开始。'}),
   ]},
@@ -355,7 +355,7 @@ const ENEMY_T = {
     wp({name:'光束军刀', power:1700, stat:'格斗', fire:'melee', dmgType:'光束'}),
   ]},
   funnel:{pilot:'敌兵', mech:'浮游炮母机', short:'浮', weak:{近战:60, 直射:-30}, hp:4800, armor:300, eva:20, mov:4, melee:70, shoot:130, skill:120, flying:true, w:1, h:1, abilities:[], weapons:[
-    wp({name:'浮游炮', power:250, fire:'indirect', range:[3,8], special:'funnel', hits:16, cd:1, dmgType:'光束'}),
+    wp({name:'浮游炮', power:250, fire:'indirect', range:[3,8], special:'funnel', hits:3, cd:1, dmgType:'光束'}),
   ]},
   berserker:{pilot:'敌兵', mech:'狂战士', short:'狂', weak:{反击:50}, hp:4500, armor:300, eva:15, mov:6, melee:130, shoot:80, skill:100, flying:false, w:1, h:1, abilities:['berserk'], weapons:[
     wp({name:'双斧', power:2000, stat:'格斗', fire:'melee'}),
