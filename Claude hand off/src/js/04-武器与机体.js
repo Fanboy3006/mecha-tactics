@@ -255,6 +255,15 @@ ALLY_T.forEach(t => {
   if (cls === '狙击') add('supportAtk');
   if (cls === '重装') add('guard');
   if (t.mech === 'S2') add('guardAtk');
+  /* v0.30 友军加强（作者试玩）：近卫威力 +20%、初始近战射程至少 2；不能移动后使用的武器（地图炮除外）威力 +25%；刹那、雷萨、Nagi 单独调整 */
+  t.weapons.forEach(w => {
+    if (cls === '近卫' && w.power > 0) w.power = Math.round(w.power * 1.2);
+    if (cls === '近卫' && w.fire === 'melee' && w.unlock <= 1 && w.range[1] < 2) w.range = [w.range[0], 2];
+    if (w.afterMove === false && w.fire !== 'map' && w.power > 0) w.power = Math.round(w.power * 1.25);
+  });
+  if (t.mech === 'CB1'){ t.canFly = true; t.critBase = 15; t.weapons.forEach(w => { if (w.fire !== 'map' && w.range[1] < 3) w.range = [w.range[0], 3]; }); }
+  if (t.mech === 'B1') t.weapons.forEach(w => { if (w.unlock <= 1 && w.fire === 'melee') w.range = [w.range[0], 4]; });
+  if (t.mech === 'M4') t.weapons.push(wp({name:'月光手枪', power:1500, fire:'direct', range:[1,4], hit:110, desc:'移动后也能用的副武器。'}));
 });
 const FORMS = {
   /* icon：这个变身形态用哪个图标（tools/roster.mjs 也读这个字段来对账）。 */

@@ -27,7 +27,7 @@ function critRate(w, att, def, opts = {}){
   if (att && def && hasTrait(att,'overflowCrit')) over = Math.max(0, hitRate(att, w, def, opts.reaction, undefined, opts).raw - 100);
   const rage = att && hasTrait(att,'hallelujah') && att.hp < att.maxHp/2 ? 20 : 0;
   const extra = att && def ? tfx(att, 'crit', def, w, opts) + buffSum(att,'crit') + (hasTrait(att,'allIn') && hitRate(att, w, def, opts.reaction, undefined, opts).raw < 70 ? 30 : 0) : 0;
-  return clamp(10 + w.critMod + ZONE[zone].crit + over + rage + extra, 0, 100);
+  return clamp(10 + (att && att.critBase || 0) + w.critMod + ZONE[zone].crit + over + rage + extra, 0, 100);
 }
 /* ---- 晋升档位（v0.24）----
    精锐 / 骨干 Lv30：原本 Lv20 解锁的武装提升一档 = 威力 ×1.3（辅助类武装的增益数值 ×1.5）。
