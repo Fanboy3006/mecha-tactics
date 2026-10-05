@@ -18,7 +18,7 @@ function runRender(){
   v.innerHTML = bar + `<div class="rv-main"><div class="rv-map">${RUN.map ? mapSVG() : '<p>终点</p>'}
       <div class="rv-legend">${Object.entries(NODE).filter(([k]) => k !== 'start').map(([k,n]) => `<span><b style="color:${n.col}">${n.icon}</b> ${n.name}</span>`).join('')}</div>
       <p class="small">点击高亮的节点移动：走几格就消耗几点推进剂，可以跳过中间格直接走到后面（中间格不触发，标着 −n 的是需要的推进剂）。推进剂用完时还没走到出口，会触发追击战。</p></div>
-    <div class="rv-side">${nodeCard()}${ticketCard()}${teamCard()}${partsCard()}${RUN.cmd ? cmdCard() : ''}${logCard()}</div></div>`;
+    <div class="rv-side">${nodeCard()}${ticketCard()}${teamCard()}${partsCard()}${relicsCard()}${RUN.cmd ? cmdCard() : ''}${logCard()}</div></div>`;
   v.querySelectorAll('[data-node]').forEach(el => el.onclick = () => runClickNode(+el.dataset.node));
   v.querySelectorAll('[data-promo]').forEach(b => b.onclick = () => runPromote(b.dataset.promo));
   v.querySelectorAll('[data-ticket]').forEach(b => b.onclick = async () => { if (runBusy) return; runBusy = true; await useTicket(+b.dataset.ticket); runBusy = false; runRender(); });

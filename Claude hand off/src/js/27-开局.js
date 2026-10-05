@@ -86,6 +86,7 @@ async function useTicket(i){
   if (v.startsWith('promo:')){ runLog(`使用【${ticketName(cls)}】晋升`); runPromote(v.slice(6)); return; }
   RUN.hope -= recCost(v); RUN.units.push({mech:v, lv:10});
   runLog(`招募 ${tplOf(v).pilot}（${TIER_NAME[tierOf(v)]}，−${recCost(v)} 希望）`);
+  relicPendingPromo();
 }
 /* 部队等级：作战和事件给经验，升级时获得希望（希望只从这里来） */
 const LV_NEED = [0, 0, 8, 18, 30, 44, 60, 78, 98, 120, 144, 170];

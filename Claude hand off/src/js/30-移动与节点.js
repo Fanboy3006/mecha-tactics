@@ -90,19 +90,22 @@ async function givePart(k, src){
   }
   runLog(`获得零件【${P.name}】`);
 }
+const partPrice = k => Math.round(PARTS[k].price * (hasRelic('f1') ? .7 : 1));   // 黑市会员卡 −30%
 async function nodeShop(){
   for (;;){
-    if (!RUN.shopStock || RUN.shopStock.layer !== RUN.layer || RUN.shopStock.k !== RUN.cur) RUN.shopStock = {layer:RUN.layer, k:RUN.cur, items:sample(Object.keys(PARTS), 4)};
+    if (!RUN.shopStock || RUN.shopStock.layer !== RUN.layer || RUN.shopStock.k !== RUN.cur) RUN.shopStock = {layer:RUN.layer, k:RUN.cur, items:sample(Object.keys(PARTS), 4), relics:relicPick(['普通', '稀有', '传说'], 2)};
     const st = RUN.shopStock.items, cap = RUN.partCap || 8;
     const sellables = RUN.parts.map((p,i) => ({p, i, price: PARTS[p.k].kind === '自然物' ? p.value : 2}));
     const v = await dlg(`<div class="eyebrow" style="color:var(--accent)">黑市</div><h2>源碳结晶 ${RUN.he} · 零件箱 ${RUN.parts.length} / ${cap}</h2>
-      <div class="rcards">${st.map((k, i) => `<button class="rcard" style="--fc:var(--accent)" data-v="buy${i}" ${PARTS[k].price > RUN.he || RUN.parts.length >= cap ? 'disabled' : ''}><b>${PARTS[k].name}</b><small>${PARTS[k].kind}：${PARTS[k].desc}</small><span class="cost">${PARTS[k].price} 源碳结晶</span></button>`).join('') || '<p class="small">卖完了。</p>'}</div>
+      <div class="rcards">${st.map((k, i) => `<button class="rcard" style="--fc:var(--accent)" data-v="buy${i}" ${partPrice(k) > RUN.he || RUN.parts.length >= cap ? 'disabled' : ''}><b>${PARTS[k].name}</b><small>${PARTS[k].kind}：${PARTS[k].desc}</small><span class="cost">${partPrice(k)} 源碳结晶</span></button>`).join('') || '<p class="small">卖完了。</p>'}</div>
+      <div class="rcards">${(RUN.shopStock.relics || []).map((id, i) => relicCardHtml(id, 'relic' + i, relicPrice(id) > RUN.he ? 'disabled' : '').replace('</button>', `<span class="cost">${relicPrice(id)} 源碳结晶</span></button>`)).join('')}</div>
       <p class="small">出售：自然物按估价卖出，其他零件 2 源碳结晶。</p>
       <div class="acts">${sellables.map(s => `<button class="btn" data-v="sell${s.i}">卖 ${PARTS[s.p.k].name}（+${s.price}）</button>`).join('')}
         <button class="btn" data-v="rent" ${RUN.he < 6 ? 'disabled' : ''}>空间租赁：零件箱 +1（6 源碳结晶）</button>
         <button class="btn primary" data-v="leave">离开</button></div>`, true);
     if (v === 'leave') return;
-    if (v.startsWith('buy')){ const i = +v.slice(3), k = st[i]; RUN.he -= PARTS[k].price; RUN.parts.push(newPart(k)); st.splice(i, 1); runLog(`黑市买入【${PARTS[k].name}】`); }
+    if (v.startsWith('relic')){ const i = +v.slice(5), id = RUN.shopStock.relics[i]; RUN.he -= relicPrice(id); gainRelicRun(id, '黑市'); RUN.shopStock.relics.splice(i, 1); runRender(); continue; }
+    if (v.startsWith('buy')){ const i = +v.slice(3), k = st[i]; RUN.he -= partPrice(k); RUN.parts.push(newPart(k)); st.splice(i, 1); runLog(`黑市买入【${PARTS[k].name}】`); }
     else if (v.startsWith('sell')) runSellPart(+v.slice(4), true);
     else if (v === 'rent'){ RUN.he -= 6; RUN.partCap = (RUN.partCap || 8) + 1; runLog('空间租赁：零件箱 +1'); }
     runRender();

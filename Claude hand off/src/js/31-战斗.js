@@ -166,7 +166,7 @@ async function runBattle(kind, code){
       rlog('deploy', {units:units.filter(u => u.side === 'ally').map(u => `${u.mech}:${u.lv}[${(u.loadout || []).join('/')}]`).join(','), cap:deployCap()});
       if (c){ const f = makeUnit(tplOf('M1'), 'ally', 0, 0); f.command = 'meteorRun'; for (let k=1;k<20;k++) levelUp(f); setCommander(f); }
       /* v0.30 补给箱：普通战 1 个、精英战 2 个，放在地图右半边的空地上 */
-      { const want = kind === 'elite' ? 2 : 1, W = LV.w, H = LV.h; let placed = 0;
+      { const want = (kind === 'elite' ? 2 : 1) + (hasRelic('f2') ? 1 : 0), W = LV.w, H = LV.h; let placed = 0;
         for (let tries = 0; tries < 200 && placed < want; tries++){
           const x = Math.floor(W / 2) + Math.floor(Math.random() * Math.max(1, W / 2 - 2)), y = 1 + Math.floor(Math.random() * Math.max(1, H - 2));
           if (occupant(x, y) || walls.has(y*N+x) || TER[map[y][x]].groundBlock) continue;
@@ -184,8 +184,10 @@ async function runBattle(kind, code){
 }
 Hooks.on('unitDestroyed', c => {
   if (!(LV && LV.run && RUN) || !c.unit.chest) return;
-  if (Math.random() < .6){ const g = 3 + Math.floor(Math.random() * 3); RUN.he += g; addFloat(c.unit, `+${g} 源碳结晶`, '#ffd166'); log(`补给箱：源碳结晶 +${g}`, null, 'sys'); }
-  else { RUN.chestParts = (RUN.chestParts || 0) + 1; addFloat(c.unit, '+零件', '#ffd166'); log('补给箱：获得零件（战后领取）', null, 'sys'); }
+  const both = hasRelic('f2'), cur = both || Math.random() < .6;   // 战地回收协议：两样都给
+  if (cur){ const g = 3 + Math.floor(Math.random() * 3); RUN.he += g; addFloat(c.unit, `+${g} 源碳结晶`, '#ffd166'); log(`补给箱：源碳结晶 +${g}`, null, 'sys'); }
+  if (both || !cur){ RUN.chestParts = (RUN.chestParts || 0) + 1; if (!both) addFloat(c.unit, '+零件', '#ffd166'); log('补给箱：获得零件（战后领取）', null, 'sys'); }
+  if (Math.random() < .05){ RUN.chestRelic = true; log('补给箱里有一件藏品（战后挑选）', null, 'sys'); }
   rlog('chest', {mech: c.by ? c.by.mech : null});
 }, '肉鸽：补给箱掉落');
 Hooks.on('unitDestroyed', c => {
@@ -238,6 +240,9 @@ async function runBattleEnd(win){
   if (RUN.cmd) await cmdXP({battle:1, elite:2, guard:2, source:2, chase:2}[kind] || 1);
   if (kind === 'elite' || Math.random() < .35) await givePart(pick(Object.keys(PARTS)), '战利品');
   for (let i = 0; i < (RUN.chestParts || 0); i++) await givePart(pick(Object.keys(PARTS)), '补给箱'); RUN.chestParts = 0;
+  if (kind === 'elite') await offerRelics(['普通', '稀有'], '精英战');
+  if (kind === 'guard' || kind === 'final') await offerRelics(['稀有', '传说'], kind === 'final' ? '迷宫之主' : '层底守军');
+  if (RUN.chestRelic){ RUN.chestRelic = false; await offerRelics(['普通'], '补给箱'); }
   addTicket(tcls, '战后');
   await useTicket(RUN.tickets.length - 1);
   if (kind === 'guard' || kind === 'chase'){ if (kind === 'chase') RUN.chased = true; await enterLayer(RUN.layer + 1); }

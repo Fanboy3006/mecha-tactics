@@ -6815,7 +6815,7 @@ const SKILLS = {
 const XP_NEED = [0, 2, 5, 9, 14, 20, 27, 35, 44];
 const skLv = k => RUN && RUN.cmd ? (RUN.cmd.skills[k] || 0) : 0;
 const propMax = () => 7 + [0,2,3,4][skLv('领航')] + [0,1,2,2][skLv('后勤')] + (RUN.parts.some(p => p.k === 'rite') ? 1 : 0) + (RUN.layerPropBonus || 0);
-const deployCap = () => 3 + Math.floor((RUN.lvl - 1) / 3) + (skLv('编制') >= 2 ? 1 : 0);   // 初始 3 人，部队每升 3 级 +1，编制 +1
+const deployCap = () => 3 + Math.floor((RUN.lvl - 1) / 3) + (skLv('编制') >= 2 ? 1 : 0) + (hasRelic('f4') ? 1 : 0);   // 初始 3 人，部队每升 3 级 +1，编制 +1
 const sightR = () => 3 + (skLv('侦察') >= 3 ? 2 : skLv('侦察') >= 1 ? 1 : 0);
 
 /* ---------- 侵蚀场 ---------- */
@@ -6985,6 +6985,7 @@ async function useTicket(i){
   if (v.startsWith('promo:')){ runLog(`使用【${ticketName(cls)}】晋升`); runPromote(v.slice(6)); return; }
   RUN.hope -= recCost(v); RUN.units.push({mech:v, lv:10});
   runLog(`招募 ${tplOf(v).pilot}（${TIER_NAME[tierOf(v)]}，−${recCost(v)} 希望）`);
+  relicPendingPromo();
 }
 /* 部队等级：作战和事件给经验，升级时获得希望（希望只从这里来） */
 const LV_NEED = [0, 0, 8, 18, 30, 44, 60, 78, 98, 120, 144, 170];
@@ -7068,7 +7069,7 @@ function runRender(){
   v.innerHTML = bar + `<div class="rv-main"><div class="rv-map">${RUN.map ? mapSVG() : '<p>终点</p>'}
       <div class="rv-legend">${Object.entries(NODE).filter(([k]) => k !== 'start').map(([k,n]) => `<span><b style="color:${n.col}">${n.icon}</b> ${n.name}</span>`).join('')}</div>
       <p class="small">点击高亮的节点移动：走几格就消耗几点推进剂，可以跳过中间格直接走到后面（中间格不触发，标着 −n 的是需要的推进剂）。推进剂用完时还没走到出口，会触发追击战。</p></div>
-    <div class="rv-side">${nodeCard()}${ticketCard()}${teamCard()}${partsCard()}${RUN.cmd ? cmdCard() : ''}${logCard()}</div></div>`;
+    <div class="rv-side">${nodeCard()}${ticketCard()}${teamCard()}${partsCard()}${relicsCard()}${RUN.cmd ? cmdCard() : ''}${logCard()}</div></div>`;
   v.querySelectorAll('[data-node]').forEach(el => el.onclick = () => runClickNode(+el.dataset.node));
   v.querySelectorAll('[data-promo]').forEach(b => b.onclick = () => runPromote(b.dataset.promo));
   v.querySelectorAll('[data-ticket]').forEach(b => b.onclick = async () => { if (runBusy) return; runBusy = true; await useTicket(+b.dataset.ticket); runBusy = false; runRender(); });
@@ -7232,19 +7233,22 @@ async function givePart(k, src){
   }
   runLog(`获得零件【${P.name}】`);
 }
+const partPrice = k => Math.round(PARTS[k].price * (hasRelic('f1') ? .7 : 1));   // 黑市会员卡 −30%
 async function nodeShop(){
   for (;;){
-    if (!RUN.shopStock || RUN.shopStock.layer !== RUN.layer || RUN.shopStock.k !== RUN.cur) RUN.shopStock = {layer:RUN.layer, k:RUN.cur, items:sample(Object.keys(PARTS), 4)};
+    if (!RUN.shopStock || RUN.shopStock.layer !== RUN.layer || RUN.shopStock.k !== RUN.cur) RUN.shopStock = {layer:RUN.layer, k:RUN.cur, items:sample(Object.keys(PARTS), 4), relics:relicPick(['普通', '稀有', '传说'], 2)};
     const st = RUN.shopStock.items, cap = RUN.partCap || 8;
     const sellables = RUN.parts.map((p,i) => ({p, i, price: PARTS[p.k].kind === '自然物' ? p.value : 2}));
     const v = await dlg(`<div class="eyebrow" style="color:var(--accent)">黑市</div><h2>源碳结晶 ${RUN.he} · 零件箱 ${RUN.parts.length} / ${cap}</h2>
-      <div class="rcards">${st.map((k, i) => `<button class="rcard" style="--fc:var(--accent)" data-v="buy${i}" ${PARTS[k].price > RUN.he || RUN.parts.length >= cap ? 'disabled' : ''}><b>${PARTS[k].name}</b><small>${PARTS[k].kind}：${PARTS[k].desc}</small><span class="cost">${PARTS[k].price} 源碳结晶</span></button>`).join('') || '<p class="small">卖完了。</p>'}</div>
+      <div class="rcards">${st.map((k, i) => `<button class="rcard" style="--fc:var(--accent)" data-v="buy${i}" ${partPrice(k) > RUN.he || RUN.parts.length >= cap ? 'disabled' : ''}><b>${PARTS[k].name}</b><small>${PARTS[k].kind}：${PARTS[k].desc}</small><span class="cost">${partPrice(k)} 源碳结晶</span></button>`).join('') || '<p class="small">卖完了。</p>'}</div>
+      <div class="rcards">${(RUN.shopStock.relics || []).map((id, i) => relicCardHtml(id, 'relic' + i, relicPrice(id) > RUN.he ? 'disabled' : '').replace('</button>', `<span class="cost">${relicPrice(id)} 源碳结晶</span></button>`)).join('')}</div>
       <p class="small">出售：自然物按估价卖出，其他零件 2 源碳结晶。</p>
       <div class="acts">${sellables.map(s => `<button class="btn" data-v="sell${s.i}">卖 ${PARTS[s.p.k].name}（+${s.price}）</button>`).join('')}
         <button class="btn" data-v="rent" ${RUN.he < 6 ? 'disabled' : ''}>空间租赁：零件箱 +1（6 源碳结晶）</button>
         <button class="btn primary" data-v="leave">离开</button></div>`, true);
     if (v === 'leave') return;
-    if (v.startsWith('buy')){ const i = +v.slice(3), k = st[i]; RUN.he -= PARTS[k].price; RUN.parts.push(newPart(k)); st.splice(i, 1); runLog(`黑市买入【${PARTS[k].name}】`); }
+    if (v.startsWith('relic')){ const i = +v.slice(5), id = RUN.shopStock.relics[i]; RUN.he -= relicPrice(id); gainRelicRun(id, '黑市'); RUN.shopStock.relics.splice(i, 1); runRender(); continue; }
+    if (v.startsWith('buy')){ const i = +v.slice(3), k = st[i]; RUN.he -= partPrice(k); RUN.parts.push(newPart(k)); st.splice(i, 1); runLog(`黑市买入【${PARTS[k].name}】`); }
     else if (v.startsWith('sell')) runSellPart(+v.slice(4), true);
     else if (v === 'rent'){ RUN.he -= 6; RUN.partCap = (RUN.partCap || 8) + 1; runLog('空间租赁：零件箱 +1'); }
     runRender();
@@ -7438,7 +7442,7 @@ async function runBattle(kind, code){
       rlog('deploy', {units:units.filter(u => u.side === 'ally').map(u => `${u.mech}:${u.lv}[${(u.loadout || []).join('/')}]`).join(','), cap:deployCap()});
       if (c){ const f = makeUnit(tplOf('M1'), 'ally', 0, 0); f.command = 'meteorRun'; for (let k=1;k<20;k++) levelUp(f); setCommander(f); }
       /* v0.30 补给箱：普通战 1 个、精英战 2 个，放在地图右半边的空地上 */
-      { const want = kind === 'elite' ? 2 : 1, W = LV.w, H = LV.h; let placed = 0;
+      { const want = (kind === 'elite' ? 2 : 1) + (hasRelic('f2') ? 1 : 0), W = LV.w, H = LV.h; let placed = 0;
         for (let tries = 0; tries < 200 && placed < want; tries++){
           const x = Math.floor(W / 2) + Math.floor(Math.random() * Math.max(1, W / 2 - 2)), y = 1 + Math.floor(Math.random() * Math.max(1, H - 2));
           if (occupant(x, y) || walls.has(y*N+x) || TER[map[y][x]].groundBlock) continue;
@@ -7456,8 +7460,10 @@ async function runBattle(kind, code){
 }
 Hooks.on('unitDestroyed', c => {
   if (!(LV && LV.run && RUN) || !c.unit.chest) return;
-  if (Math.random() < .6){ const g = 3 + Math.floor(Math.random() * 3); RUN.he += g; addFloat(c.unit, `+${g} 源碳结晶`, '#ffd166'); log(`补给箱：源碳结晶 +${g}`, null, 'sys'); }
-  else { RUN.chestParts = (RUN.chestParts || 0) + 1; addFloat(c.unit, '+零件', '#ffd166'); log('补给箱：获得零件（战后领取）', null, 'sys'); }
+  const both = hasRelic('f2'), cur = both || Math.random() < .6;   // 战地回收协议：两样都给
+  if (cur){ const g = 3 + Math.floor(Math.random() * 3); RUN.he += g; addFloat(c.unit, `+${g} 源碳结晶`, '#ffd166'); log(`补给箱：源碳结晶 +${g}`, null, 'sys'); }
+  if (both || !cur){ RUN.chestParts = (RUN.chestParts || 0) + 1; if (!both) addFloat(c.unit, '+零件', '#ffd166'); log('补给箱：获得零件（战后领取）', null, 'sys'); }
+  if (Math.random() < .05){ RUN.chestRelic = true; log('补给箱里有一件藏品（战后挑选）', null, 'sys'); }
   rlog('chest', {mech: c.by ? c.by.mech : null});
 }, '肉鸽：补给箱掉落');
 Hooks.on('unitDestroyed', c => {
@@ -7510,6 +7516,9 @@ async function runBattleEnd(win){
   if (RUN.cmd) await cmdXP({battle:1, elite:2, guard:2, source:2, chase:2}[kind] || 1);
   if (kind === 'elite' || Math.random() < .35) await givePart(pick(Object.keys(PARTS)), '战利品');
   for (let i = 0; i < (RUN.chestParts || 0); i++) await givePart(pick(Object.keys(PARTS)), '补给箱'); RUN.chestParts = 0;
+  if (kind === 'elite') await offerRelics(['普通', '稀有'], '精英战');
+  if (kind === 'guard' || kind === 'final') await offerRelics(['稀有', '传说'], kind === 'final' ? '迷宫之主' : '层底守军');
+  if (RUN.chestRelic){ RUN.chestRelic = false; await offerRelics(['普通'], '补给箱'); }
   addTicket(tcls, '战后');
   await useTicket(RUN.tickets.length - 1);
   if (kind === 'guard' || kind === 'chase'){ if (kind === 'chase') RUN.chased = true; await enterLayer(RUN.layer + 1); }

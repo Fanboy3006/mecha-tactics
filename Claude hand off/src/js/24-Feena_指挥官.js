@@ -12,6 +12,6 @@ const SKILLS = {
 const XP_NEED = [0, 2, 5, 9, 14, 20, 27, 35, 44];
 const skLv = k => RUN && RUN.cmd ? (RUN.cmd.skills[k] || 0) : 0;
 const propMax = () => 7 + [0,2,3,4][skLv('领航')] + [0,1,2,2][skLv('后勤')] + (RUN.parts.some(p => p.k === 'rite') ? 1 : 0) + (RUN.layerPropBonus || 0);
-const deployCap = () => 3 + Math.floor((RUN.lvl - 1) / 3) + (skLv('编制') >= 2 ? 1 : 0);   // 初始 3 人，部队每升 3 级 +1，编制 +1
+const deployCap = () => 3 + Math.floor((RUN.lvl - 1) / 3) + (skLv('编制') >= 2 ? 1 : 0) + (hasRelic('f4') ? 1 : 0);   // 初始 3 人，部队每升 3 级 +1，编制 +1
 const sightR = () => 3 + (skLv('侦察') >= 3 ? 2 : skLv('侦察') >= 1 ? 1 : 0);
 
