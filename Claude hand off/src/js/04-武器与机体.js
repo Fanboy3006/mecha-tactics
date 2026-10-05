@@ -275,6 +275,7 @@ const FORMS = {
   ]},
 };
 const DEBRIS_T = {pilot:'', mech:'陨石残骸', short:'岩', noEvade:true, hp:1000, armor:0, eva:0, mov:0, melee:0, shoot:0, skill:0, flying:false, w:1, h:1, abilities:[], weapons:[]};
+const CHEST_T = {pilot:'', mech:'补给箱', short:'箱', chest:true, noEvade:true, hp:1500, armor:0, eva:0, mov:0, melee:0, shoot:0, skill:0, flying:false, w:1, h:1, abilities:[], weapons:[]};   // v0.30 补给箱：中立，可被我方攻击，击破掉落
 const COMMANDS = {
   meteor:{name:'陨石召唤', kind:'area', cd:3, delay:2, size:3, dmg:7999,
     desc:'指定一个 3×3 区域，2 回合后的我方阶段开始时陨石落下：对区域内敌我所有单位造成 7999 物理伤害（必中，不暴击，会经过减免），区域内的空格生成 HP 1000 的陨石残骸。冷却 3 回合。'},

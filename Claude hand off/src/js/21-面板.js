@@ -237,7 +237,7 @@ function usableAttackWeapons(u){ return u.weapons.filter(w => ATTACK_FIRES.inclu
 function attackables(u){
   if (hasTrait(u,'autoCast')) return [];
   const ws = usableAttackWeapons(u).filter(w => w.special !== 'lock');
-  return units.filter(e => e.side === 'enemy' && e.hp > 0 && ws.some(w => canHit(u, w, e)));
+  return units.filter(e => (e.side === 'enemy' || (e.chest && u.side === 'ally')) && e.hp > 0 && ws.some(w => canHit(u, w, e)));
 }
 function bestWeaponFor(u, t){
   let best = null, bs = -1;

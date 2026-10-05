@@ -3526,6 +3526,7 @@ const FORMS = {
   ]},
 };
 const DEBRIS_T = {pilot:'', mech:'陨石残骸', short:'岩', noEvade:true, hp:1000, armor:0, eva:0, mov:0, melee:0, shoot:0, skill:0, flying:false, w:1, h:1, abilities:[], weapons:[]};
+const CHEST_T = {pilot:'', mech:'补给箱', short:'箱', chest:true, noEvade:true, hp:1500, armor:0, eva:0, mov:0, melee:0, shoot:0, skill:0, flying:false, w:1, h:1, abilities:[], weapons:[]};   // v0.30 补给箱：中立，可被我方攻击，击破掉落
 const COMMANDS = {
   meteor:{name:'陨石召唤', kind:'area', cd:3, delay:2, size:3, dmg:7999,
     desc:'指定一个 3×3 区域，2 回合后的我方阶段开始时陨石落下：对区域内敌我所有单位造成 7999 物理伤害（必中，不暴击，会经过减免），区域内的空格生成 HP 1000 的陨石残骸。冷却 3 回合。'},
@@ -6121,7 +6122,7 @@ function usableAttackWeapons(u){ return u.weapons.filter(w => ATTACK_FIRES.inclu
 function attackables(u){
   if (hasTrait(u,'autoCast')) return [];
   const ws = usableAttackWeapons(u).filter(w => w.special !== 'lock');
-  return units.filter(e => e.side === 'enemy' && e.hp > 0 && ws.some(w => canHit(u, w, e)));
+  return units.filter(e => (e.side === 'enemy' || (e.chest && u.side === 'ally')) && e.hp > 0 && ws.some(w => canHit(u, w, e)));
 }
 function bestWeaponFor(u, t){
   let best = null, bs = -1;
@@ -7235,7 +7236,7 @@ async function runBattle(kind, code){
     const base = COMMANDS.meteor;
     COMMANDS.meteorRun = {...base, name:'陨石召唤', dmg:Math.round(base.dmg * (1 + c.lead * .05)), cd:Math.max(1, base.cd - (skLv('月光加护') >= 2 ? 1 : 0) - Math.floor(c.know/3)), size: skLv('月光加护') >= 3 ? 5 : 3};
   }
-  RUN.battleKind = kind; RUN.lostThis = []; RUN.bstat = {};
+  RUN.battleKind = kind; RUN.lostThis = []; RUN.bstat = {}; RUN.chestParts = 0;
   rlog('battle_start', {code, kind, lv, affix: affix ? affix.name : null, erosion: RUN.mods.overload || RUN.mods.fog || (RUN.erosion && !RUN.erosionCleared) ? RUN.erosion : null, enemies:keys});
   LEVELS.run = {
     run:true, code, name:`${code} ${st.name} · ${label}${affix ? ' · 【' + affix.name + '】' : ''}`, w:W, h:H, speed:.6, formation:true, noCmd:true,
@@ -7253,6 +7254,14 @@ async function runBattle(kind, code){
       });
       rlog('deploy', {units:units.filter(u => u.side === 'ally').map(u => `${u.mech}:${u.lv}[${(u.loadout || []).join('/')}]`).join(','), cap:deployCap()});
       if (c){ const f = makeUnit(tplOf('M1'), 'ally', 0, 0); f.command = 'meteorRun'; for (let k=1;k<20;k++) levelUp(f); setCommander(f); }
+      /* v0.30 补给箱：普通战 1 个、精英战 2 个，放在地图右半边的空地上 */
+      { const want = kind === 'elite' ? 2 : 1, W = LV.w, H = LV.h; let placed = 0;
+        for (let tries = 0; tries < 200 && placed < want; tries++){
+          const x = Math.floor(W / 2) + Math.floor(Math.random() * Math.max(1, W / 2 - 2)), y = 1 + Math.floor(Math.random() * Math.max(1, H - 2));
+          if (occupant(x, y) || walls.has(y*N+x) || TER[map[y][x]].groundBlock) continue;
+          const c = makeUnit(CHEST_T, 'neutral', x, y); c.facing = 'down'; units.push(c); placed++;
+        }
+        if (placed) log(`战场上有 ${placed} 个补给箱（HP 1500）：击破后获得源碳结晶或零件`, null, 'sys'); }
       if (affix) log(`精英词缀【${affix.name}】：${affix.desc}`, null, 'sys');
       if (RM() && RM().overload) log('侵蚀场【过载侵蚀】：我方伤害 +30%，每次攻击自身受到 5% 最大 HP 伤害', null, 'sys');
       refresh();
@@ -7262,6 +7271,12 @@ async function runBattle(kind, code){
   startLevel('run');
   return new Promise(res => { RUN.battleDone = res; });
 }
+Hooks.on('unitDestroyed', c => {
+  if (!(LV && LV.run && RUN) || !c.unit.chest) return;
+  if (Math.random() < .6){ const g = 3 + Math.floor(Math.random() * 3); RUN.he += g; addFloat(c.unit, `+${g} 源碳结晶`, '#ffd166'); log(`补给箱：源碳结晶 +${g}`, null, 'sys'); }
+  else { RUN.chestParts = (RUN.chestParts || 0) + 1; addFloat(c.unit, '+零件', '#ffd166'); log('补给箱：获得零件（战后领取）', null, 'sys'); }
+  rlog('chest', {mech: c.by ? c.by.mech : null});
+}, '肉鸽：补给箱掉落');
 Hooks.on('unitDestroyed', c => {
   if (!(LV && LV.run && RUN)) return;
   if (c.unit.side === 'ally') RUN.lostThis.push(c.unit);
@@ -7311,6 +7326,7 @@ async function runBattleEnd(win){
   await gainExp(exp, '作战');
   if (RUN.cmd) await cmdXP({battle:1, elite:2, guard:2, source:2, chase:2}[kind] || 1);
   if (kind === 'elite' || Math.random() < .35) await givePart(pick(Object.keys(PARTS)), '战利品');
+  for (let i = 0; i < (RUN.chestParts || 0); i++) await givePart(pick(Object.keys(PARTS)), '补给箱'); RUN.chestParts = 0;
   addTicket(tcls, '战后');
   await useTicket(RUN.tickets.length - 1);
   if (kind === 'guard' || kind === 'chase'){ if (kind === 'chase') RUN.chased = true; await enterLayer(RUN.layer + 1); }
