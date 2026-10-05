@@ -225,7 +225,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
 
 <div class="app">
   <header class="bar">
-    <div class="brand"><span class="mark">机甲战棋</span><span class="ver">试作版 v0.25 · <span id="mapSize">40×40</span> 地图</span></div>
+    <div class="brand"><span class="mark">机甲战棋</span><span class="ver">试作版 v0.26 · <span id="mapSize">40×40</span> 地图</span></div>
     <div class="hud">
       <label class="chip lvsel"><span class="lbl">关卡</span><select id="levelSel"><optgroup label="★ 肉鸽模式（推荐）"><option value="roguelike">肉鸽模式 · 混沌迷宫</option></optgroup><optgroup label="剧情模式（待施工）"><option disabled>剧情模式待施工 · 下面是原型关卡</option><option value="tut1">教学 1 · 移动</option><option value="tut2">教学 2 · 夹击与射击</option><option value="tut3">教学 3 · 地形与闪避</option><option value="defense">大规模防卫战（Lv20）</option><option value="drill">弱点演习（Lv20）</option><option value="skirmish">自由对战 · 随机地图</option></optgroup></select></label>
       <div class="chip"><span class="lbl">作战</span><b id="battleNo">1</b></div>
@@ -255,7 +255,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
       <section class="card" id="actionCard"></section>
       <section class="card logcard"><h3>作战记录</h3><ol id="log"></ol></section>
       <details class="card rules">
-        <summary>当前规则 v0.25</summary>
+        <summary>当前规则 v0.26</summary>
         <ul>
           <li>距离和射程一律按菱形计算（只算横竖步数）。</li>
           <li>命中 = 武器命中 −（闪避 + 地形闪避）；选择回避时命中减半。</li>
@@ -299,7 +299,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
           <span><i style="background:#e88fb4"></i>克莱因派</span>
           <span><i style="background:#f2c14e"></i>预防者</span>
           <span><i style="background:#e9e7e2"></i>ATX</span>
-          <span><i style="background:#7d9a58"></i>米斯里尔</span>
+          <span><i style="background:#7d9a58"></i>秘银</span>
           <span><i style="background:#d9564b"></i>敌方</span>
           <span><i style="background:#56606b"></i>已行动</span>
         </div>
@@ -378,7 +378,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
      * 靠**明度差**和月球王国拉开；强调色换成橙红（古铁的红黑印象），
      * 这是全七套里唯一的暖红点缀，识别度最高。 */
     atx:    {armor:'#6e7684', light:'#e9e7e2', dark:'#2b3038', accent:'#ff8a5c', trim:'#c6c3bc', visor:'#ffd9c0'},
-    /* 米斯里尔：军用深橄榄绿 + 沙色。
+    /* 秘银（原「米斯里尔」）：军用深橄榄绿 + 沙色。
      * 原来偏亮偏黄绿（#8fb86b），和天人「亮青绿 #4fc3a1」同属绿色区、又是接近的明度。
      * 整体压暗、去饱和，走军用橄榄的路子；强调色从淡绿换成沙色，避免和身体同色。 */
     mithril:{armor:'#54683a', light:'#7d9a58', dark:'#222d17', accent:'#ffd98a', trim:'#8fa970', visor:'#e6dfa4'},
@@ -1608,7 +1608,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
     '克莱因派': 'clyne',
     '预防者': 'prev',
     'ATX': 'atx',
-    '米斯里尔': 'mithril',
+    '秘银': 'mithril',            // v0.26 势力名「米斯里尔」改为「秘银」（Claude 改）
   };
 
   /* 旧接口：图标 id → 调色板键（只有对照表 / 渲染工具还在用） */
@@ -3029,10 +3029,10 @@ const ABIL = {
   followUp:{name:'DASH+1', desc:'近卫的 DASH 每回合上限 +1（共 2 次）：一回合最多行动 3 次。'},
   dash:{name:'DASH', desc:'（近卫）主动攻击击破敌机后，获得 3 点移动力和一次额外攻击：可以先移动再攻击，也可以原地攻击。每回合 1 次。'},
   supportAtk:{name:'援护攻击', desc:'己方阶段，同伴主动攻击、目标没被击破时，可以跟着用一个武装攻击同一个目标（目标不能反击）。每回合 1 次。我方会询问，一路按空格默认用伤害最高的武装。'},
-  guardAtk:{name:'进攻援护', desc:'援护防御在我方阶段也能用：相邻友军攻击后被反击时，可以代为承受那次反击（自动防御）。'},
+  guardAtk:{name:'进攻援护', desc:'援护防御在我方阶段也能用：援护范围内的友军攻击后被反击时，可以代为承受那次反击（自动防御）。'},
   overflowCrit:{name:'狙い撃つぜ', desc:'命中率超过 100 的部分，1:1 转为暴击率。'},
   gnShield:{name:'GN 全盾·哈罗', desc:'本回合没有移动时（架设狙击），正面受到的伤害 −30%。'},
-  guard:{name:'援护防御', desc:'敌方阶段相邻友军被攻击时，可选择代为承受并自动防御，每个敌方阶段 2 次。援护会挡下这一整轮攻击，包括对方随后的援护攻击。'},
+  guard:{name:'援护防御', desc:'敌方阶段友军被攻击时，只要援护者用移动力能走到它旁边（援护范围 = 移动力覆盖范围），就可以代为承受并自动防御，每个敌方阶段 2 次。援护会挡下这一整轮攻击，包括对方随后的援护攻击。'},
   /* ---- v0.16 新角色：个人特技 ---- */
   seed:{name:'SEED', desc:'HP 低于 70%，或者 2 格内有 3 台以上敌机时觉醒：命中 +20、闪避 +20、暴击 +15。'},
   orbLion:{name:'奥布之狮', desc:'光环：2 格内其他友军命中 +10、受到的伤害 −5%。'},
@@ -3058,6 +3058,7 @@ const ABIL = {
   squadLead:{name:'小队长', desc:'光环：3 格内其他友军暴击 +10。'},
   falke:{name:'冷血', desc:'侧击 / 背击时，伤害 +20%。'},
   ecs:{name:'ECS 隐形', desc:'本回合还没有攻击过（包括反击）时，3 格以外的敌机不能把它选为目标。'},
+  iaiSnipe:{name:'居合', desc:'本回合没有移动时，直射命中 +15；用近战武器反击时，伤害 +30%。'},
   /* ---- 新能力（我方 / 敌方通用） ---- */
   beamReflect:{name:'光束反射装甲', desc:'受到的光束伤害 −50%；被直射或近战光束击中时，被减去部分的一半反射给攻击者。'},
   coreSplit:{name:'核心分离', lv:20, desc:'（Lv20）每场第一次被击破时，换上备用部件以 30% HP 继续战斗。'},
@@ -3105,6 +3106,7 @@ const TRAIT_FX = {
   pro:{hit:(u,o,w) => w && (w.fire === 'direct' || w.fire === 'indirect') ? 10 : 0, dmg:(u,d) => d && d.w * d.h > 1 ? 20 : 0},
   longShot:{hit:(u,d,w,o) => d && distFrom(u, d, o) >= 6 ? 20 : 0, crit:(u,d,w,o) => d && distFrom(u, d, o) >= 6 ? 20 : 0},
   squadLead:{aura:{r:3, crit:10}},
+  iaiSnipe:{hit:(u,d,w) => w && w.fire === 'direct' && !u.movedThisRound ? 15 : 0, dmg:(u,d,w,o) => o && o.counter && w && w.fire === 'melee' ? 30 : 0},
   falke:{dmg:(u,d,w,o) => o && (o.zone === 'side' || o.zone === 'back') ? 20 : 0},
   jamAura:{aura:{r:3, who:'foe', hit:-15}},
   commandAura:{aura:{r:3, hit:15, red:10}},
@@ -3269,6 +3271,13 @@ const ALLY_T = [
     wp({name:'月华再生', fire:'passive', special:'regen', range:[0,5], unlock:20, dmgType:'—',
         desc:'被动。我方阶段 Iris 每次行动结束后，自身 5 格内的全部友军（包括自己）回复最大 HP 的 10%。'}),
   ]},
+  /* v0.26 新角色（作者设定：月球王国的「小太刀 Nagi」）。月球王国的狙击手：远处用月光狙击枪，被贴近时拔小太刀。数值和武装是 Claude 的第一版草案。 */
+  {pilot:'小太刀 Nagi', mech:'M4', short:'M4', mechName:'朔夜', trait:'iaiSnipe', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'狙击'}, hp:4200, armor:300, eva:25, mov:5, melee:150, shoot:165, skill:165, flying:false, w:1, h:1, abilities:[], weapons:[
+    wp({name:'月光狙击枪', power:3000, fire:'direct', range:[3,8], hit:125, afterMove:false, dmgType:'光束'}),
+    wp({name:'小太刀', power:2400, stat:'格斗', fire:'melee', critMod:15}),
+    wp({name:'弦月·一闪', power:4200, fire:'direct', range:[4,10], hit:120, critMod:10, cd:2, unlock:20, afterMove:false, dmgType:'光束', special:'markBreak',
+        desc:'命中后直接挂一层 −20% 破防（标记类）。'}),
+  ]},
   {pilot:'刹那', mech:'CB1', short:'CB1', trait:'gundam', tags:{势力:'天人', 远近分类:'近战', 战斗分类:'近卫'}, hp:4800, armor:700, eva:30, mov:6, melee:170, shoot:120, skill:160, flying:false, w:1, h:1, abilities:['followUp'], weapons:[
     wp({name:'GN 剑（剑模式）', power:3000, stat:'格斗', fire:'melee', dmgType:'光束'}),
     wp({name:'GN 长短刃', power:2400, stat:'格斗', fire:'melee', critMod:20, dmgType:'光束'}),
@@ -3290,7 +3299,7 @@ const ALLY_T = [
         desc:'命中后把目标沿攻击方向推开 2 格。撞到单位、障碍或地图边缘时停下，双方各受 800 碰撞伤害；地面单位被推进裂谷直接坠毁。'}),
     wp({name:'GN 冲锋枪', power:1400, fire:'direct', range:[1,3]}),
   ]},
-  {pilot:'提耶利亚', mech:'CB4', short:'CB4', trait:'veda', tags:{势力:'天人', 远近分类:'远程', 战斗分类:'特种'}, hp:6000, armor:1200, eva:0, mov:4, melee:120, shoot:150, skill:150, flying:false, w:1, h:1, abilities:[], transform:'nadleeh', weapons:[
+  {pilot:'提耶利亚', mech:'CB4', short:'CB4', trait:'veda', tags:{势力:'天人', 远近分类:'远程', 战斗分类:'重装'}, hp:6000, armor:1200, eva:0, mov:4, melee:120, shoot:150, skill:150, flying:false, w:1, h:1, abilities:[], transform:'nadleeh', weapons:[
     wp({name:'GN 火箭筒', power:2600, fire:'direct', range:[2,6], dmgType:'光束'}),
     wp({name:'GN 加农炮', power:1600, fire:'direct', range:[1,3], dmgType:'光束'}),
   ]},
@@ -3343,7 +3352,7 @@ const ALLY_T = [
     wp({name:'光束军刀', power:1300, stat:'格斗', fire:'melee', dmgType:'光束'}),
   ]},
   /* ---- 预防者（高达 W） ---- */
-  {pilot:'希罗', mech:'W1', short:'W1', mechName:'飞翼零式', trait:'zero', canFly:true, tags:{势力:'预防者', 远近分类:'远程', 战斗分类:'特种'}, hp:5000, armor:600, eva:30, mov:7, melee:140, shoot:170, skill:170, flying:true, w:1, h:1, abilities:[], weapons:[
+  {pilot:'希罗', mech:'W1', short:'W1', mechName:'飞翼零式', trait:'zero', canFly:true, tags:{势力:'预防者', 远近分类:'远程', 战斗分类:'狙击'}, hp:5000, armor:600, eva:30, mov:7, melee:140, shoot:170, skill:170, flying:true, w:1, h:1, abilities:[], weapons:[
     wp({name:'光束军刀', power:2400, stat:'格斗', fire:'melee', dmgType:'光束'}),
     wp({name:'破坏步枪（单发）', power:3000, fire:'direct', range:[2,6], cd:1, dmgType:'光束'}),
     wp({name:'机枪', power:1000, fire:'direct', range:[1,2]}),
@@ -3356,7 +3365,7 @@ const ALLY_T = [
     wp({name:'死神镰刀·斩首', power:2600, stat:'格斗', fire:'melee', special:'execute', exec:25, cd:2, unlock:20, dmgType:'光束',
         upgrades:[{lv:30, exec:35, note:'Lv30：斩首线 35%'}], desc:'斩首：命中后如果目标剩余 HP 不超过最大 HP 的 25%，直接击破。'}),
   ]},
-  {pilot:'特洛瓦', mech:'W3', short:'W3', mechName:'重武装', trait:'silentBlade', tags:{势力:'预防者', 远近分类:'远程', 战斗分类:'特种'}, hp:5600, armor:800, eva:25, mov:5, melee:110, shoot:165, skill:160, flying:false, w:1, h:1, abilities:[], weapons:[
+  {pilot:'特洛瓦', mech:'W3', short:'W3', mechName:'重武装', trait:'silentBlade', tags:{势力:'预防者', 远近分类:'远程', 战斗分类:'重装'}, hp:5600, armor:800, eva:25, mov:5, melee:110, shoot:165, skill:160, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'双联加特林', power:500, fire:'direct', range:[1,4], special:'multi', hits:8, step:5,
         desc:'连续 8 段判定，首段命中 100，命中后 −5、未中后 +5；每段 500 + 射击×5÷10，正常经过减免。'}),
     wp({name:'胸部加特林', power:1200, fire:'direct', range:[1,2]}),
@@ -3421,8 +3430,8 @@ const ALLY_T = [
     wp({name:'龙王破山剑', power:2800, stat:'格斗', fire:'melee'}),
     wp({name:'龙雷闪', power:1800, fire:'indirect', range:[2,6], dmgType:'特殊', desc:'念动力攻击，特殊伤害。'}),
   ]},
-  /* ---- 米斯里尔·乌鲁兹小队（全金属狂潮） ---- */
-  {pilot:'宗介', mech:'U7', short:'U7', mechName:'强弩', trait:'pro', shield:4000, shieldLv:20, shieldName:'λ 力场', lambdaAwaken:2, awakenSwap:{'单分子刀':'隔空 λ 拳', '散弹炮':'λ 驱动·散弹炮'}, tags:{势力:'米斯里尔', 远近分类:'远程', 战斗分类:'特种'}, hp:5000, armor:700, eva:30, mov:6, melee:150, shoot:155, skill:170, flying:false, w:1, h:1, abilities:[], weapons:[
+  /* ---- 秘银·乌鲁兹小队（全金属狂潮；v0.26 起势力名「米斯里尔」改为「秘银」） ---- */
+  {pilot:'宗介', mech:'U7', short:'U7', mechName:'强弩', trait:'pro', shield:4000, shieldLv:20, shieldName:'λ 力场', lambdaAwaken:2, awakenSwap:{'单分子刀':'隔空 λ 拳', '散弹炮':'λ 驱动·散弹炮'}, tags:{势力:'秘银', 远近分类:'远程', 战斗分类:'特种'}, hp:5000, armor:700, eva:30, mov:6, melee:150, shoot:155, skill:170, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'散弹炮', power:1600, fire:'direct', range:[1,3], critMod:10}),
     wp({name:'单分子刀', power:2200, stat:'格斗', fire:'melee',
         awaken:{name:'λ 单分子刀', power:3400, dmgType:'特殊', lambda:true, desc:'λ 觉醒后的单分子刀：特殊伤害，0 CD。'}}),
@@ -3432,26 +3441,26 @@ const ALLY_T = [
     wp({name:'隔空 λ 拳', power:3600, stat:'格斗', fire:'melee', range:[1,3], cd:2, unlock:20, dmgType:'特殊', lambda:true,
         desc:'近战特殊攻击：隔着最多 3 格用 λ 力场打出的拳，不需要视线。特殊伤害，只会被护盾类效果抵消。'}),
   ]},
-  {pilot:'克鲁兹', mech:'U6', short:'U6', mechName:'M9·狙击', trait:'longShot', tags:{势力:'米斯里尔', 远近分类:'远程', 战斗分类:'狙击'}, hp:3800, armor:200, eva:20, mov:5, melee:90, shoot:175, skill:175, flying:false, w:1, h:1, abilities:[], weapons:[
+  {pilot:'克鲁兹', mech:'U6', short:'U6', mechName:'M9·狙击', trait:'longShot', tags:{势力:'秘银', 远近分类:'远程', 战斗分类:'狙击'}, hp:3800, armor:200, eva:20, mov:5, melee:90, shoot:175, skill:175, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'76mm 狙击炮', power:3200, fire:'direct', range:[3,9], hit:120, afterMove:false}),
     wp({name:'突击步枪', power:1300, fire:'direct', range:[1,4]}),
     wp({name:'单分子刀', power:1200, stat:'格斗', fire:'melee'}),
     wp({name:'超长距离狙击', power:4000, fire:'direct', range:[5,14], hit:120, critMod:10, afterMove:false, cd:2, unlock:20,
         upgrades:[{lv:30, again:true, note:'Lv30：击破目标后可以再攻击一次（不能移动）'}]}),
   ]},
-  {pilot:'真织', mech:'U2', short:'U2', mechName:'M9·指挥', trait:'squadLead', tags:{势力:'米斯里尔', 远近分类:'远程', 战斗分类:'辅助'}, hp:4800, armor:500, eva:25, mov:6, melee:120, shoot:145, skill:150, flying:false, w:1, h:1, abilities:[], weapons:[
+  {pilot:'真织', mech:'U2', short:'U2', mechName:'M9·指挥', trait:'squadLead', tags:{势力:'秘银', 远近分类:'远程', 战斗分类:'辅助'}, hp:4800, armor:500, eva:25, mov:6, melee:120, shoot:145, skill:150, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'突击步枪', power:1400, fire:'direct', range:[1,4]}),
     wp({name:'导弹发射器', power:1800, fire:'indirect', range:[2,6], uses:4, special:'splash', desc:'溅射：与目标相邻的其他敌机受到本次伤害的 50%。'}),
     wp({name:'单分子刀', power:1400, stat:'格斗', fire:'melee'}),
   ]},
-  {pilot:'克鲁佐', mech:'U1', short:'U1', mechName:'M9·猎鹰', trait:'falke', tags:{势力:'米斯里尔', 远近分类:'远程', 战斗分类:'狙击'}, hp:5000, armor:600, eva:25, mov:6, melee:150, shoot:165, skill:170, flying:false, w:1, h:1, abilities:[], weapons:[
+  {pilot:'克鲁佐', mech:'U1', short:'U1', mechName:'M9·猎鹰', trait:'falke', tags:{势力:'秘银', 远近分类:'近战', 战斗分类:'近卫'}, hp:5000, armor:600, eva:25, mov:6, melee:150, shoot:165, skill:170, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'狙击步枪', power:2800, fire:'direct', range:[2,8], hit:115}),
     wp({name:'单分子刀', power:2400, stat:'格斗', fire:'melee', critMod:10}),
     wp({name:'散弹枪', power:1300, fire:'direct', range:[1,2]}),
     wp({name:'精确连射', power:1800, fire:'direct', range:[2,8], special:'multi', hits:4, step:10, cd:2, unlock:20,
         desc:'连续 4 段判定，首段命中 100，命中后 −10、未中后 +10；每段 1800 + 射击×5÷10。'}),
   ]},
-  {pilot:'杨', mech:'U8', short:'U8', mechName:'M9·侦察', trait:'ecs', tags:{势力:'米斯里尔', 远近分类:'远程', 战斗分类:'尖兵'}, hp:4000, armor:300, eva:30, mov:7, melee:120, shoot:130, skill:130, flying:false, w:1, h:1, abilities:[], weapons:[
+  {pilot:'杨', mech:'U8', short:'U8', mechName:'M9·侦察', trait:'ecs', tags:{势力:'秘银', 远近分类:'远程', 战斗分类:'尖兵'}, hp:4000, armor:300, eva:30, mov:7, melee:120, shoot:130, skill:130, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'突击步枪', power:1300, fire:'direct', range:[1,4]}),
     wp({name:'单分子刀', power:1500, stat:'格斗', fire:'melee'}),
     wp({name:'反坦克导弹', power:2200, fire:'indirect', range:[2,5], uses:2}),
@@ -3831,6 +3840,7 @@ const TRIALS = {
   B2:{e:['hound','hound','drone','drone','fighter'], feat:'forest', hint:'少走几步，把剩余移动力转成闪避（游刃有余）；Lv20 影凤凰是特殊伤害，一次贯穿一排。'},
   M1:{e:['grunt','grunt','raider','raider'], mates:['M2','M3'], hint:'Feena 不能主动攻击，待机后自动施放。Lv20 残月的余响（2999）会沿月球王国队友的射程延伸；Lv30 威力 7999、非精锐友军也能延伸，并解锁满月·月蚀。'},
   M2:{e:['raider','raider','berserker','grunt'], mates:['M3'], hint:'原地不动时装甲 +30%；敌人打 Iris 时用援护挡下来。Lv20 螺旋式打桩机无视减免。'},
+  M4:{e:['grunt','grunt','hound','raider'], mates:['M1','M2'], hint:'站着不动时直射命中 +15（居合）；被贴身时用小太刀反击伤害 +30%。她是月球王国的人，能沿射程延伸 Feena 的残月的余响。Lv20 弦月·一闪射程 4–10，命中后挂破防。'},
   M3:{e:['grunt','artillery','hound'], mates:['M2','B1'], hurt:true, hint:'队友开局只剩一半 HP。修理时附带物理减伤；Lv20 月华再生每次行动后群体回复。'},
   CB1:{e:['hound','hound','grunt','grunt','raider'], hint:'被敌人包围时「我就是高达」命中和闪避都会上升；击破后还能原地再砍一次（连斩）。Lv30 解锁「GN 剑 III·量子跃迁斩」。'},
   CB2:{e:['artillery','turret','grunt','sniper'], feat:'ridge', hint:'所有武器都不能移动后使用：先站好位置再开火。命中溢出的部分会转成暴击。'},
@@ -4494,7 +4504,7 @@ async function battle(att, w, def, reaction, cw, {guard=false} = {}){
   if (def.hp > 0 && att.hp > 0 && reaction === 'counter' && cw){
     if (!wStatus(def,cw,{counter:true}) && canHit(def,cw,att)){
       // v0.25 进攻援护：我方攻击后被反击时，相邻的进攻援护机体可以代为承受
-      const g = att.side === 'ally' ? units.find(m => m !== att && m.side === 'ally' && m.hp > 0 && abilOn(m,'guardAtk') && m.guardLeft > 0 && distU(m, att) === 1) : null;
+      const g = att.side === 'ally' ? units.find(m => m !== att && m.side === 'ally' && m.hp > 0 && abilOn(m,'guardAtk') && m.guardLeft > 0 && guardReach(m, att)) : null;
       if (g && await askGuard(def, cw, att, g, true)){
         g.guardLeft--;
         log(`${fullName(g)} 进攻援护：代 ${fullName(att)} 承受反击（本阶段剩 ${g.guardLeft} 次）`, null, 'ally');
@@ -4746,7 +4756,7 @@ async function aiAct(e){
     if (best.t.face) e.facing = best.t.face;
     moveUnit(e, best.t.x, best.t.y); refresh();
     await sleep(300);
-    const g = units.find(m => m !== best.p && m.side === best.p.side && m.hp > 0 && m.abilities.includes('guard') && m.guardLeft > 0 && distU(m, best.p) === 1);
+    const g = units.find(m => m !== best.p && m.side === best.p.side && m.hp > 0 && m.abilities.includes('guard') && m.guardLeft > 0 && guardReach(m, best.p));
     if (g && await askGuard(e, best.w, best.p, g)){
       g.guardLeft--;
       log(`${fullName(g)} 援护 ${fullName(best.p)}（本阶段剩 ${g.guardLeft} 次）`, null, 'ally');
@@ -5128,7 +5138,7 @@ function askGuard(att, w, def, g, counter = false){
     const fT = forecast(att, w, def, null), fG = forecast(att, w, g, 'defend', {zone:'front'});
     $('#reactDlg').innerHTML = `<div class="eyebrow">${counter ? '进攻援护' : '援护防御'} · 本阶段剩 ${g.guardLeft} 次</div>
       <h2>${fullName(att)} 用【${w.name}】${counter ? '反击' : '攻击'} ${fullName(def)}</h2>
-      <p class="small">${fullName(g)} 就在旁边，可以代为承受这次${counter ? '反击' : '攻击（连同随后的援护攻击）'}，并自动进入防御姿态（不能反击）。</p>
+      <p class="small">${fullName(g)} 在援护范围内（移动力能赶到），可以代为承受这次${counter ? '反击' : '攻击（连同随后的援护攻击）'}，并自动进入防御姿态（不能反击）。</p>
       <div class="opts" style="grid-template-columns:repeat(2,minmax(0,1fr))">
         <div class="opt"><h4>援护</h4><div class="take">${fullName(g)}（按正面）承受：命中 <b>${fG.hit}%</b>　伤害 <b>${fG.dmg}</b></div><p class="small">HP ${g.hp}/${g.maxHp}</p><button class="btn primary" data-g="1">让 ${g.pilot} 援护</button></div>
         <div class="opt"><h4>不援护</h4><div class="take">${fullName(def)}（${zname(fT.zone)}）承受：命中 <b>${fT.hit}%</b>　伤害 <b>${fT.dmg}</b></div><p class="small">${counter ? '' : '之后选择反击、防御或回避。'}</p><button class="btn" data-g="0">不援护</button></div>
@@ -5869,7 +5879,7 @@ function bar(lbl, v, m){
   const r = v/m;
   return `<div class="barrow"><span class="lbl">${lbl}</span><div class="track"><div class="fill ${r <= .25 ? 'low' : r <= .5 ? 'mid' : ''}" style="width:${Math.round(r*100)}%"></div></div><span class="num">${v}/${m}</span></div>`;
 }
-const FACTION_COL = {'影世界':'#8a6bd8', '月球王国':'#9fb7d8', '天人':'#4fc3a1', '克莱因派':'#e88fb4', '预防者':'#f2c14e', 'ATX':'#e9e7e2', '米斯里尔':'#7d9a58'};   // 和 art/mech-icons.js 的 PAL 底色保持一致（v0.19 DSH 定稿）
+const FACTION_COL = {'影世界':'#8a6bd8', '月球王国':'#9fb7d8', '天人':'#4fc3a1', '克莱因派':'#e88fb4', '预防者':'#f2c14e', 'ATX':'#e9e7e2', '秘银':'#7d9a58'};   // 和 art/mech-icons.js 的 PAL 底色保持一致（v0.19 DSH 定稿）
 const PT = {};
 const ptKey = m => 'mecha-tactics-portrait-' + m;
 function loadPortrait(m){
@@ -6329,6 +6339,12 @@ async function onAction(a){
   }
 }
 const dashLimit = u => abilOn(u,'dash') ? 1 + (abilOn(u,'followUp') ? 1 : 0) : 0;
+/* v0.26 援护范围 = 援护者的移动力覆盖范围：援护者能在本回合移动范围内走到被攻击者旁边，就能援护（援护时不实际移动） */
+function guardReach(m, p){
+  if (distU(m, p) <= 1) return true;
+  if (distU(m, p) > m.mov + 1) return false;
+  return reach(m).some(t => distRect(t.x, t.y, m.w, m.h, p.x, p.y, p.w, p.h) <= 1);
+}
 function toggleLock(t){
   const max = wv(S.sel, S.weapon, 'lockN'), i = S.locks.indexOf(t);
   if (i >= 0) S.locks.splice(i, 1); else if (S.locks.length < max) S.locks.push(t);
@@ -6543,13 +6559,18 @@ let RUN = null;
 const RM = () => (LV && LV.run && RUN) ? RUN.mods : null;
 const TIER = {
   B1:'S', CB1:'S', S1:'S', W1:'S', U7:'S', M1:'S',
-  B2:'A', M2:'A', CB2:'A', CB4:'A', S2:'A', S5:'A', W2:'A', W3:'A', W4:'A', W5:'A', W6:'A', A1:'A', A2:'A', A3:'A', U6:'A', U1:'A',
+  B2:'A', M2:'A', M4:'A', CB2:'A', CB4:'A', S2:'A', S5:'A', W2:'A', W3:'A', W4:'A', W5:'A', W6:'A', A1:'A', A2:'A', A3:'A', U6:'A', U1:'A',
   M3:'B', CB3:'B', S3:'B', S4:'B', S6:'B', S7:'B', S8:'B', W7:'B', A4:'B', A5:'B', U2:'B', U8:'B',
 };
 const TIER_NAME = {S:'精锐', A:'骨干', B:'普通'};
 const PRICE = {S:{rec:5, p20:3, p30:4}, A:{rec:3, p20:2, p30:3}, B:{rec:1, p20:1, p30:2}};
 const CAP_CHARS = [];          // （已取消）原来晋升 Lv20 时出击上限 +1 的角色；以后改由藏品提供
 const CLASSES = ['近卫','尖兵','辅助','重装','狙击','特种'];
+/* v0.26 势力招募券：券上写的是战斗分类就按分类、写的是势力就按势力；每场胜利 60% 职业券、40% 势力券 */
+const FACTIONS = [...new Set(ALLY_T.map(t => t.tags.势力))];
+const ticketOk = (k, m) => CLASSES.includes(k) ? tplOf(m).tags.战斗分类 === k : tplOf(m).tags.势力 === k;
+const ticketName = k => CLASSES.includes(k) ? `${k}招募券` : `${k}势力招募券`;
+const randTicket = () => Math.random() < .6 ? pick(CLASSES) : pick(FACTIONS);
 const tierOf = m => TIER[m] || 'B';
 const tplOf = m => ALLY_T.find(t => t.mech === m);
 const recCost = m => PRICE[tierOf(m)].rec;
@@ -6696,27 +6717,30 @@ async function runStartScreen(){
   audioScene('menu');
   $('#runView').hidden = false; $('#runView').innerHTML = '';
   const squads = [{id:'moon', name:'月之国分队', desc:'Feena 担任指挥官（不出场）：英雄无敌 3 式成长，战斗中可以下达【陨石召唤】，升级时学习二级技能。不送角色。'},
-    ...CLASSES.map(c => ({id:c, name:`${c}分队`, desc:`开局从${c}角色里选一名 Lv20（免费）。`}))];
+    ...CLASSES.map(c => ({id:c, name:`${c}分队`, desc:`开局从${c}角色里选一名 Lv20（免费）。`})),
+    ...FACTIONS.map(f => ({id:f, name:`${f}势力分队`, desc:`开局从${f}的角色里选一名 Lv20（免费）。`, fac:true}))];   // v0.26 势力分队
   const v = await dlg(`<div class="eyebrow" style="color:var(--accent)">肉鸽模式 · 混沌迷宫</div><h2>选择分队</h2>
     <p class="small">各个平行宇宙被扭曲在一起，形成了混沌迷宫。在迷宫里招募来自不同宇宙的机师，穿过 3 层航区，击败最深处的敌人。</p>
-    <div class="rcards">${squads.map(q => `<button class="rcard" style="--fc:${q.id === 'moon' ? '#9fb7d8' : 'var(--accent)'}" data-v="${q.id}"><b>${q.name}</b><small>${q.desc}</small></button>`).join('')}</div>
+    ${[['指挥官分队', squads.filter(q => q.id === 'moon')], ['职业分队', squads.filter(q => CLASSES.includes(q.id))], ['势力分队', squads.filter(q => q.fac)]].map(([h, qs]) => `<div class="fgroup"><i style="--fc:var(--accent)"></i>${h}</div>
+    <div class="rcards">${qs.map(q => `<button class="rcard" style="--fc:${q.id === 'moon' ? '#9fb7d8' : q.fac ? (FACTION_COL[q.id] || 'var(--accent)') : 'var(--accent)'}" data-v="${q.id}"><b>${q.name}</b><small>${q.desc}</small></button>`).join('')}</div>`).join('')}
     <div class="acts"><button class="btn" data-v="cancel">返回</button></div>`, true);
   if (v === 'cancel'){ runHide(); startLevel('tut1'); return; }
   RUN = {runId:Date.now().toString(36) + Math.random().toString(36).slice(2,6), t0:Date.now(), events:[], squad:v, layer:1, lvl:1, exp:0, tickets:[], hope:8, he:5, dur:10, units:[], parts:[], capBonus:0, promoDiscount:false, over:false, log:[], battles:0, seedBase:Date.now() & 0xffffff, cmd:null, erosion:null, erosionCleared:false, mods:null, layerPropBonus:0};
   if (v === 'moon'){ RUN.cmd = {lv:1, xp:0, atk:0, def:0, lead:0, know:0, skills:{}}; }
   else {
-    const cands = recruitPool().filter(m => tplOf(m).tags.战斗分类 === v);
-    const m = await dlg(`<div class="eyebrow" style="color:var(--accent)">${v}分队</div><h2>选择开局的 Lv20 角色（免费）</h2>
-      <p class="small">从全部${v}角色里任选一名。</p>
+    const cands = recruitPool().filter(m => ticketOk(v, m));
+    const sqName = CLASSES.includes(v) ? `${v}分队` : `${v}势力分队`;
+    const m = await dlg(`<div class="eyebrow" style="color:var(--accent)">${sqName}</div><h2>选择开局的 Lv20 角色（免费）</h2>
+      <p class="small">从全部${CLASSES.includes(v) ? v : v + '的'}角色里任选一名。</p>
       <div class="rcards">${cands.map(m => recCardHTML(m, 20, 0)).join('')}</div>`, true);
     RUN.units.push({mech:m, lv:20});
     if (CAP_CHARS.includes(m)) RUN.capBonus++;
   }
   rlog('run_start', {squad:v, version:GAME_VERSION, seed:RUN.seedBase, ua:navigator.userAgent.slice(0, 120)});
-  runLog(`选择了${v === 'moon' ? '月之国分队（Feena 指挥）' : v + '分队'}`);
+  runLog(`选择了${v === 'moon' ? '月之国分队（Feena 指挥）' : CLASSES.includes(v) ? v + '分队' : v + '势力分队'}`);
   await enterLayer(1);
   // 开局招募券：职业分队 2 张，月之国分队 3 张（随机分类），开局就可以用
-  for (let i = 0; i < (v === 'moon' ? 3 : 2); i++) addTicket(pick(CLASSES), '开局');
+  for (let i = 0; i < (v === 'moon' ? 3 : 2); i++) addTicket(v === 'moon' && i === 2 ? pick(FACTIONS) : pick(CLASSES), '开局');   // 月之国分队：2 张职业券 + 1 张势力券
   runRender();
   for (const t of [...RUN.tickets]) await useTicket(RUN.tickets.indexOf(t));
   runRender();
@@ -6740,21 +6764,21 @@ function recCardHTML(m, lv, cost){
     ${cost ? `<span class="cost">招募 ${cost} 希望</span>` : '<span class="cost">免费</span>'}</button>`;
 }
 /* 招募券：拿到哪个分类的券，就在该分类的全部角色里任选（花希望）。券可以先留着，随时在右侧使用。 */
-function addTicket(cls, src){ RUN.tickets.push(cls); runLog(`${src}：获得【${cls}招募券】`); }
+function addTicket(cls, src){ RUN.tickets.push(cls); runLog(`${src}：获得【${ticketName(cls)}】`); }
 async function useTicket(i){
   const cls = RUN.tickets[i]; if (cls == null) return;
-  const pool = recruitPool().filter(m => tplOf(m).tags.战斗分类 === cls && !RUN.units.some(u => u.mech === m));
+  const pool = recruitPool().filter(m => ticketOk(cls, m) && !RUN.units.some(u => u.mech === m));
   const full = RUN.units.length >= 12;
-  const owned = RUN.units.filter(u => tplOf(u.mech).tags.战斗分类 === cls && u.lv < 30);
-  const v = await dlg(`<div class="eyebrow" style="color:var(--accent)">${cls}招募券</div><h2>招募或晋升（希望 ${RUN.hope}）</h2>
-    <p class="small">在全部${cls}角色里任选一名招募（Lv10）；也可以用这张券给队里的${cls}角色晋升（同样要花希望）。${full ? '<b style="color:var(--enemy)">队伍已满 12 人，先遣散再招募。</b>' : ''}</p>
-    <div class="rcards">${pool.map(m => recCardHTML(m, 10, full ? 99 : recCost(m))).join('') || '<p class="small">这个分类的角色都已经在队伍里了。</p>'}</div>
+  const owned = RUN.units.filter(u => ticketOk(cls, u.mech) && u.lv < 30);
+  const v = await dlg(`<div class="eyebrow" style="color:var(--accent)">${ticketName(cls)}</div><h2>招募或晋升（希望 ${RUN.hope}）</h2>
+    <p class="small">在全部${cls}${CLASSES.includes(cls) ? '' : '势力的'}角色里任选一名招募（Lv10）；也可以用这张券给队里的${cls}${CLASSES.includes(cls) ? '' : '势力'}角色晋升（同样要花希望）。${full ? '<b style="color:var(--enemy)">队伍已满 12 人，先遣散再招募。</b>' : ''}</p>
+    <div class="rcards">${pool.map(m => recCardHTML(m, 10, full ? 99 : recCost(m))).join('') || '<p class="small">这一类的角色都已经在队伍里了。</p>'}</div>
     ${owned.length ? `<div class="fgroup"><i style="--fc:var(--good)"></i>用这张券晋升</div><div class="rcards">${owned.map(u => { const t = tplOf(u.mech), to = u.lv === 10 ? 20 : 30, c = promoCost(u.mech, to); return `<button class="rcard" style="--fc:var(--good)" data-v="promo:${u.mech}" ${c > RUN.hope ? 'disabled' : ''}><b>${t.pilot} <small>${t.mech}</small></b><small>Lv${u.lv} → Lv${to}</small><span class="cost">晋升 ${c} 希望</span></button>`; }).join('')}</div>` : ''}
     <div class="acts"><button class="btn primary" data-v="keep">先留着</button><button class="btn" data-v="drop">丢弃这张券</button></div>`, true);
   if (v === 'keep') return;
   RUN.tickets.splice(i, 1);
-  if (v === 'drop'){ runLog(`丢弃了【${cls}招募券】`); return; }
-  if (v.startsWith('promo:')){ runLog(`使用【${cls}招募券】晋升`); runPromote(v.slice(6)); return; }
+  if (v === 'drop'){ runLog(`丢弃了【${ticketName(cls)}】`); return; }
+  if (v.startsWith('promo:')){ runLog(`使用【${ticketName(cls)}】晋升`); runPromote(v.slice(6)); return; }
   RUN.hope -= recCost(v); RUN.units.push({mech:v, lv:10});
   runLog(`招募 ${tplOf(v).pilot}（${TIER_NAME[tierOf(v)]}，−${recCost(v)} 希望）`);
 }
@@ -6893,7 +6917,7 @@ function teamCard(){
 }
 function ticketCard(){
   if (!RUN.tickets.length) return '';
-  return `<div class="rv-card"><h3>招募券（${RUN.tickets.length}）</h3><div style="display:flex;flex-wrap:wrap;gap:6px">${RUN.tickets.map((c,i) => `<button class="rv-btn" data-ticket="${i}">${c}招募券</button>`).join('')}</div>
+  return `<div class="rv-card"><h3>招募券（${RUN.tickets.length}）</h3><div style="display:flex;flex-wrap:wrap;gap:6px">${RUN.tickets.map((c,i) => `<button class="rv-btn" data-ticket="${i}">${ticketName(c)}</button>`).join('')}</div>
     <p class="small">点击使用：在该分类的全部角色里任选一名（花希望）。</p></div>`;
 }
 function partsCard(){
@@ -6971,7 +6995,12 @@ async function resolveNode(k){
       if (v === 'dur'){ RUN.dur += 2; runLog('休整：作战耐久 +2'); } else { RUN.promoDiscount = true; runLog('休整：下次晋升 −1 希望'); }
       emptyNode(n); return;
     }
-    case 'recruit': { emptyNode(n); const cls = pick(CLASSES); addTicket(cls, '招募站'); await useTicket(RUN.tickets.length - 1); return; }
+    case 'recruit': {
+      emptyNode(n); const a = pick(CLASSES), b = pick(FACTIONS);
+      const c = await dlg(`<div class="eyebrow" style="color:var(--accent)">招募站</div><h2>选一张招募券</h2><p class="small">职业券在同一战斗分类里任选；势力券在同一势力里任选。都可以用来给同类队员晋升。</p>
+        <div class="acts"><button class="btn primary" data-v="${a}">${ticketName(a)}</button><button class="btn" data-v="${b}">${ticketName(b)}</button></div>`);
+      addTicket(c, '招募站'); await useTicket(RUN.tickets.length - 1); return;
+    }
     case 'relay': {
       for (const kk in RUN.map.nodes) if (gdist(+kk, k) <= 2) RUN.revealed.add(+kk);
       emptyNode(n); runLog('中继站：揭开周围 2 格'); return;
@@ -7242,8 +7271,8 @@ async function runBattleEnd(win){
   const exp = {battle:5, elite:8, guard:9, source:9, chase:7}[kind] || 5, he = 2 + Math.floor(Math.random() * 4) + (kind === 'elite' ? 3 : 0);
   RUN.he += he;
   RUN.parts.forEach(p => { if (p.k === 'bloodcap') p.value += 2; });
-  const tcls = pick(CLASSES);
-  lines.unshift(`经验 +${exp}，氦三 +${he}，获得【${tcls}招募券】`);
+  const tcls = randTicket();
+  lines.unshift(`经验 +${exp}，氦三 +${he}，获得【${ticketName(tcls)}】`);
   if (RUN.map && RUN.map.nodes[RUN.cur] && RUN.map.nodes[RUN.cur].type !== 'guard') emptyNode(RUN.map.nodes[RUN.cur]);
   if (kind === 'source'){ RUN.erosionCleared = true; lines.push(`侵蚀源被摧毁：【${EROSIONS[RUN.erosion].name}】解除`); }
   runLog(`${LV.name} ${win ? '胜利' : '失败'}（${turn} 回合）`);
@@ -7306,7 +7335,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.25';
+const GAME_VERSION = 'v0.26';
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
   if (!RUN || !RUN.events) return;
@@ -7453,7 +7482,7 @@ $('#btnSound').onclick = () => setSound(!SOUND.on);
 document.addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !/INPUT|TEXTAREA|SELECT/.test((e.target.tagName || ''))) setSound(!SOUND.on); });
 if (!AU) $('#btnSound').hidden = true; else setSound(SOUND.on);
 
-window.__game = {get sound(){ return {on:SOUND.on, scene:SOUND.scene, cue:AU && AU.state().cue}; }, get RUN(){ return RUN; }, STAGES, buildStage, rlogRecord, rlogText, openRunLogs, enterLayer, checkEnd, moveDist, runClickNode, runBattle, moveTargets, partTargets, get level(){ return level; }, get units(){ return units; }, data:{ALLY_T, ENEMY_T, ABIL, COMMANDS, TRIALS, FIRE}, get roster(){ return roster; }, get LV(){ return LV; }, get turn(){ return turn; }, get over(){ return over; }, setSpeed(v){ SPEED = v; }, startLevel, toggleLock, execCommand, attackables, bestWeaponFor, select, weaponUsable, get S(){ return S; }, orderMeteor, resolveMeteors, get CMD(){ return CMD; }, setTurn(t){ turn = t; }, pushUnit, get walls(){ return walls; }, echoArea, finish, zoneOf, battle, onTile, onAction, endTurn, cheatLevel, choosePick, mapDirs, losClear, canHit, forecast, get art(){ return MI; }, unitSprite, iconIdOf,
+window.__game = {guardReach, FACTIONS, ticketOk, ticketName, get sound(){ return {on:SOUND.on, scene:SOUND.scene, cue:AU && AU.state().cue}; }, get RUN(){ return RUN; }, STAGES, buildStage, rlogRecord, rlogText, openRunLogs, enterLayer, checkEnd, moveDist, runClickNode, runBattle, moveTargets, partTargets, get level(){ return level; }, get units(){ return units; }, data:{ALLY_T, ENEMY_T, ABIL, COMMANDS, TRIALS, FIRE}, get roster(){ return roster; }, get LV(){ return LV; }, get turn(){ return turn; }, get over(){ return over; }, setSpeed(v){ SPEED = v; }, startLevel, toggleLock, execCommand, attackables, bestWeaponFor, select, weaponUsable, get S(){ return S; }, orderMeteor, resolveMeteors, get CMD(){ return CMD; }, setTurn(t){ turn = t; }, pushUnit, get walls(){ return walls; }, echoArea, finish, zoneOf, battle, onTile, onAction, endTurn, cheatLevel, choosePick, mapDirs, losClear, canHit, forecast, get art(){ return MI; }, unitSprite, iconIdOf,
   /* 给工具用：全部单位模板（含未出场的），tools/roster.mjs 靠它检查图标覆盖率。roster 已被玩家编队占用，所以叫 templates */
   get templates(){ return {allies: ALLY_T, enemies: ENEMY_T, forms: FORMS, debris: DEBRIS_T}; },
   get levels(){ return LEVELS; }};

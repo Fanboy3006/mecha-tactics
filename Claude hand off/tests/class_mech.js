@@ -71,5 +71,12 @@ const fs = require('fs');
   // 敌方援护：狙击机能找到援护机会
   const es = await p.evaluate(() => { const g = window.__game; return g.data.ENEMY_T.sniper.abilities.includes('supportAtk') && g.data.ENEMY_T.funnel.abilities.includes('supportAtk'); });
   check('敌方狙击机 / 浮游炮母机带援护攻击', es);
+  /* 5. v0.26：援护范围 = 移动力覆盖范围；势力招募券 */
+  const gr = await p.evaluate(() => { const g = window.__game; g.startLevel('trial_M2'); document.querySelector('#endModal').hidden = true;
+    const m = g.units.find(x => x.mech === 'M2'), a = g.units.find(x => x.side === 'ally' && x !== m);
+    a.x = m.x + 3; a.y = m.y + 2; const far = g.guardReach(m, a); a.x = m.x + 12; a.y = m.y; const tooFar = g.guardReach(m, a); return {far, tooFar, mov: m.mov}; });
+  check('援护范围按移动力覆盖（不相邻也能援护，太远不行）', gr.far && !gr.tooFar, JSON.stringify(gr));
+  const tk = await p.evaluate(() => { const g = window.__game; return {fac: g.FACTIONS && g.FACTIONS.includes('秘银') && g.FACTIONS.includes('月球王国'), ok: g.ticketOk('月球王国', 'M4') && g.ticketOk('狙击', 'M4') && !g.ticketOk('天人', 'M4')}; });
+  check('势力招募券：按势力筛选角色（秘银改名、Nagi 属于月球王国 / 狙击）', tk.fac && tk.ok, JSON.stringify(tk));
   console.log('ERRS', errs); await b.close(); process.exit(bad || errs.length ? 1 : 0);
 })();
