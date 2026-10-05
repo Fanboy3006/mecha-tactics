@@ -175,3 +175,10 @@ node tools/deepseek-mcp/selftest.mjs
 | `doctor.mjs` | 配置体检：找出配置文件真实位置、验 JSON、把 key 打码、检查 aiders 和 server.mjs 在不在。`--fix` 能修「两个 JSON 对象粘在一起」这种手改事故（先备份） |
 | `selftest.mjs` | 自检（上面第 6 节） |
 | `test/fake-aider.mjs` | 自检用的假 aider（正式使用永远走不到） |
+
+## ds_code 的固定流程（需求单 #5 起）
+
+1. 任务前自动加一段提醒：`src/js` 里单个文件括号不配对是正常的，不要修；
+2. aider 参数带 `--line-endings lf --no-auto-lint`；
+3. aider 结束后把改到的文本文件统一成 LF，跑一次 `node tools/build-src.mjs`，有变化就并入同一个提交；
+4. 再跑 `build-src --check`，给了 `test` 就跑那个测试（本机已装 Playwright，装在 `Claude hand off/tests/node_modules`，不进仓库）。
