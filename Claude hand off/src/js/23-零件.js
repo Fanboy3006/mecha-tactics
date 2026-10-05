@@ -12,8 +12,8 @@ const PARTS = {
   thaw:   {name:'老妈的融雪', kind:'加工品', uses:1, move:'fly', price:6, desc:'飞到 3 格内任意已知的非战斗节点，并获得 3 经验'},
   tentacle:{name:'坎诺特的触须', kind:'加工品', uses:1, move:'shop', price:4, desc:'直接前往本层的黑市（会揭开它的位置）'},
   // 自然物（理财）
-  bloodcap:{name:'血蕈', kind:'自然物', value:3, price:4, desc:'每次作战后估价 +2，在黑市卖出换氦三'},
-  wave:   {name:'浪花', kind:'自然物', value:4, price:4, desc:'每次移动后估价随机变化（−2 ~ +4），在黑市卖出换氦三'},
+  bloodcap:{name:'血蕈', kind:'自然物', value:3, price:4, desc:'每次作战后估价 +2，在黑市卖出换源碳结晶'},
+  wave:   {name:'浪花', kind:'自然物', value:4, price:4, desc:'每次移动后估价随机变化（−2 ~ +4），在黑市卖出换源碳结晶'},
   // 概念体（自动触发）
   rite:   {name:'河谷祭祈', kind:'概念体', price:6, desc:'（原作效果待查，暂定）每层开始时推进剂上限 +1'},
 };

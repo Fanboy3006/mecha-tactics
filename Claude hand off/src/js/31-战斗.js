@@ -211,7 +211,7 @@ async function runBattleEnd(win){
   RUN.he += he;
   RUN.parts.forEach(p => { if (p.k === 'bloodcap') p.value += 2; });
   const tcls = randTicket();
-  lines.unshift(`经验 +${exp}，氦三 +${he}，获得【${ticketName(tcls)}】`);
+  lines.unshift(`经验 +${exp}，源碳结晶 +${he}，获得【${ticketName(tcls)}】`);
   if (RUN.map && RUN.map.nodes[RUN.cur] && RUN.map.nodes[RUN.cur].type !== 'guard') emptyNode(RUN.map.nodes[RUN.cur]);
   if (kind === 'source'){ RUN.erosionCleared = true; lines.push(`侵蚀源被摧毁：【${EROSIONS[RUN.erosion].name}】解除`); }
   runLog(`${LV.name} ${win ? '胜利' : '失败'}（${turn} 回合）`);

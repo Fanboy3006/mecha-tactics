@@ -8,7 +8,7 @@ function runRender(){
     <span class="rv-chip">层<b>${RUN.layer === 4 ? '终点' : RUN.layer + ' / 3'}</b></span>
     ${RUN.map ? `<span class="rv-chip ${RUN.prop <= 2 ? 'warn' : ''}">推进剂<b>${RUN.prop} / ${propMax()}</b></span>` : ''}
     <span class="rv-chip">部队<b>Lv${RUN.lvl}</b> <small>${RUN.exp} / ${LV_NEED[RUN.lvl + 1] ?? '—'}</small></span>
-    <span class="rv-chip">希望<b>${RUN.hope}</b></span><span class="rv-chip">氦三<b>${RUN.he}</b></span>
+    <span class="rv-chip">希望<b>${RUN.hope}</b></span><span class="rv-chip">源碳结晶<b>${RUN.he}</b></span>
     <span class="rv-chip ${RUN.dur <= 3 ? 'warn' : ''}">作战耐久<b>${RUN.dur}</b></span>
     <span class="rv-chip">出击上限<b>${deployCap()}</b></span>
     <span class="rv-chip">分队<b>${RUN.squad === 'moon' ? '月之国' : RUN.squad}</b></span>
@@ -75,7 +75,7 @@ function ticketCard(){
     <p class="small">点击使用：在该分类的全部角色里任选一名（花希望）。</p></div>`;
 }
 function partsCard(){
-  const cap = RUN.partCap || 4;
+  const cap = RUN.partCap || 8;
   const rows = RUN.parts.map((p, i) => { const P = PARTS[p.k];
     return `<div class="rv-row"><span class="nm">${P.name}<small>${P.kind}${p.uses != null ? ` · 剩 ${p.uses} 次` : ''}${p.value != null ? ` · 估价 ${p.value}` : ''}</small><br><small style="margin:0">${P.desc}</small></span>
       ${P.move ? `<button class="rv-btn ${RUN.usingPart === i ? 'on' : ''}" data-usepart="${i}" ${RUN.map ? '' : 'disabled'}>使用</button>` : ''}</div>`; }).join('');

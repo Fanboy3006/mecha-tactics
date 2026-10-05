@@ -8,7 +8,7 @@ async function enterLayer(n){
   RUN.erosion = n >= 2 ? pick(Object.keys(EROSIONS)) : null; RUN.erosionCleared = false;
   RUN.layerPropBonus = RUN.chased ? -2 : 0; RUN.chased = false;
   RUN.prop = propMax();
-  const he = [0,3,6,10][skLv('理财')]; if (he){ RUN.he += he; runLog(`理财：氦三 +${he}`); }
+  const he = [0,3,6,10][skLv('理财')]; if (he){ RUN.he += he; runLog(`理财：源碳结晶 +${he}`); }
   runLog(`进入第 ${n} 层航区${RUN.erosion ? `，侵蚀场【${EROSIONS[RUN.erosion].name}】生效` : ''}`);
   runRender();
   if (RUN.erosion) await dlg(`<div class="eyebrow" style="color:#ff5ec4">第 ${n} 层 · 侵蚀场</div><h2>${EROSIONS[RUN.erosion].name}</h2><p>${EROSIONS[RUN.erosion].desc}</p><p class="small">找到本层的侵蚀源（✹）并击败守卫，就能解除。</p><div class="acts"><button class="btn primary" data-v="ok">知道了</button></div>`);

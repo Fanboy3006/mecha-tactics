@@ -73,13 +73,13 @@ async function resolveNode(k){
       emptyNode(n); runLog('瞭望站：推进剂 +1，揭开周围 4 格');
       await dlg(`<div class="eyebrow" style="color:#ffd166">瞭望站</div><h2>视野大开</h2><p>揭开周围 4 格的节点，推进剂 +1。</p><div class="acts"><button class="btn primary" data-v="ok">好</button></div>`); return;
     }
-    case 'treasure': { emptyNode(n); RUN.he += 2; runLog('遗迹：氦三 +2'); await givePart(pick(Object.keys(PARTS)), '遗迹'); return; }
+    case 'treasure': { emptyNode(n); RUN.he += 2; runLog('遗迹：源碳结晶 +2'); await givePart(pick(Object.keys(PARTS)), '遗迹'); return; }
     case 'event': emptyNode(n); await runEvent(); return;
   }
 }
 function emptyNode(n){ n.cleared = true; n.type = 'empty'; n.stage = null; }
 async function givePart(k, src){
-  const cap = RUN.partCap || 4, P = PARTS[k];
+  const cap = RUN.partCap || 8, P = PARTS[k];
   if (RUN.parts.length >= cap){
     const v = await dlg(`<div class="eyebrow">${src}</div><h2>获得零件【${P.name}】</h2><p>${P.kind}：${P.desc}</p><p class="small">零件箱已满（${cap}）。</p><div class="acts"><button class="btn" data-v="drop">放弃</button>${RUN.parts.map((p,i) => `<button class="btn" data-v="${i}">换掉 ${PARTS[p.k].name}</button>`).join('')}</div>`);
     if (v === 'drop') return;
@@ -93,33 +93,33 @@ async function givePart(k, src){
 async function nodeShop(){
   for (;;){
     if (!RUN.shopStock || RUN.shopStock.layer !== RUN.layer || RUN.shopStock.k !== RUN.cur) RUN.shopStock = {layer:RUN.layer, k:RUN.cur, items:sample(Object.keys(PARTS), 4)};
-    const st = RUN.shopStock.items, cap = RUN.partCap || 4;
+    const st = RUN.shopStock.items, cap = RUN.partCap || 8;
     const sellables = RUN.parts.map((p,i) => ({p, i, price: PARTS[p.k].kind === '自然物' ? p.value : 2}));
-    const v = await dlg(`<div class="eyebrow" style="color:var(--accent)">黑市</div><h2>氦三 ${RUN.he} · 零件箱 ${RUN.parts.length} / ${cap}</h2>
-      <div class="rcards">${st.map((k, i) => `<button class="rcard" style="--fc:var(--accent)" data-v="buy${i}" ${PARTS[k].price > RUN.he || RUN.parts.length >= cap ? 'disabled' : ''}><b>${PARTS[k].name}</b><small>${PARTS[k].kind}：${PARTS[k].desc}</small><span class="cost">${PARTS[k].price} 氦三</span></button>`).join('') || '<p class="small">卖完了。</p>'}</div>
-      <p class="small">出售：自然物按估价卖出，其他零件 2 氦三。</p>
+    const v = await dlg(`<div class="eyebrow" style="color:var(--accent)">黑市</div><h2>源碳结晶 ${RUN.he} · 零件箱 ${RUN.parts.length} / ${cap}</h2>
+      <div class="rcards">${st.map((k, i) => `<button class="rcard" style="--fc:var(--accent)" data-v="buy${i}" ${PARTS[k].price > RUN.he || RUN.parts.length >= cap ? 'disabled' : ''}><b>${PARTS[k].name}</b><small>${PARTS[k].kind}：${PARTS[k].desc}</small><span class="cost">${PARTS[k].price} 源碳结晶</span></button>`).join('') || '<p class="small">卖完了。</p>'}</div>
+      <p class="small">出售：自然物按估价卖出，其他零件 2 源碳结晶。</p>
       <div class="acts">${sellables.map(s => `<button class="btn" data-v="sell${s.i}">卖 ${PARTS[s.p.k].name}（+${s.price}）</button>`).join('')}
-        <button class="btn" data-v="rent" ${RUN.he < 6 ? 'disabled' : ''}>空间租赁：零件箱 +1（6 氦三）</button>
+        <button class="btn" data-v="rent" ${RUN.he < 6 ? 'disabled' : ''}>空间租赁：零件箱 +1（6 源碳结晶）</button>
         <button class="btn primary" data-v="leave">离开</button></div>`, true);
     if (v === 'leave') return;
     if (v.startsWith('buy')){ const i = +v.slice(3), k = st[i]; RUN.he -= PARTS[k].price; RUN.parts.push(newPart(k)); st.splice(i, 1); runLog(`黑市买入【${PARTS[k].name}】`); }
     else if (v.startsWith('sell')) runSellPart(+v.slice(4), true);
-    else if (v === 'rent'){ RUN.he -= 6; RUN.partCap = (RUN.partCap || 4) + 1; runLog('空间租赁：零件箱 +1'); }
+    else if (v === 'rent'){ RUN.he -= 6; RUN.partCap = (RUN.partCap || 8) + 1; runLog('空间租赁：零件箱 +1'); }
     runRender();
   }
 }
 function runSellPart(i, quiet){
   const p = RUN.parts[i]; if (!p) return;
   const price = PARTS[p.k].kind === '自然物' ? p.value : 2;
-  RUN.he += price; RUN.parts.splice(i, 1); runLog(`卖出【${PARTS[p.k].name}】+${price} 氦三`);
+  RUN.he += price; RUN.parts.splice(i, 1); runLog(`卖出【${PARTS[p.k].name}】+${price} 源碳结晶`);
   if (!quiet) runRender();
 }
 const EVENTS = [
   {title:'漂流的补给舱', text:'一只来自别的宇宙的补给舱卡在迷宫的裂缝里。', opts:[['推进剂 +3', () => { RUN.prop += 3; }], ['经验 +5', () => gainExp(5, '补给舱')]]},
   {title:'平行宇宙的回声', text:'裂缝里传来另一个世界的声音，伸手就能抓到些什么，但会被反噬。', opts:[['作战耐久 −1，获得随机零件', async () => { RUN.dur--; await givePart(pick(Object.keys(PARTS)), '回声'); }], ['离开', () => {}]]},
-  {title:'迷路的机师', text:'一名来自其他宇宙的机师在迷宫里迷了路。', opts:[['免费招募一名普通档角色', async () => { const pool = recruitPool().filter(m => tierOf(m) === 'B' && !RUN.units.some(u => u.mech === m)); if (pool.length && RUN.units.length < 12){ const m = pick(pool); RUN.units.push({mech:m, lv:10}); runLog(`${tplOf(m).pilot} 加入了队伍`); } }], ['给他指路，氦三 +3', () => { RUN.he += 3; }]]},
+  {title:'迷路的机师', text:'一名来自其他宇宙的机师在迷宫里迷了路。', opts:[['免费招募一名普通档角色', async () => { const pool = recruitPool().filter(m => tierOf(m) === 'B' && !RUN.units.some(u => u.mech === m)); if (pool.length && RUN.units.length < 12){ const m = pick(pool); RUN.units.push({mech:m, lv:10}); runLog(`${tplOf(m).pilot} 加入了队伍`); } }], ['给他指路，源碳结晶 +3', () => { RUN.he += 3; }]]},
   {title:'扭曲的时钟', text:'这里的时间流速不对劲。', opts:[['推进剂 −2，经验 +10', () => { RUN.prop = Math.max(0, RUN.prop - 2); return gainExp(10, '扭曲的时钟'); }], ['离开', () => {}]]},
-  {title:'黑箱', text:'一个上了锁的黑箱。', opts:[['花 3 氦三打开', async () => { if (RUN.he < 3) return; RUN.he -= 3; if (Math.random() < .5){ await gainExp(6, '黑箱'); } else await givePart(pick(['wheel','limb','spring','engine','exo']), '黑箱'); }], ['不碰它', () => {}]]},
+  {title:'黑箱', text:'一个上了锁的黑箱。', opts:[['花 3 源碳结晶打开', async () => { if (RUN.he < 3) return; RUN.he -= 3; if (Math.random() < .5){ await gainExp(6, '黑箱'); } else await givePart(pick(['wheel','limb','spring','engine','exo']), '黑箱'); }], ['不碰它', () => {}]]},
 ];
 async function runEvent(){
   const e = pick(EVENTS);

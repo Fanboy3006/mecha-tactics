@@ -30,7 +30,7 @@ async function runStartScreen(){
     <div class="rcards">${qs.map(q => `<button class="rcard" style="--fc:${q.id === 'moon' ? '#9fb7d8' : q.fac ? (FACTION_COL[q.id] || 'var(--accent)') : 'var(--accent)'}" data-v="${q.id}"><b>${q.name}</b><small>${q.desc}</small></button>`).join('')}</div>`).join('')}
     <div class="acts"><button class="btn" data-v="cancel">返回</button></div>`, true);
   if (v === 'cancel'){ runHide(); startLevel('tut1'); return; }
-  RUN = {runId:Date.now().toString(36) + Math.random().toString(36).slice(2,6), t0:Date.now(), events:[], squad:v, layer:1, lvl:1, exp:0, tickets:[], hope:8, he:5, dur:10, units:[], parts:[], capBonus:0, promoDiscount:false, over:false, log:[], battles:0, seedBase:Date.now() & 0xffffff, cmd:null, erosion:null, erosionCleared:false, mods:null, layerPropBonus:0};
+  RUN = {runId:Date.now().toString(36) + Math.random().toString(36).slice(2,6), t0:Date.now(), events:[], squad:v, layer:1, lvl:1, exp:0, tickets:[], hope:8, he:20, dur:10, units:[], parts:[], capBonus:0, promoDiscount:false, over:false, log:[], battles:0, seedBase:Date.now() & 0xffffff, cmd:null, erosion:null, erosionCleared:false, mods:null, layerPropBonus:0};
   if (v === 'moon'){ RUN.cmd = {lv:1, xp:0, atk:0, def:0, lead:0, know:0, skills:{}}; }
   else {
     const cands = recruitPool().filter(m => ticketOk(v, m));
