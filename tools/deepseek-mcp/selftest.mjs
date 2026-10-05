@@ -59,7 +59,7 @@ process.env.DS_MCP_ROOT = tmp;
 process.env.DS_MCP_AIDER_CMD = FAKE_AIDER;
 delete process.env.DEEPSEEK_API_KEY;
 
-const { checkPath, GuardError, pickLines, clip } = await import('./lib.mjs');
+const { checkPath, GuardError, pickLines, clip, aiderLaunch, run } = await import('./lib.mjs');
 const { dsCode, dsStatus, TOOLS } = await import('./tools.mjs');
 
 console.log(`临时项目：${tmp}\n`);
@@ -89,6 +89,18 @@ const clipped = clip(longText, 4000);
 check('裁剪到 4000 字以内', clipped.length <= 4000, `${clipped.length} 字`);
 check('工具清单有两个工具', TOOLS.length === 2 && TOOLS[0].name === 'ds_code' && TOOLS[1].name === 'ds_status');
 
+/* DS_MCP_AIDER_CMD 的三种写法要分得清（.exe 直接跑、.mjs 用 node、空则用 PATH） */
+const launchFake = aiderLaunch();
+check('aiderLaunch：.mjs 当 Node 脚本跑', launchFake.isFake && /node\.exe$/i.test(launchFake.cmd));
+process.env.DS_MCP_AIDER_CMD = 'C:\\somewhere\\Scripts\\aider.exe';
+const launchExe = aiderLaunch();
+check('aiderLaunch：.exe 直接执行（不再套 node）', launchExe.isFake === false && launchExe.cmd === 'C:\\somewhere\\Scripts\\aider.exe');
+process.env.DS_MCP_AIDER_CMD = 'C:\\somewhere\\aider.cmd';
+check('aiderLaunch：.cmd 走 cmd.exe /c', aiderLaunch().cmd.toLowerCase().endsWith('cmd.exe') && aiderLaunch().args[0] === '/c');
+process.env.DS_MCP_AIDER_CMD = '';
+check('aiderLaunch：不设就用 PATH 里的 aider', aiderLaunch().cmd === 'aider' && aiderLaunch().isFake === false);
+process.env.DS_MCP_AIDER_CMD = FAKE_AIDER;
+
 /* ---------- 2. ds_code 全流程（假 aider + 构建检查 + 测试） ---------- */
 console.log('\n[2] ds_code 全流程（临时项目里）');
 const r1 = await dsCode({
@@ -113,6 +125,15 @@ const r3 = await dsCode({ task: '' });
 check('空 task 被拒', r3.isError === true);
 const r4 = await dsCode({ task: '禁区测试', files: ['图片库/版权图.png'] });
 check('files 落在禁区被拒', r4.isError === true && /禁止目录/.test(r4.text));
+
+/* aider 说成功但什么都没干；以及 aider 报错却 exit 0 —— 都不能被当成 ✓ */
+process.env.FAKE_AIDER_MODE = 'noop';
+const r5 = await dsCode({ task: '什么都不做', files: ['src/fake.js'] });
+check('aider 没改动时给 ⚠ 提示', /一个文件都没改/.test(r5.text) && r5.isError === false);
+process.env.FAKE_AIDER_MODE = 'authfail';
+const r6 = await dsCode({ task: 'key 不对', files: ['src/fake.js'] });
+check('aider 其实报错（exit 0）时判 isError', r6.isError === true && /Authentication Fails/.test(r6.text));
+delete process.env.FAKE_AIDER_MODE;
 
 console.log('\n[3] ds_status');
 const s1 = await dsStatus();
@@ -153,6 +174,23 @@ try {
   check('未知工具名有友好报错', /没有这个工具/.test(unknown?.result?.content?.[0]?.text || ''));
 } finally {
   mcp.close();
+}
+
+/* ---------- 5. 真 aider：装了就顺手验一下（没装只提示，不算失败） ---------- */
+console.log('\n[5] 真 aider（装了就验，没装只提示）');
+{
+  const saved = process.env.DS_MCP_AIDER_CMD;
+  delete process.env.DS_MCP_AIDER_CMD;
+  const l = aiderLaunch();
+  const probe = await run(l.cmd, ['--version'], { timeoutMs: 60000 });
+  if (saved) process.env.DS_MCP_AIDER_CMD = saved;
+  const out = (probe.stdout || probe.stderr || '').trim().split(/\r?\n/)[0] || '';
+  if (probe.spawnError || probe.code !== 0) {
+    console.log(`… PATH 里没有 aider（${probe.spawnError ? probe.spawnError.code : '退出码 ' + probe.code}），跳过这一步。`);
+    console.log('  装法见 tools/deepseek-mcp/README.md 第 1 节：用 Python 3.12 + uv，别用 3.13 / 3.14。');
+  } else {
+    check(`真 aider 能跑：${out}`, /aider/i.test(out));
+  }
 }
 
 console.log(bad ? `\n${bad} 项没过` : '\n全部通过');

@@ -21,6 +21,18 @@ console.log(`fake aider: model=${argv[argv.indexOf('--model') + 1]}`);
 console.log(`fake aider: task=${task}`);
 console.log(`fake aider: files=${files.join(', ') || '(无)'}`);
 
+/* 自检要覆盖三种 aider 行为：正常改并提交 / 什么都不做 / 报错但退出码仍是 0 */
+const mode = process.env.FAKE_AIDER_MODE || 'commit';
+if (mode === 'noop') {
+  console.log('fake aider: 什么都不做（noop），退出码 0');
+  process.exit(0);
+}
+if (mode === 'authfail') {
+  console.log('litellm.BadRequestError: DeepseekException - {"error":{"message":"Authentication Fails, Your api key is invalid"}}');
+  console.log('fake aider: 报错了，但退出码照样是 0（真 aider 实测就是这样）');
+  process.exit(0);
+}
+
 /* 改第一个文件；没有就自己造一个，模拟「aider 改了代码」 */
 const target = files.length ? path.resolve(cwd, files[0]) : path.join(cwd, 'fake-aider-target.txt');
 appendFileSync(target, `\n/* fake aider 改动：${task} */\n`, 'utf8');

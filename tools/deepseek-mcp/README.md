@@ -18,14 +18,27 @@ Claude 桌面版 ──stdio(MCP)──> server.mjs ──> aider --model deepse
 cd C:\DSH-机战\tools\deepseek-mcp
 npm install
 
-# 2) Aider（DeepSeek 的改代码执行器）
-pip install aider-chat
-aider --version          # 能打印版本就行
+# 2) Aider（DeepSeek 的改代码执行器）—— 见下面「别踩的坑」，用 Python 3.12
+pip install uv                                    # 只要 uv，或者用已经装好的
+uv venv --python 3.12 "$env:USERPROFILE\.aider312"
+uv pip install --python "$env:USERPROFILE\.aider312\Scripts\python.exe" aider-chat
+& "$env:USERPROFILE\.aider312\Scripts\aider.exe" --version    # 能打印 aider 0.86.x 就行
 
-# 3) 自己的 DeepSeek API key（在 platform.deepseek.com 申请）
+# 3) 自己的 DeepSeek API key（在 platform.deepseek.com 申请），填到 claude_desktop_config.json 的 env 里
 ```
 
-`node_modules/` 已经在 `.gitignore` 里，不会进仓库；**API key 只放环境变量，永远不进仓库**。
+`node_modules/`、`.aider*`、`.env` 都已经在 `.gitignore` 里，不会进仓库；**API key 只放环境变量，永远不进仓库**。
+
+> **⚠ 别踩的坑（本机 2026-10-05 实际踩过）**
+> 直接 `pip install aider-chat` 在 **Python 3.13 / 3.14** 上会失败，最后报
+> `BackendUnavailable: Cannot import 'setuptools.build_meta'`。原因不是 setuptools：
+> 新版 aider 没声明支持 3.13+，pip 于是**悄悄退回 2023 年的 `aider-chat 0.16.0`**，
+> 而那个版本死锁 `numpy==1.24.3`、`scipy==1.10.1`、`tiktoken==0.4.0`、`aiohttp==3.8.4`，
+> 这些都没有 3.13 / 3.14 的 wheel，pip 只好去**源码编译 numpy**，编译环境一崩就报上面那个错。
+> 用 **Python 3.12**（上面 uv 的命令会自动下好 CPython 3.12）就一路都是 wheel，秒装。
+> 本机已经装好：`C:\Users\zxwu0\.aider312\Scripts\aider.exe`（aider 0.86.2）。
+
+**aider 不在 PATH 里也没关系**：把它填给 `DS_MCP_AIDER_CMD` 就行（下一节）。
 
 ## 2. 接到 Claude 桌面版
 
@@ -40,7 +53,8 @@ aider --version          # 能打印版本就行
       "command": "node",
       "args": ["C:\\DSH-机战\\tools\\deepseek-mcp\\server.mjs"],
       "env": {
-        "DEEPSEEK_API_KEY": "sk-在这里填你的key"
+        "DEEPSEEK_API_KEY": "sk-在这里填你的key",
+        "DS_MCP_AIDER_CMD": "C:\\Users\\zxwu0\\.aider312\\Scripts\\aider.exe"
       }
     }
   }
@@ -48,6 +62,8 @@ aider --version          # 能打印版本就行
 ```
 
 - JSON 里的反斜杠要写两个：`C:\\DSH-机战\\...`。路径用引号包好，中文目录名没问题。
+- `DS_MCP_AIDER_CMD` 建议**一定填**（指向第 1 节装出来的 `aider.exe` 完整路径）：这样不用管 PATH，
+  也不会和系统里别的 Python 抢 `aider` 这个名字。
 - 如果桌面版报 `node` 找不到，把 `command` 换成绝对路径：`"C:\\Program Files\\nodejs\\node.exe"`。
 - 环境变量只在**这个服务器进程**里生效，不会影响系统别的东西。
 - 改完配置**完全退出桌面版再启动**（托盘里也要退干净），Claude 的工具列表里就会出现
@@ -75,6 +91,10 @@ aider --version          # 能打印版本就行
 
 构建检查或测试有问题时，返回的 `isError` 是 true，Claude 一眼能看出这轮没通过。
 
+> **一个实测细节**：aider **出错时也可能返回退出码 0**（实测：key 不对时它打印 `Authentication Fails` 然后照样 exit 0）。
+> 所以 `ds_code` 不只信退出码，还会自己数一遍「这次到底动没动文件」：
+> 一个文件都没改、也没有新提交时明确写 ⚠；输出里有 `Authentication Fails` / `litellm.*Error` / `Traceback` 这类字样时直接判 `isError`。
+
 ### `ds_status()`
 
 `git log --oneline -5`、`git status --short`，外加当前分支和与上游差几个提交。开工前先看一眼很有用。
@@ -98,7 +118,7 @@ aider --version          # 能打印版本就行
 | `DS_MCP_TEST_TIMEOUT_MS` | `600000` | 测试脚本超时（10 分钟） |
 | `DS_MCP_MAX_CHARS` | `4000` | 返回文本上限 |
 | `DS_MCP_ROOT` | 项目根 | **只给自检用**；正式使用不要设 |
-| `DS_MCP_AIDER_CMD` | 空（用 `aider`） | **只给自检用**：换成假 aider 脚本 |
+| `DS_MCP_AIDER_CMD` | 空（用 PATH 里的 `aider`） | 指向 `aider.exe` 的完整路径（**推荐**）。`.mjs` / `.js` 会当 Node 脚本跑（只有自检的假 aider 用），`.cmd` / `.bat` 走 `cmd.exe /c` |
 
 ## 6. 自检
 
@@ -118,7 +138,9 @@ node tools/deepseek-mcp/selftest.mjs
 |---|---|
 | 桌面版工具列表里没有 `ds_code` | 配置没读到（路径 / JSON 语法）或没完全重启桌面版；`claude_desktop_config.json` 里 JSON 不能有注释 |
 | 返回「没有 DEEPSEEK_API_KEY」 | key 没写进 `env`，或者写了没重启 |
-| 返回「找不到 aider 命令」 | 没装（`pip install aider-chat`），或 aider 不在 PATH 里；把 `DS_MCP_AIDER_CMD` 指到 `aider.exe` 全路径 |
+| 返回「找不到 aider 命令」 | 没装，或不在 PATH 里。用第 1 节的 Python 3.12 + uv 装，然后把 `DS_MCP_AIDER_CMD` 指到 `aider.exe` 完整路径 |
+| 装 aider 时报 `Cannot import 'setuptools.build_meta'` | 用了 Python 3.13 / 3.14，pip 退回了 2023 年的 aider 0.16.0 并去源码编译 numpy。改用 Python 3.12（见第 1 节的坑） |
+| aider 起来了但报 401 / 没权限 | `DEEPSEEK_API_KEY` 不对或没余额；key 是在 platform.deepseek.com 申请的 |
 | aider 超时 | 任务太大，拆成几个小任务；或调大 `DS_MCP_TIMEOUT_MS` |
 | 测试跑不起来（`Cannot find module 'playwright'`） | 测试脚本要 Playwright：`npm i playwright` + `npx playwright install chromium`（见 `Claude hand off/tests/README.md`） |
 | 中文任务乱码 | 服务器已经给 aider 设了 `PYTHONIOENCODING=utf-8` / `PYTHONUTF8=1`；还有问题就看 aider 输出尾部 |

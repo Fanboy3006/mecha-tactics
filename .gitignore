@@ -4,6 +4,11 @@ audio/out/
 node_modules/
 .chrome-tmp/
 
+# aider 的现场文件（需求单 #4 引入）：聊天记录、标签缓存、输入历史
+.aider*
+.env
+.env.local
+
 # 版权图片（作品截图，不能公开）
 图片库/
 # 旧的交接包副本

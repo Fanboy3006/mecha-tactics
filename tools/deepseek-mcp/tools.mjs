@@ -14,13 +14,16 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import {
   CODE_TIMEOUT_MS, GuardError, MAX_CHARS, MODEL, ROOT, TEST_TIMEOUT_MS,
-  checkPath, clip, countBad, git, nodeBin, pickLines, rel, resolveTestScript, run, tail,
+  aiderLaunch, checkPath, clip, countBad, git, nodeBin, pickLines, rel, resolveTestScript, run, tail,
 } from './lib.mjs';
 
 const AIDER_HELP = [
   '装 aider：`pip install aider-chat`（Windows 上装完确认 `aider --version` 能跑）。',
-  '如果提示找不到命令，就在 claude_desktop_config.json 的 env 里加一行 PATH 指到 Scripts 目录，',
-  '或把 DS_MCP_AIDER_CMD 指向 aider.exe 的完整路径。',
+  '⚠ 别用 Python 3.13 / 3.14 装：新版 aider 没声明支持它们，pip 会偷偷退回 2023 年的 0.16.0，',
+  '那个版本死锁 numpy==1.24.3 / scipy==1.10.1（没有 3.13+ 的 wheel），会以',
+  '「Cannot import setuptools.build_meta」收场。用 Python 3.12 + uv 最省事，见 README 第 1 节。',
+  '装好之后把 DS_MCP_AIDER_CMD 指向 aider.exe 的完整路径（例如本机的',
+  'C:\\Users\\zxwu0\\.aider312\\Scripts\\aider.exe），就不用管 PATH 了。',
 ].join('\n');
 
 /* ---------- ds_status ---------- */
@@ -75,8 +78,8 @@ export async function dsCode(args = {}) {
   }
 
   /* 自检用的假 aider 走 node 脚本，不需要 API key；正式跑必须要有 key */
-  const fakeAider = process.env.DS_MCP_AIDER_CMD;
-  if (!fakeAider && !process.env.DEEPSEEK_API_KEY) {
+  const launch = aiderLaunch();
+  if (!launch.isFake && !process.env.DEEPSEEK_API_KEY) {
     return {
       isError: true,
       text: [
@@ -88,6 +91,7 @@ export async function dsCode(args = {}) {
   }
 
   const before = (await git(['rev-parse', 'HEAD'])).stdout.trim();
+  const dirtyBefore = (await git(['status', '--porcelain'])).stdout.trim();
   const notes = [];
 
   /* 2. aider：自己读文件、改文件、提交 */
@@ -99,7 +103,7 @@ export async function dsCode(args = {}) {
     '--message', task,
     ...files,
   ];
-  const [cmd, baseArgs] = fakeAider ? [nodeBin(), [path.resolve(fakeAider)]] : ['aider', []];
+  const [cmd, baseArgs] = [launch.cmd, launch.args];
   const aider = await run(cmd, [...baseArgs, ...aiderArgs], {
     timeoutMs: CODE_TIMEOUT_MS,
     /* aider 是 Python：Windows 上强制 UTF-8，否则中文任务会炸编码 */
@@ -107,6 +111,11 @@ export async function dsCode(args = {}) {
   });
 
   let aiderBad = false;
+  /* aider 出错时也可能返回 0（实测：key 不对时它照样 exit 0），所以下面还要自己看「动没动文件」 */
+  const aiderText = [aider.stdout, aider.stderr].filter(Boolean).join('\n');
+  const errMark = aiderText.split(/\r?\n/).find(l =>
+    /Authentication Fails|Invalid API key|Incorrect API key|litellm\.[A-Za-z]*Error|APIError|Traceback \(most recent call last\)|\b401\b/i.test(l));
+
   if (aider.spawnError) {
     aiderBad = true;
     if (aider.spawnError.code === 'ENOENT') notes.push(`找不到 aider 命令。\n${AIDER_HELP}`);
@@ -130,6 +139,18 @@ export async function dsCode(args = {}) {
     statOut = (await git(['diff', '--stat'])).stdout.trim();
     const st = (await git(['status', '--short'])).stdout.trim();
     if (st) statOut += (statOut ? '\n' : '') + '未跟踪/未提交：\n' + st.split(/\r?\n/).slice(0, 10).join('\n');
+  }
+
+  /* 3b. aider 说成功但可能什么都没干（key 错 / 任务没落实）。自己数一遍，别把这种情况报成 ✓ */
+  {
+    const committed = !!(before && after && before !== after);
+    const dirtyAfter = (await git(['status', '--porcelain'])).stdout.trim();
+    if (!aider.spawnError && !aider.timedOut && !committed && dirtyAfter === dirtyBefore) {
+      notes.push('⚠ aider 退出码是 0，但一个文件都没改、也没提交：多半是任务没落实，或者 key / 模型不对（看下面的输出尾部）。');
+      if (errMark) { aiderBad = true; notes.push(`aider 输出里有报错：${errMark.trim().slice(0, 200)}`); }
+    } else if (!aiderBad && errMark) {
+      notes.push(`注意：aider 输出里有报错字样，但确实有改动 —— ${errMark.trim().slice(0, 200)}`);
+    }
   }
 
   /* 4. 构建检查（需求单 #4：跑完自动执行） */
@@ -156,9 +177,10 @@ export async function dsCode(args = {}) {
   /* 6. 拼小结：只要结论 + 关键行，不回代码 */
   const L = [];
   const bad = aiderBad || buildOk === false || testOk === false;
-  L.push(`ds_code ${bad ? '⚠ 有问题，见下' : '✓ 完成'}${fakeAider ? '（假 aider 自检模式）' : ''}`);
+  L.push(`ds_code ${bad ? '⚠ 有问题，见下' : '✓ 完成'}${launch.isFake ? '（假 aider 自检模式）' : ''}`);
   L.push(`任务：${task.length > 200 ? task.slice(0, 200) + '…' : task}`);
   L.push(`提交：${commitLine}`);
+  L.push(`aider：${launch.label}`);
   L.push('');
   L.push('git diff --stat：');
   L.push(statOut ? statOut.split(/\r?\n/).slice(0, 14).join('\n') : '（没有改动）');

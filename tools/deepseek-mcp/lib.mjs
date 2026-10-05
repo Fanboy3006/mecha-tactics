@@ -132,6 +132,23 @@ export function git(args, opts = {}) {
 
 export function nodeBin() { return process.execPath; }
 
+/* ---------- aider 怎么起 ----------
+   DS_MCP_AIDER_CMD 可以是三种东西：
+     - 不设（默认）：PATH 里的 `aider`；
+     - 真的 `aider.exe` 的完整路径：直接执行（本机就是这种：aider 装在 Python 3.12 的独立 venv 里）；
+     - `.mjs` / `.js`：当 Node 脚本跑（只有 selftest 的假 aider 会用）。
+   `.cmd` / `.bat` 在 Windows 上不能直接 spawn，走 `cmd.exe /c`。 */
+export function aiderLaunch() {
+  const raw = (process.env.DS_MCP_AIDER_CMD || '').trim();
+  if (!raw) return { cmd: 'aider', args: [], label: 'aider（PATH 里）', isFake: false };
+  const abs = path.resolve(raw);
+  if (/\.m?js$/i.test(abs)) return { cmd: process.execPath, args: [abs], label: abs, isFake: true };
+  if (/\.(cmd|bat)$/i.test(abs)) {
+    return { cmd: process.env.ComSpec || 'cmd.exe', args: ['/c', abs], label: abs, isFake: false };
+  }
+  return { cmd: abs, args: [], label: abs, isFake: false };
+}
+
 /* ---------- 3. 输出裁剪 ---------- */
 
 /* 只挑对方要看的行：✓ / ✗ 断言行 + ERRS 行（需求单 #4 明说要这两种）。 */
