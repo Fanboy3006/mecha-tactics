@@ -6,7 +6,7 @@ const ALLY_T = [
     wp({name:'传送斩', stat:'格斗', fire:'melee', range:[1,4], critMod:-10, unlock:20, ignoreDef:true, special:'gamble', upgrades:[{lv:30, range:[1,Infinity], note:'Lv30 起射程变为全图'}],
         desc:'命中后 50% 造成 12000 伤害、50% 造成目标当前 HP 90% 的伤害；无视防御。无论是否命中都会传送到目标旁（击破时占据目标位置）。'}),
   ]},
-  {pilot:'蕾卡', mech:'B2', short:'B2', trait:'moveEva', canFly:true, tags:{势力:'影世界', 远近分类:'远程', 战斗分类:'尖兵'}, hp:4500, armor:0, eva:40, mov:7, melee:100, shoot:130, skill:150, flying:true, w:1, h:1, abilities:['dodgeFatigue'], weapons:[
+  {pilot:'蕾卡', mech:'B2', short:'B2', trait:'moveEva', canFly:true, tags:{势力:'影世界', 远近分类:'远程', 战斗分类:'尖兵'}, hp:4500, armor:0, eva:40, mov:7, melee:100, shoot:130, skill:150, flying:true, w:1, h:1, abilities:[], weapons:[
     wp({name:'直射炮', power:2000, fire:'direct', range:[1,5]}),
     wp({name:'曲射弹', power:1500, fire:'indirect', range:[2,7]}),
     wp({name:'影凤凰', power:5000, fire:'map', range:[1,4], unlock:20, afterMove:false, dmgType:'特殊',

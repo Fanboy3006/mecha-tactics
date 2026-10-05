@@ -22,7 +22,7 @@ Hooks.on('strikeResolved', c => {
   log(`${fullName(c.def)} 被【${c.w.name}】标记：破防 −20%（合计 −${Math.min(100, breakSum(c.def))}%）`, null, c.att.side);
 }, 'TRANS-AM 狙击：命中后直接挂一层背面破防');
 Hooks.on('strikeResolved', c => {
-  if (c.hit || c.def.hp <= 0 || !c.def.abilities.includes('dodgeFatigue')) return;
+  if (c.hit || c.def.hp <= 0 || c.def.noEvade) return;
   c.def.dodgePen = (c.def.dodgePen || 0) + 10;
   if (c.def.side === 'ally') fireTip('fatigue');
   log(`${fullName(c.def)} 闪避疲劳：闪避 −10（本回合合计 −${c.def.dodgePen}，当前 ${Math.max(0, c.def.eva - c.def.dodgePen)}）`, null, c.def.side);

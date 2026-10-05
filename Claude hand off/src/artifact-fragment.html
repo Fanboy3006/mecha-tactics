@@ -3028,7 +3028,7 @@ let phaseSide = 'ally';
 const ABIL = {
   barrier:{name:'能量屏障', desc:'生成伤害 ≤2500 时完全无效，每场 3 次。'},
   frontArmor:{name:'正面装甲', desc:'从正面受到的伤害 −50%（百分比减免阶段）。侧面、背面不生效。这台机体不会回避，也不会防御。'},
-  dodgeFatigue:{name:'闪避疲劳', desc:'同一回合内每完全闪避一次攻击，闪避 −10，下一个我方阶段开始时恢复。'},
+  dodgeFatigue:{name:'闪避疲劳', desc:'通用规则（所有会回避的单位）：同一回合内每完全闪避一次攻击，闪避 −10，下一个我方阶段开始时恢复。'},
   portalTrait:{name:'门之力', desc:'指令「传送」：移动到 7 格内任意空地，代替本回合移动。每次反噬 +25，反噬 ≥100 时不能使用。（之后还会改动 / 升级）'},
   moveEva:{name:'游刃有余', desc:'行动结束时，本回合没用完的移动力每 1 点转为闪避 +5，持续到下一个我方阶段开始。'},
   autoCast:{name:'月光共鸣（暂名）', desc:'不能主动使用武器。我方阶段每次行动结束后，自动释放已解锁、冷却好了的武器中序号最高的一把：Lv20 前是月光祝福，Lv20 起是残月的余响，Lv30 起满月·月蚀冷却好时优先释放它。'},
@@ -3257,7 +3257,7 @@ const ALLY_T = [
     wp({name:'传送斩', stat:'格斗', fire:'melee', range:[1,4], critMod:-10, unlock:20, ignoreDef:true, special:'gamble', upgrades:[{lv:30, range:[1,Infinity], note:'Lv30 起射程变为全图'}],
         desc:'命中后 50% 造成 12000 伤害、50% 造成目标当前 HP 90% 的伤害；无视防御。无论是否命中都会传送到目标旁（击破时占据目标位置）。'}),
   ]},
-  {pilot:'蕾卡', mech:'B2', short:'B2', trait:'moveEva', canFly:true, tags:{势力:'影世界', 远近分类:'远程', 战斗分类:'尖兵'}, hp:4500, armor:0, eva:40, mov:7, melee:100, shoot:130, skill:150, flying:true, w:1, h:1, abilities:['dodgeFatigue'], weapons:[
+  {pilot:'蕾卡', mech:'B2', short:'B2', trait:'moveEva', canFly:true, tags:{势力:'影世界', 远近分类:'远程', 战斗分类:'尖兵'}, hp:4500, armor:0, eva:40, mov:7, melee:100, shoot:130, skill:150, flying:true, w:1, h:1, abilities:[], weapons:[
     wp({name:'直射炮', power:2000, fire:'direct', range:[1,5]}),
     wp({name:'曲射弹', power:1500, fire:'indirect', range:[2,7]}),
     wp({name:'影凤凰', power:5000, fire:'map', range:[1,4], unlock:20, afterMove:false, dmgType:'特殊',
@@ -4346,7 +4346,7 @@ Hooks.on('strikeResolved', c => {
   log(`${fullName(c.def)} 被【${c.w.name}】标记：破防 −20%（合计 −${Math.min(100, breakSum(c.def))}%）`, null, c.att.side);
 }, 'TRANS-AM 狙击：命中后直接挂一层背面破防');
 Hooks.on('strikeResolved', c => {
-  if (c.hit || c.def.hp <= 0 || !c.def.abilities.includes('dodgeFatigue')) return;
+  if (c.hit || c.def.hp <= 0 || c.def.noEvade) return;
   c.def.dodgePen = (c.def.dodgePen || 0) + 10;
   if (c.def.side === 'ally') fireTip('fatigue');
   log(`${fullName(c.def)} 闪避疲劳：闪避 −10（本回合合计 −${c.def.dodgePen}，当前 ${Math.max(0, c.def.eva - c.def.dodgePen)}）`, null, c.def.side);
