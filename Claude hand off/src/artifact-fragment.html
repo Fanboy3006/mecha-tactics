@@ -4198,7 +4198,7 @@ function mapDirs(u, w){
 }
 
 /* ---------- 战斗计算 ---------- */
-const buffSum = (u, k) => u.buffs.reduce((a,b) => a + (b[k] || 0), 0);
+const buffSum = (u, k) => u.buffs.reduce((a,b) => a + (b[k] || 0), 0) + ((u.relicMods && u.relicMods[k]) || 0);   // v0.31 藏品的常驻加成也算进来
 const TRAIT_LV = 10;
 const hasTrait = (u, k) => !!u && u.trait === k && (u.lv >= TRAIT_LV || u.forceTrait);
 const effArmor = u => Math.round(u.armor * (hasTrait(u,'steadfast') && !u.movedThisRound ? 1.3 : 1) * Math.max(0, 1 + (buffSum(u,'armorPct') + tfx(u,'armorPct'))/100));
@@ -4405,7 +4405,7 @@ Hooks.on('phaseStart', c => {
   }
 }, '念动共鸣：阶段开始时群体回复');
 Hooks.on('phaseStart', c => { units.filter(u => u.side === c.side).forEach(u => { u.movedThisRound = false; if (c.side === 'ally') u.moveEva = 0; }); }, '回合开始：清除"本回合已移动"与剩余移动闪避');
-Hooks.on('phaseStart', c => { if (c.side === 'enemy') units.forEach(u => { u.guardLeft = 2 + (hasTrait(u,'steadfast') && !u.movedThisRound ? 1 : 0); }); else units.forEach(u => { if (abilOn(u,'guardAtk')) u.guardLeft = 2; }); }, '援护防御：敌方阶段开始时重置为 2 次（不动如山 +1）；进攻援护在我方阶段开始时也重置为 2 次');
+Hooks.on('phaseStart', c => { if (c.side === 'enemy') units.forEach(u => { u.guardLeft = 2 + (u.guardBonus || 0) + (hasTrait(u,'steadfast') && !u.movedThisRound ? 1 : 0); }); else units.forEach(u => { if (abilOn(u,'guardAtk')) u.guardLeft = 2; }); }, '援护防御：敌方阶段开始时重置为 2 次（不动如山 +1）；进攻援护在我方阶段开始时也重置为 2 次');
 
 /* ---------- 战斗执行 ---------- */
 function consume(w){ if (w.usesLeft != null) w.usesLeft--; if (w.cd > 0) w.cdLeft = w.cd + 1; }
@@ -6868,7 +6868,7 @@ async function runStartScreen(){
     <div class="rcards">${qs.map(q => `<button class="rcard" style="--fc:${q.id === 'moon' ? '#9fb7d8' : q.fac ? (FACTION_COL[q.id] || 'var(--accent)') : 'var(--accent)'}" data-v="${q.id}"><b>${q.name}</b><small>${q.desc}</small></button>`).join('')}</div>`).join('')}
     <div class="acts"><button class="btn" data-v="cancel">返回</button></div>`, true);
   if (v === 'cancel'){ runHide(); startLevel('tut1'); return; }
-  RUN = {runId:Date.now().toString(36) + Math.random().toString(36).slice(2,6), t0:Date.now(), events:[], squad:v, layer:1, lvl:1, exp:0, tickets:[], hope:8, he:20, dur:10, units:[], parts:[], capBonus:0, promoDiscount:false, over:false, log:[], battles:0, seedBase:Date.now() & 0xffffff, cmd:null, erosion:null, erosionCleared:false, mods:null, layerPropBonus:0};
+  RUN = {runId:Date.now().toString(36) + Math.random().toString(36).slice(2,6), t0:Date.now(), events:[], squad:v, layer:1, lvl:1, exp:0, tickets:[], hope:8, he:20, dur:10, units:[], parts:[], relics:[], capBonus:0, promoDiscount:false, over:false, log:[], battles:0, seedBase:Date.now() & 0xffffff, cmd:null, erosion:null, erosionCleared:false, mods:null, layerPropBonus:0};
   if (v === 'moon'){ RUN.cmd = {lv:1, xp:0, atk:0, def:0, lead:0, know:0, skills:{}}; }
   else {
     const cands = recruitPool().filter(m => ticketOk(v, m));
@@ -7362,7 +7362,7 @@ async function runBattle(kind, code){
     rows:g.map(row => row.join('')), rosterList:RUN.units.map(u => ({...u})), maxDeploy:deployCap(), spots, allyFacing:'right',
     defaultDeploy:[...RUN.units].sort((a,b) => b.lv - a.lv).map(u => u.mech),
     waves: waves.map((w, i) => ({at:w.at, lv, label:`第 ${i+1} 波`, enemies:w.enemies})),
-    onSpawn: e => { e.facing = 'left'; if (affix) affix.fn(e); },
+    onSpawn: e => { e.facing = 'left'; if (affix) affix.fn(e); relicApplyFoe(e, units.filter(u => u.side === 'ally')); },
     loadout:{init:RUN.loadouts || {}, save:lo => { RUN.loadouts = {...lo}; }, hide:(u, w) => !!(u.awakenSwap && Object.values(u.awakenSwap).includes(w.name)),
       note:'★ 是 Lv20 大招。宗介 U7 的 λ 武器不能直接带：λ 觉醒后，带上的单分子刀会变成隔空 λ 拳、散弹炮变成 λ 驱动·散弹炮（仍算 2 个武装）。'},
     victory:{type:'annihilate'}, goalText:`击破全部 ${waves.length} 波敌军（第 2 波起按回合到达，清空当前敌人会让下一波提前出现）`, tips: st.desc ? [{on:'turn:1', text:`<b>${code} ${st.name}</b><br>${st.desc}`}] : [],
@@ -7371,6 +7371,9 @@ async function runBattle(kind, code){
         if (RUN.erosion === 'gravity' && !RUN.erosionCleared){ u.flying = false; u.canFly = false; }
         if (skLv('后勤') >= 3) u.mov += 1;
       });
+      /* v0.31 藏品：出击机体的常驻加成和属性；已在场的敌人补算减益 */
+      { const al = units.filter(u => u.side === 'ally'); relicApplyAllies(al); units.filter(u => u.side === 'enemy').forEach(e => relicApplyFoe(e, al));
+        if (RUN.relics && RUN.relics.length) log(`藏品生效：${RUN.relics.map(id => RELICS[id].name).join('、')}`, null, 'sys'); }
       rlog('deploy', {units:units.filter(u => u.side === 'ally').map(u => `${u.mech}:${u.lv}[${(u.loadout || []).join('/')}]`).join(','), cap:deployCap()});
       if (c){ const f = makeUnit(tplOf('M1'), 'ally', 0, 0); f.command = 'meteorRun'; for (let k=1;k<20;k++) levelUp(f); setCommander(f); }
       /* v0.30 补给箱：普通战 1 个、精英战 2 个，放在地图右半边的空地上 */
@@ -7913,7 +7916,7 @@ $('#btnSound').onclick = () => setSound(!SOUND.on);
 document.addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !/INPUT|TEXTAREA|SELECT/.test((e.target.tagName || ''))) setSound(!SOUND.on); });
 if (!AU) $('#btnSound').hidden = true; else setSound(SOUND.on);
 
-window.__game = {AIM_BY_CLASS, guardReach, recCost, tierOf, FACTIONS, ticketOk, ticketName, get sound(){ return {on:SOUND.on, scene:SOUND.scene, cue:AU && AU.state().cue}; }, get RUN(){ return RUN; }, STAGES, buildStage, rlogRecord, rlogText, openRunLogs, enterLayer, checkEnd, moveDist, runClickNode, runBattle, moveTargets, partTargets, get level(){ return level; }, get units(){ return units; }, data:{ALLY_T, ENEMY_T, ABIL, COMMANDS, TRIALS, FIRE}, get roster(){ return roster; }, get LV(){ return LV; }, get turn(){ return turn; }, get over(){ return over; }, setSpeed(v){ SPEED = v; }, startLevel, toggleLock, execCommand, attackables, bestWeaponFor, select, weaponUsable, get S(){ return S; }, orderMeteor, resolveMeteors, get CMD(){ return CMD; }, setTurn(t){ turn = t; }, pushUnit, get walls(){ return walls; }, echoArea, finish, zoneOf, battle, onTile, onAction, endTurn, cheatLevel, choosePick, mapDirs, losClear, canHit, forecast, get editor(){ return {ED, store:edStore()}; }, get art(){ return MI; }, unitSprite, iconIdOf,
+window.__game = {RELICS, gainRelic(id){ if (RUN && RELICS[id]){ RUN.relics = RUN.relics || []; if (!RUN.relics.includes(id)) RUN.relics.push(id); } return RUN ? RUN.relics : null; }, AIM_BY_CLASS, guardReach, recCost, tierOf, FACTIONS, ticketOk, ticketName, get sound(){ return {on:SOUND.on, scene:SOUND.scene, cue:AU && AU.state().cue}; }, get RUN(){ return RUN; }, STAGES, buildStage, rlogRecord, rlogText, openRunLogs, enterLayer, checkEnd, moveDist, runClickNode, runBattle, moveTargets, partTargets, get level(){ return level; }, get units(){ return units; }, data:{ALLY_T, ENEMY_T, ABIL, COMMANDS, TRIALS, FIRE}, get roster(){ return roster; }, get LV(){ return LV; }, get turn(){ return turn; }, get over(){ return over; }, setSpeed(v){ SPEED = v; }, startLevel, toggleLock, execCommand, attackables, bestWeaponFor, select, weaponUsable, get S(){ return S; }, orderMeteor, resolveMeteors, get CMD(){ return CMD; }, setTurn(t){ turn = t; }, pushUnit, get walls(){ return walls; }, echoArea, finish, zoneOf, battle, onTile, onAction, endTurn, cheatLevel, choosePick, mapDirs, losClear, canHit, forecast, get editor(){ return {ED, store:edStore()}; }, get art(){ return MI; }, unitSprite, iconIdOf,
   /* 给工具用：全部单位模板（含未出场的），tools/roster.mjs 靠它检查图标覆盖率。roster 已被玩家编队占用，所以叫 templates */
   get templates(){ return {allies: ALLY_T, enemies: ENEMY_T, forms: FORMS, debris: DEBRIS_T}; },
   get levels(){ return LEVELS; }};

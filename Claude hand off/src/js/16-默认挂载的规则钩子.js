@@ -70,5 +70,5 @@ Hooks.on('phaseStart', c => {
   }
 }, '念动共鸣：阶段开始时群体回复');
 Hooks.on('phaseStart', c => { units.filter(u => u.side === c.side).forEach(u => { u.movedThisRound = false; if (c.side === 'ally') u.moveEva = 0; }); }, '回合开始：清除"本回合已移动"与剩余移动闪避');
-Hooks.on('phaseStart', c => { if (c.side === 'enemy') units.forEach(u => { u.guardLeft = 2 + (hasTrait(u,'steadfast') && !u.movedThisRound ? 1 : 0); }); else units.forEach(u => { if (abilOn(u,'guardAtk')) u.guardLeft = 2; }); }, '援护防御：敌方阶段开始时重置为 2 次（不动如山 +1）；进攻援护在我方阶段开始时也重置为 2 次');
+Hooks.on('phaseStart', c => { if (c.side === 'enemy') units.forEach(u => { u.guardLeft = 2 + (u.guardBonus || 0) + (hasTrait(u,'steadfast') && !u.movedThisRound ? 1 : 0); }); else units.forEach(u => { if (abilOn(u,'guardAtk')) u.guardLeft = 2; }); }, '援护防御：敌方阶段开始时重置为 2 次（不动如山 +1）；进攻援护在我方阶段开始时也重置为 2 次');
 
