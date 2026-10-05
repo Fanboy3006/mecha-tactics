@@ -20,6 +20,8 @@ const files = argv.slice(mi + 2).filter(a => !a.startsWith('--'));
 console.log(`fake aider: model=${argv[argv.indexOf('--model') + 1]}`);
 console.log(`fake aider: task=${task}`);
 console.log(`fake aider: files=${files.join(', ') || '(无)'}`);
+/* 自检要能看出 PREAMBLE 有没有被加上：把收到的 --message 原样回显 */
+console.log(`fake aider: message=${JSON.stringify(task)}`);
 
 /* 自检要覆盖三种 aider 行为：正常改并提交 / 什么都不做 / 报错但退出码仍是 0 */
 const mode = process.env.FAKE_AIDER_MODE || 'commit';
