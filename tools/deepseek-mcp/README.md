@@ -78,6 +78,8 @@ Get-ChildItem "$env:APPDATA\Claude\claude_desktop_config.json",
 }
 ```
 
+- 改完**先做一次体检**：`node tools/deepseek-mcp/doctor.mjs` —— 它会告诉你配置文件的真实位置、JSON 有没有写坏、
+  key 和 `server.mjs` / `aider.exe` 路径对不对（key 只打码显示前缀和长度）。
 - JSON 里的反斜杠要写两个：`C:\\DSH-机战\\...`。路径用引号包好，中文目录名没问题。
 - `DS_MCP_AIDER_CMD` 建议**一定填**（指向第 1 节装出来的 `aider.exe` 完整路径）：这样不用管 PATH，
   也不会和系统里别的 Python 抢 `aider` 这个名字。
@@ -153,7 +155,8 @@ node tools/deepseek-mcp/selftest.mjs
 
 | 现象 | 原因 / 办法 |
 |---|---|
-| 桌面版工具列表里没有 `ds_code` | 配置没读到（路径 / JSON 语法）或没完全重启桌面版；`claude_desktop_config.json` 里 JSON 不能有注释 |
+| 桌面版里看不到这两个工具 | 先跑 `node tools/deepseek-mcp/doctor.mjs`。最常见两种：①**把整份内容「追加」进了已有文件**，变成两个 JSON 对象粘在一起（跑 `doctor.mjs --fix` 能修，会先备份原文件）；②改了配置但没**完全**重启桌面版 |
+| 配置文件里的改动被冲掉了 | 改之前桌面版没退出：它退出时会把自己的状态写回这个文件。先完全退出再改 |
 | 返回「没有 DEEPSEEK_API_KEY」 | key 没写进 `env`，或者写了没重启 |
 | 返回「找不到 aider 命令」 | 没装，或不在 PATH 里。用第 1 节的 Python 3.12 + uv 装，然后把 `DS_MCP_AIDER_CMD` 指到 `aider.exe` 完整路径 |
 | 装 aider 时报 `Cannot import 'setuptools.build_meta'` | 用了 Python 3.13 / 3.14，pip 退回了 2023 年的 aider 0.16.0 并去源码编译 numpy。改用 Python 3.12（见第 1 节的坑） |
@@ -169,5 +172,6 @@ node tools/deepseek-mcp/selftest.mjs
 | `server.mjs` | MCP 服务器入口：只做 MCP ↔ 工具的接线 |
 | `tools.mjs` | `ds_code` / `ds_status` 的实现，以及工具清单 |
 | `lib.mjs` | 路径守卫、子进程、输出裁剪 |
+| `doctor.mjs` | 配置体检：找出配置文件真实位置、验 JSON、把 key 打码、检查 aiders 和 server.mjs 在不在。`--fix` 能修「两个 JSON 对象粘在一起」这种手改事故（先备份） |
 | `selftest.mjs` | 自检（上面第 6 节） |
 | `test/fake-aider.mjs` | 自检用的假 aider（正式使用永远走不到） |
