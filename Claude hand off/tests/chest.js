@@ -13,7 +13,8 @@ const fs = require('fs');
   check('开局源碳结晶 20', await p.evaluate(() => window.__game.RUN.he === 20));
   await p.evaluate(() => { window.__game.setSpeed(0.01); window.__game.runBattle('battle'); });
   await p.waitForTimeout(500);
-  await p.click('#btnForm', {timeout:2000}).catch(() => {}); await p.waitForTimeout(500);
+  await p.click('#btnForm', {timeout:3000}).catch(() => {});
+  await p.waitForFunction(() => window.__game.units.some(u => u.chest), null, {timeout:8000}).catch(() => {});
   const info = await p.evaluate(() => { const g = window.__game, c = g.units.find(u => u.chest); return c ? {x:c.x, y:c.y, side:c.side, hp:c.hp} : null; });
   check('战斗里生成了补给箱', !!info, JSON.stringify(info));
   if (info){
@@ -23,7 +24,7 @@ const fs = require('fs');
       const can = g.attackables(u).includes(c);
       const he0 = g.RUN.he, parts0 = g.RUN.chestParts || 0;
       g.onTile(u.x, u.y); g.onTile(u.x, u.y); g.choosePick(c); await g.onAction('fire');
-      await new Promise(r => setTimeout(r, 1500));
+      for (let i = 0; i < 40 && c.hp > 0; i++) await new Promise(r => setTimeout(r, 100));
       return {can, dead: c.hp <= 0, gain: g.RUN.he - he0, parts: (g.RUN.chestParts || 0) - parts0};
     });
     check('补给箱可以被我方攻击', r.can, JSON.stringify(r));
