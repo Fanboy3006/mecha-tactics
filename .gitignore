@@ -1,0 +1,10 @@
+# 生成物，随时可重新生成，不进版本库
+art/out/
+audio/out/
+node_modules/
+.chrome-tmp/
+
+# 版权图片（作品截图，不能公开）
+图片库/
+# 旧的交接包副本
+mecha-tactics-handoff/

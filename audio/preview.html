@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>机甲战棋 · 音乐试听 MechAudio</title>
+<style>
+  :root{--bg:#0e1116;--panel:#161a21;--line:#262c36;--fg:#dfe6ef;--dim:#8b95a3;--acc:#ffd38a}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font:14px/1.6 "Noto Sans SC",system-ui,-apple-system,"Segoe UI",sans-serif}
+  header{padding:22px 26px 14px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#171c24,#0e1116)}
+  h1{margin:0 0 6px;font-size:19px;letter-spacing:.5px}
+  h2{margin:26px 26px 10px;font-size:15px;color:var(--acc);font-weight:700}
+  p.lead{margin:0;color:var(--dim);font-size:13px;max-width:1040px}
+  code{background:#1d222b;padding:1px 5px;border-radius:4px;font-size:12px;color:#9ff3e0}
+  section{padding:0 26px 8px}
+  .grid{display:flex;flex-wrap:wrap;gap:10px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 12px;
+    width:250px;display:flex;flex-direction:column;gap:7px}
+  .card.on{border-color:var(--acc);box-shadow:0 0 0 1px rgba(255,211,138,.35)}
+  .card .name{font-size:13.5px;font-weight:700}
+  .card .use{font-size:11.5px;color:var(--dim)}
+  .card .meta{font-size:11px;color:var(--dim);font-family:ui-monospace,monospace;line-height:1.5}
+  .card .sec{font-size:10.5px;color:#8fa0b4}
+  button{background:#232b36;color:var(--fg);border:1px solid #33404f;border-radius:7px;
+    padding:6px 12px;font:inherit;font-size:12.5px;cursor:pointer}
+  button:hover{background:#2c3644}
+  button.primary{background:#3a5a7a;border-color:#4d7ba6}
+  .bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:0 26px 10px}
+  .now{font-family:ui-monospace,monospace;font-size:12.5px;color:#9ff3e0;min-width:230px}
+  label{font-size:12px;color:var(--dim);display:flex;align-items:center;gap:6px}
+  input[type=range]{width:130px;vertical-align:middle}
+  .warn{background:#2a2113;border:1px solid #5a4620;color:#ffdca8;border-radius:8px;
+    padding:10px 13px;margin:0 26px 14px;font-size:12.5px;max-width:1040px}
+  table{border-collapse:collapse;margin:0 26px 20px;font-size:12.5px}
+  th,td{border:1px solid var(--line);padding:5px 10px;text-align:left}
+  th{background:#1a1f27;color:var(--acc);font-weight:700}
+  td.mono{font-family:ui-monospace,monospace;color:#9ff3e0}
+  .sfx button{margin-right:6px;margin-bottom:6px}
+  .pill{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:99px;background:#25303c;color:#b9c7d6}
+</style>
+</head>
+<body>
+<header>
+  <h1>机甲战棋 · 音乐试听 <span style="color:#8b95a3;font-weight:400;font-size:13px">MechAudio v<span id="ver"></span></span></h1>
+  <p class="lead">
+    这一页用 <code>audio/score.js</code> 的乐谱数据，经 <code>audio/mech-audio.js</code> 用 Web Audio
+    <b>现场合成</b>播放 —— 和游戏里听到的是同一套代码、同一个音色路线。零音频文件、零加载时间。
+  </p>
+</header>
+
+<div class="warn">
+  <b>浏览器限制</b>：音频必须在你有过一次点击/按键之后才能出声。第一次点「播放」如果没声音，再点一次即可
+  （本页会自动尝试解锁）。<br>
+  <b>另外</b>：这一页的声音是<b>算法合成器</b>，不是采样音源。想听「音符本身对不对」，请看
+  <code>audio/out/*.mid</code>（任何 DAW / GM 播放器都行）；想听离线渲染的成品音色，看 <code>audio/out/*.wav</code>。
+</div>
+
+<div class="bar">
+  <span class="now" id="now">当前：无</span>
+  <button class="primary" id="stop">停止</button>
+  <label>BGM <input type="range" id="vbgm" min="0" max="100" value="70"></label>
+  <label>音效 <input type="range" id="vsfx" min="0" max="100" value="80"></label>
+  <label><input type="checkbox" id="mute"> 静音</label>
+  <span class="pill" id="support">检测中…</span>
+</div>
+
+<h2>一、BGM（循环，结算曲放完即停）</h2>
+<section><div class="grid" id="cues"></div></section>
+
+<h2>二、音效</h2>
+<section><div class="sfx" id="sfx"></div></section>
+
+<h2>三、游戏里应该在什么时候切</h2>
+<table>
+  <tr><th>时刻</th><th>cue</th><th>循环</th></tr>
+  <tr><td>进入标题 / 关卡选择</td><td class="mono">title</td><td>是</td></tr>
+  <tr><td>肉鸽大地图</td><td class="mono">mapStrategy</td><td>是</td></tr>
+  <tr><td>我方阶段开始</td><td class="mono">allyPhase</td><td>是</td></tr>
+  <tr><td>敌方阶段开始</td><td class="mono">enemyPhase</td><td>是</td></tr>
+  <tr><td>场上有 Boss / 终点关</td><td class="mono">boss</td><td>是</td></tr>
+  <tr><td>胜利 / 失败结算</td><td class="mono">victory</td><td>否</td></tr>
+  <tr><td></td><td class="mono">defeat</td><td>否</td></tr>
+</table>
+<p class="lead" style="margin:0 26px 24px">
+  这些挂接点在<b>游戏代码</b>里（由 Claude 加），本页只负责让你先听到声音。
+  接口定义见 <code>协作/接口约定.md</code> 第 4 节。
+</p>
+
+<script src="score.js"></script>
+<script src="mech-audio.js"></script>
+<script>
+const A = window.MechAudio, S = window.MechScore;
+document.getElementById('ver').textContent = A.VERSION;
+
+/* 哪些曲子不循环（和 mech-audio.js 里的 NO_LOOP 一致） */
+const NOLOOP = {victory: 1, defeat: 1};
+
+/* ---------- 能力检测 ---------- */
+(function support(){
+  const el = document.getElementById('support');
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) { el.textContent = '本浏览器不支持 Web Audio'; el.style.color = '#ff9b8a'; return; }
+  el.textContent = 'Web Audio 可用';
+})();
+
+/* ---------- BGM 卡片 ---------- */
+const cuesHost = document.getElementById('cues');
+for (const id of Object.keys(S.CUES)) {
+  const cue = S.CUES[id];
+  const f = A.flatten(cue);
+  const d = document.createElement('div');
+  d.className = 'card'; d.dataset.cue = id;
+  const secs = (cue.sections || []).map(s => s.name).join(' → ');
+  d.innerHTML =
+    `<div class="name">${cue.name || id} <span class="pill">${id}</span></div>
+     <div class="use">${(S.CUE_USE && S.CUE_USE[id]) || ''}${NOLOOP[id] ? '　<b>不循环</b>' : ''}</div>
+     <div class="meta">${cue.key || ''} · ${f.bpm} BPM · ${f.bars} 小节 · ${f.events.length} 个音符 · ${f.loopSeconds.toFixed(1)}s</div>
+     ${secs ? `<div class="sec">${secs}</div>` : ''}`;
+  const b = document.createElement('button');
+  b.className = 'primary'; b.textContent = '播放';
+  b.onclick = () => { A.unlock(); A.play(id); mark(id); };
+  d.appendChild(b);
+  cuesHost.appendChild(d);
+}
+
+function mark(id){
+  for (const c of cuesHost.children) c.classList.toggle('on', c.dataset.cue === id);
+  document.getElementById('now').textContent = '当前：' + id;
+}
+
+/* ---------- 音效 ---------- */
+const sfxHost = document.getElementById('sfx');
+for (const n of A.SFX_NAMES) {
+  const b = document.createElement('button');
+  b.textContent = n;
+  b.onclick = () => { A.unlock(); A.sfx(n); };
+  sfxHost.appendChild(b);
+}
+
+/* ---------- 控制 ---------- */
+document.getElementById('stop').onclick = () => {
+  A.stop(); document.getElementById('now').textContent = '当前：无';
+  for (const c of cuesHost.children) c.classList.remove('on');
+};
+document.getElementById('vbgm').oninput = e => A.setVolume(e.target.value / 100, null);
+document.getElementById('vsfx').oninput = e => A.setVolume(null, e.target.value / 100);
+document.getElementById('mute').onchange = e => A.mute(e.target.checked);
+A.setVolume(0.7, 0.8);
+</script>
+</body>
+</html>

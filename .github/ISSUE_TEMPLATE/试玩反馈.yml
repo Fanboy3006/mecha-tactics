@@ -1,0 +1,35 @@
+name: 试玩反馈
+description: 打完一局（或打到一半）后的感受和游玩记录
+title: "[试玩] "
+labels: ["试玩反馈"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: 游戏版本
+      description: 左上角「试作版 v0.xx」
+      placeholder: v0.22
+    validations:
+      required: true
+  - type: input
+    id: squad
+    attributes:
+      label: 分队 / 打到第几层
+      placeholder: 近卫分队，打到第 2 层出口守军
+  - type: textarea
+    id: feel
+    attributes:
+      label: 感受
+      description: 好玩的地方、太难或太简单的关（带上关卡编号，如 ISW-1-N-7）、不好用的角色、看不懂的地方
+    validations:
+      required: true
+  - type: textarea
+    id: bug
+    attributes:
+      label: 遇到的问题（可选）
+      description: 按了没反应、卡住、显示错误……怎么触发的
+  - type: textarea
+    id: log
+    attributes:
+      label: 游玩记录
+      description: 肉鸽大地图 →「游玩记录」→「下载」，把文件拖到这里（下载不了时会复制到剪贴板，直接粘贴也行）
