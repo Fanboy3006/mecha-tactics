@@ -10,12 +10,15 @@
  *   → 给了 test 就再跑那个测试脚本
  *   → 只回「提交号 + git diff --stat + ✓/✗ 行 + ERRS 行」，绝不回整段代码。
  * ========================================================================== */
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import {
   CODE_TIMEOUT_MS, GuardError, MAX_CHARS, MODEL, ROOT, TEST_TIMEOUT_MS,
   aiderLaunch, checkPath, clip, countBad, git, nodeBin, pickLines, rel, resolveTestScript, run, tail,
 } from './lib.mjs';
+
+/* 每次派活都先跟 aider 说清楚：src/js 里单文件括号不配对是正常的，别乱修 */
+const PREAMBLE = '注意：Claude hand off/src/js/ 里每个文件只是同一个 <script> 的一段，单个文件里括号、IIFE 不配对是正常的，绝对不要去「修」。只改任务要求的地方，不要重排、不要改换行符、不要提问。\n\n';
 
 const AIDER_HELP = [
   '装 aider：`pip install aider-chat`（Windows 上装完确认 `aider --version` 能跑）。',
@@ -93,6 +96,7 @@ export async function dsCode(args = {}) {
   const before = (await git(['rev-parse', 'HEAD'])).stdout.trim();
   const dirtyBefore = (await git(['status', '--porcelain'])).stdout.trim();
   const notes = [];
+  let after0 = '';
 
   /* 2. aider：自己读文件、改文件、提交 */
   const aiderArgs = [
@@ -100,7 +104,9 @@ export async function dsCode(args = {}) {
     '--yes-always',
     '--no-check-update',
     '--no-pretty',
-    '--message', task,
+    '--line-endings', 'lf',
+    '--no-auto-lint',
+    '--message', PREAMBLE + task,
     ...files,
   ];
   const [cmd, baseArgs] = [launch.cmd, launch.args];
@@ -109,6 +115,9 @@ export async function dsCode(args = {}) {
     /* aider 是 Python：Windows 上强制 UTF-8，否则中文任务会炸编码 */
     extraEnv: { PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' },
   });
+
+  /* aider 跑完先记一下它自己的 HEAD，后面 3a 要用 */
+  after0 = (await git(['rev-parse', 'HEAD'])).stdout.trim();
 
   let aiderBad = false;
   /* aider 出错时也可能返回 0（实测：key 不对时它照样 exit 0），所以下面还要自己看「动没动文件」 */
@@ -126,6 +135,43 @@ export async function dsCode(args = {}) {
   } else if (aider.code !== 0) {
     aiderBad = true;
     notes.push(`aider 退出码 ${aider.code}，输出尾部见下。`);
+  }
+
+  /* 3a. 换行符 + 构建：把这次改到的文件统一成 LF，再重新构建一次 */
+  {
+    const touched = new Set();
+    if (before && after0 && before !== after0) {
+      const n = (await git(['diff', '--name-only', before, after0])).stdout.trim();
+      if (n) n.split(/\r?\n/).forEach(f => f && touched.add(f));
+    }
+    const w = (await git(['diff', '--name-only'])).stdout.trim();
+    if (w) w.split(/\r?\n/).forEach(f => f && touched.add(f));
+
+    const LF_EXT = new Set(['.js', '.mjs', '.html', '.md', '.css', '.json']);
+    for (const f of touched) {
+      if (!LF_EXT.has(path.extname(f).toLowerCase())) continue;
+      const abs = path.join(ROOT, f);
+      if (!existsSync(abs)) continue;
+      try {
+        const src = readFileSync(abs, 'utf8');
+        const fixed = src.replace(/\r\n/g, '\n');
+        if (fixed !== src) writeFileSync(abs, fixed, 'utf8');
+      } catch { /* 读不了就跳过，别让整个流程挂掉 */ }
+    }
+
+    await run(nodeBin(), ['tools/build-src.mjs'], { timeoutMs: 120000 });
+
+    const dirtyNow = (await git(['status', '--porcelain'])).stdout.trim();
+    if (dirtyNow !== dirtyBefore) {
+      await git(['add', '-A']);
+      if (before && after0 && before !== after0) {
+        await git(['commit', '--amend', '--no-edit']);
+      } else {
+        const short = task.length > 60 ? task.slice(0, 60) : task;
+        await git(['commit', '-m', 'ds_code：' + short]);
+      }
+    }
+    notes.push('已统一 LF 并重新构建');
   }
 
   /* 3. 提交号 + git diff --stat（aider 会自己提交；没提交就把工作区改动报出来） */
