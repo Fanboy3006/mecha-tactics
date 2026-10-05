@@ -78,5 +78,6 @@ const fs = require('fs');
   check('援护范围按移动力覆盖（不相邻也能援护，太远不行）', gr.far && !gr.tooFar, JSON.stringify(gr));
   const tk = await p.evaluate(() => { const g = window.__game; return {fac: g.FACTIONS && g.FACTIONS.includes('秘银') && g.FACTIONS.includes('月球王国'), ok: g.ticketOk('月球王国', 'M4') && g.ticketOk('狙击', 'M4') && !g.ticketOk('天人', 'M4')}; });
   check('势力招募券：按势力筛选角色（秘银改名、Nagi 属于月球王国 / 狙击）', tk.fac && tk.ok, JSON.stringify(tk));
+  check('普通档招募免费（反馈第 21 条）', await p.evaluate(() => ALLY_T.filter(t => tierOf(t.mech) === 'B').every(t => recCost(t.mech) === 0) && recCost(ALLY_T.find(t => tierOf(t.mech) === 'A').mech) === 3));
   console.log('ERRS', errs); await b.close(); process.exit(bad || errs.length ? 1 : 0);
 })();

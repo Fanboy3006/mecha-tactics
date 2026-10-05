@@ -6576,7 +6576,7 @@ const TIER = {
   M3:'B', CB3:'B', S3:'B', S4:'B', S6:'B', S7:'B', S8:'B', W7:'B', A4:'B', A5:'B', U2:'B', U8:'B',
 };
 const TIER_NAME = {S:'精锐', A:'骨干', B:'普通'};
-const PRICE = {S:{rec:5, p20:3, p30:4}, A:{rec:3, p20:2, p30:3}, B:{rec:1, p20:1, p30:2}};
+const PRICE = {S:{rec:5, p20:3, p30:4}, A:{rec:3, p20:2, p30:3}, B:{rec:0, p20:1, p30:2}};
 const CAP_CHARS = [];          // （已取消）原来晋升 Lv20 时出击上限 +1 的角色；以后改由藏品提供
 const CLASSES = ['近卫','尖兵','辅助','重装','狙击','特种'];
 /* v0.26 势力招募券：券上写的是战斗分类就按分类、写的是势力就按势力；每场胜利 60% 职业券、40% 势力券 */
@@ -6926,7 +6926,7 @@ function teamCard(){
       <button class="rv-btn" data-fire="${u.mech}" title="遣散">×</button></div>`;
   }).join('');
   return `<div class="rv-card"><h3>队伍（${RUN.units.length} / 12）· 出击上限 ${deployCap()}</h3>${rows || '<p class="small">还没有角色。</p>'}
-    <p class="small">晋升价格：精锐 3 / 4，骨干 2 / 3，普通 1 / 2 希望${RUN.promoDiscount ? '（下次晋升 −1）' : ''}。出击上限：初始 3 人，部队每升 3 级 +1。</p></div>`;
+    <p class="small">招募价格：精锐 5，骨干 3，普通免费。晋升价格：精锐 3 / 4，骨干 2 / 3，普通 1 / 2 希望${RUN.promoDiscount ? '（下次晋升 −1）' : ''}。出击上限：初始 3 人，部队每升 3 级 +1。</p></div>`;
 }
 function ticketCard(){
   if (!RUN.tickets.length) return '';

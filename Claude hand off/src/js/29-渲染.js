@@ -67,7 +67,7 @@ function teamCard(){
       <button class="rv-btn" data-fire="${u.mech}" title="遣散">×</button></div>`;
   }).join('');
   return `<div class="rv-card"><h3>队伍（${RUN.units.length} / 12）· 出击上限 ${deployCap()}</h3>${rows || '<p class="small">还没有角色。</p>'}
-    <p class="small">晋升价格：精锐 3 / 4，骨干 2 / 3，普通 1 / 2 希望${RUN.promoDiscount ? '（下次晋升 −1）' : ''}。出击上限：初始 3 人，部队每升 3 级 +1。</p></div>`;
+    <p class="small">招募价格：精锐 5，骨干 3，普通免费。晋升价格：精锐 3 / 4，骨干 2 / 3，普通 1 / 2 希望${RUN.promoDiscount ? '（下次晋升 −1）' : ''}。出击上限：初始 3 人，部队每升 3 级 +1。</p></div>`;
 }
 function ticketCard(){
   if (!RUN.tickets.length) return '';
