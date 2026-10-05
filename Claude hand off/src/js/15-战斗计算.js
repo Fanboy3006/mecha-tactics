@@ -16,7 +16,7 @@ function hitRate(att, w, def, reaction, baseHit, opts = {}){
   eva = Math.max(0, eva - ZONE[zone].eva);
   if (w.special === 'funnel') eva = Math.round(eva / 2);
   const rage = (hasTrait(att,'hallelujah') && att.hp < att.maxHp/2 ? 20 : 0) + (hasTrait(att,'veda') && att.transformTurn === turn ? 30 : 0);
-  let h = (baseHit ?? w.hit) - (RM() && att.side === 'enemy' ? RM().ecm : 0) + buffSum(att,'hit') + rage + gundamBonus(att) + tfx(att, 'hit', def, w, opts) - eva;
+  let h = (baseHit ?? w.hit) - (RM() && att.side === 'enemy' ? RM().ecm : 0) + Math.round(((att.aim ?? 160) - 160) / 2) + buffSum(att,'hit') + rage + gundamBonus(att) + tfx(att, 'hit', def, w, opts) - eva;
   if (reaction === 'evade') h *= .5;
   return {hit: clamp(Math.round(h),0,100), raw: Math.round(h), eva, zone};
 }
