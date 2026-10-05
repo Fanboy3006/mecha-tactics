@@ -151,7 +151,7 @@ async function runBattle(kind, code){
     rows:g.map(row => row.join('')), rosterList:RUN.units.map(u => ({...u})), maxDeploy:deployCap(), spots, allyFacing:'right',
     defaultDeploy:[...RUN.units].sort((a,b) => b.lv - a.lv).map(u => u.mech),
     waves: waves.map((w, i) => ({at:w.at, lv, label:`第 ${i+1} 波`, enemies:w.enemies})),
-    onSpawn: e => { e.facing = 'left'; if (affix) affix.fn(e); },
+    onSpawn: e => { e.facing = 'left'; if (affix) affix.fn(e); relicApplyFoe(e, units.filter(u => u.side === 'ally')); },
     loadout:{init:RUN.loadouts || {}, save:lo => { RUN.loadouts = {...lo}; }, hide:(u, w) => !!(u.awakenSwap && Object.values(u.awakenSwap).includes(w.name)),
       note:'★ 是 Lv20 大招。宗介 U7 的 λ 武器不能直接带：λ 觉醒后，带上的单分子刀会变成隔空 λ 拳、散弹炮变成 λ 驱动·散弹炮（仍算 2 个武装）。'},
     victory:{type:'annihilate'}, goalText:`击破全部 ${waves.length} 波敌军（第 2 波起按回合到达，清空当前敌人会让下一波提前出现）`, tips: st.desc ? [{on:'turn:1', text:`<b>${code} ${st.name}</b><br>${st.desc}`}] : [],
@@ -160,6 +160,9 @@ async function runBattle(kind, code){
         if (RUN.erosion === 'gravity' && !RUN.erosionCleared){ u.flying = false; u.canFly = false; }
         if (skLv('后勤') >= 3) u.mov += 1;
       });
+      /* v0.31 藏品：出击机体的常驻加成和属性；已在场的敌人补算减益 */
+      { const al = units.filter(u => u.side === 'ally'); relicApplyAllies(al); units.filter(u => u.side === 'enemy').forEach(e => relicApplyFoe(e, al));
+        if (RUN.relics && RUN.relics.length) log(`藏品生效：${RUN.relics.map(id => RELICS[id].name).join('、')}`, null, 'sys'); }
       rlog('deploy', {units:units.filter(u => u.side === 'ally').map(u => `${u.mech}:${u.lv}[${(u.loadout || []).join('/')}]`).join(','), cap:deployCap()});
       if (c){ const f = makeUnit(tplOf('M1'), 'ally', 0, 0); f.command = 'meteorRun'; for (let k=1;k<20;k++) levelUp(f); setCommander(f); }
       /* v0.30 补给箱：普通战 1 个、精英战 2 个，放在地图右半边的空地上 */

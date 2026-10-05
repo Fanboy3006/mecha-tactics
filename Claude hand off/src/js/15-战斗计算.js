@@ -1,5 +1,5 @@
 /* ---------- 战斗计算 ---------- */
-const buffSum = (u, k) => u.buffs.reduce((a,b) => a + (b[k] || 0), 0);
+const buffSum = (u, k) => u.buffs.reduce((a,b) => a + (b[k] || 0), 0) + ((u.relicMods && u.relicMods[k]) || 0);   // v0.31 藏品的常驻加成也算进来
 const TRAIT_LV = 10;
 const hasTrait = (u, k) => !!u && u.trait === k && (u.lv >= TRAIT_LV || u.forceTrait);
 const effArmor = u => Math.round(u.armor * (hasTrait(u,'steadfast') && !u.movedThisRound ? 1.3 : 1) * Math.max(0, 1 + (buffSum(u,'armorPct') + tfx(u,'armorPct'))/100));
