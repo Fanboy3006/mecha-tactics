@@ -320,6 +320,7 @@ Playwright 需要联网安装；在装不了它的机器上（例如 npm 缓存�
 - `__game.editor` → `{ED, store}`；测试 `tests/editor.js`。
 
 ## 12. 协作（Claude ↔ DSH）
+- **2026-10-05 起的分工和 DeepSeek 派活流程见 `../协作/分工与派活指南.md`**（直接编程交给 DeepSeek，Claude 写需求单、审改动）。
 见 `C:\DSH-机战\协作\`：
 - `协作日志.md`：每次交付都记一条；
 - `任务板.md`：分工和进行中的任务；
