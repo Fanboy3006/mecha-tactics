@@ -6,6 +6,7 @@ const { chromium } = require('playwright');
   p.on('pageerror', e => errs.push('PAGEERR '+e.message));
   const html = require('fs').readFileSync(require('path').join(__dirname,'../src/artifact-fragment.html'),'utf8');
   await p.setContent('<!doctype html><html><head><meta charset="utf-8"><style>[hidden]{display:none!important}</style></head><body>'+html+'</body></html>');
+  await p.selectOption('#levelSel','tut1'); await p.waitForTimeout(200);   // v0.23 起默认进入肉鸽模式
   await p.waitForTimeout(500);
   await p.screenshot({path:'tut0.png'});
   const act = async (fn) => p.evaluate(fn);
