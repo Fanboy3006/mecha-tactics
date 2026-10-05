@@ -7382,15 +7382,23 @@ async function rlogCloud(){
     const uid = await user.id();
     if (!uid){ RLOG_CLOUD.state = '未登录（请用下载）'; return null; }
     RLOG_CLOUD.db = db; RLOG_CLOUD.uid = uid; RLOG_CLOUD.state = '已连接，会自动上传';
+    /* 父文档让 Claude 能列出玩家；顺便把本地存着的最近记录补传一次 */
+    try {
+      await db.doc(`runlogs/${uid}`).set({uid, updatedAt:new Date().toISOString()});
+      for (const r of rlogLoad()) if (r && r.id) await db.doc(`runlogs/${uid}/runs/${r.id}`).set({...r, events:(r.events || []).slice(-1500), updatedAt:new Date().toISOString()});
+      RLOG_CLOUD.state = '已连接，本地记录已补传';
+    } catch(e){}
     return db;
   } catch(e){ RLOG_CLOUD.state = '没有云端权限（请用下载）'; return null; }
 }
+setTimeout(() => { rlogCloud(); }, 2000);   // 打开页面 2 秒后就连云端并补传本地记录
 function rlogFlush(now){
   clearTimeout(RLOG_CLOUD.timer);
   RLOG_CLOUD.timer = setTimeout(async () => {
     const rec = rlogRecord(); if (!rec) return;
     const db = await rlogCloud(); if (!db) return;
     try {
+      await db.doc(`runlogs/${RLOG_CLOUD.uid}`).set({uid:RLOG_CLOUD.uid, updatedAt:new Date().toISOString()});
       await db.doc(`runlogs/${RLOG_CLOUD.uid}/runs/${rec.id}`).set({...rec, events:rec.events.slice(-1500), updatedAt:new Date().toISOString()});
       RLOG_CLOUD.state = `已上传（${new Date().toLocaleTimeString()}）`;
     } catch(e){
