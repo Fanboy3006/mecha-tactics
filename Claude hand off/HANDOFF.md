@@ -18,7 +18,7 @@
 | `docs/游戏模式设计.md` | 剧情模式与肉鸽模式的框架（肉鸽模式还没有实现，只有设计） |
 | `tests/*.js` | Playwright 自动化测试 / 模拟脚本（见第 8 节） |
 | `art/` | **美术素材**（DSH 负责）：`mech-icons.js`（机体图标的唯一源文件）、`preview.html`（审素材的对照表页面）、`README.md`、`图标待办.md` |
-| `audio/` | **音乐素材**（DSH 负责）：`score.js`（乐谱唯一源文件）、`README.md`。游戏里还没有接入音频 |
+| `audio/` | **音乐素材**（DSH 负责）：`score.js`（乐谱唯一源文件）、`mech-audio.js`（播放层）、`preview.html`（试听页）、`README.md` |
 | `tools/` | 开发工具（DSH 写的）：素材光栅化、**游戏画面渲染**、自检、冒烟测试、两份 HTML 的同步生成（见第 8.5 节） |
 | `../协作/` | **Claude 和 DSH 的协作文件**：协作日志、任务板、接口约定（见第 12 节） |
 
@@ -285,6 +285,17 @@ Playwright 需要联网安装；在装不了它的机器上（例如 npm 缓存�
   - DSH 的自检：`check-art`、`boot-smoke`、`roster`；
   - Claude 的浏览器测试：教学 1–3、按键、防卫战、肉鸽整局、34 个试玩关。
 - 还缺 41 个专属图标，清单见 `art/图标待办.md`。
+
+## 10.7 v0.19 / v0.20：音频
+- **v0.19（DSH）**：
+  - `audio/mech-audio.js`（`MechAudio`）：用 Web Audio 现场合成；8 首 cue、9 个音效；由 `build-src` 注入（`AUDIO BEGIN/END`）；
+  - `audio/preview.html` 试听页；`tools/check-audio.mjs` 自检；
+  - ATX / 米斯里尔配色定稿；`git init`。
+- **v0.20（Claude）**：
+  - 游戏里接上了切歌和音效（fragment 末尾「音频接线」一节）；
+  - 顶栏「声音」按钮 / M 键静音；
+  - `__game.sound`；测试 `tests/audio_cues.js`。
+  - 细节见 `../协作/接口约定.md` 第 4 节。
 
 ## 12. 协作（Claude ↔ DSH）
 见 `C:\DSH-机战\协作\`：

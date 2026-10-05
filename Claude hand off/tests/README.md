@@ -1,14 +1,17 @@
-# tests（Playwright 浏览器测试，Claude 维护）
+# 测试脚本
 
-需要 `playwright` + Chromium。脚本用 `page.setContent()` 加载 `../src/artifact-fragment.html`。
+需要 Node.js 和 Playwright：
 
-| 脚本 | 内容 |
-|---|---|
-| `tut1_playthrough.js` / `tut2_flank_bot.js` / `tut3_terrain_sim.js` | 教学 1–3 |
-| `keys_space.js` / `keys_esc.js` | 空格快捷操作、Esc 撤回 |
-| `defense_bot.js` | 大规模防卫战 |
-| `trials_run.js` + `trial_bot_inpage.js` | 34 个角色试玩关 |
-| `run_bot.js [分队] [步数] [1=耐久999]` + `run_bot_inpage.js` | 肉鸽整局 |
-| `gen_stage_table.js` | 生成肉鸽关卡表 |
+```bash
+npm i playwright
+npx playwright install chromium
+node tut1_playthrough.js
+node tut3_terrain_sim.js mountain
+node tut3_terrain_sim.js air
+node defense_bot.js        # 需要几分钟
+```
 
-DSH 那边的浏览器起不来，可以用 `tools/boot-smoke.mjs` 和 `tools/render-game.mjs` 代替。
+- 所有脚本都会读取 `../src/artifact-fragment.html`，用 `page.setContent()` 加载。
+- 脚本会在当前目录生成截图（`*.png`），可以删除。
+- 输出最后一行的 `ERRS []` 表示页面没有报错。
+- 这些是开发时的探索性脚本，不是严格的断言测试；改动规则后，请人工核对输出是否合理。

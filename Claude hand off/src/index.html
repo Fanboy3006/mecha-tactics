@@ -239,7 +239,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
 
 <div class="app">
   <header class="bar">
-    <div class="brand"><span class="mark">机甲战棋</span><span class="ver">试作版 v0.18 · <span id="mapSize">40×40</span> 地图</span></div>
+    <div class="brand"><span class="mark">机甲战棋</span><span class="ver">试作版 v0.21 · <span id="mapSize">40×40</span> 地图</span></div>
     <div class="hud">
       <label class="chip lvsel"><span class="lbl">关卡</span><select id="levelSel"><option value="tut1">教学 1 · 移动</option><option value="tut2">教学 2 · 夹击与射击</option><option value="tut3">教学 3 · 地形与闪避</option><option value="defense">大规模防卫战（Lv20）</option><option value="drill">弱点演习（Lv20）</option><option value="skirmish">自由对战 · 随机地图</option><option value="roguelike">肉鸽模式（试作）</option></select></label>
       <div class="chip"><span class="lbl">作战</span><b id="battleNo">1</b></div>
@@ -253,6 +253,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
       <button id="btnThreat" aria-pressed="false">显示敌方射程</button>
       <button id="btnNames" aria-pressed="false">机体名</button>
       <button id="btnGrid" aria-pressed="false">网格</button>
+      <button id="btnSound" aria-pressed="true" title="背景音乐和音效（M 键也可以切换）">声音</button>
       <button id="btnRestart">重开本战</button>
       <button id="btnEnd" class="primary">结束回合</button>
     </div>
@@ -268,7 +269,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
       <section class="card" id="actionCard"></section>
       <section class="card logcard"><h3>作战记录</h3><ol id="log"></ol></section>
       <details class="card rules">
-        <summary>当前规则 v0.18</summary>
+        <summary>当前规则 v0.21</summary>
         <ul>
           <li>距离和射程一律按菱形计算（只算横竖步数）。</li>
           <li>命中 = 武器命中 −（闪避 + 地形闪避）；选择回避时命中减半。</li>
@@ -311,8 +312,8 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
           <span><i style="background:#4fc3a1"></i>天人</span>
           <span><i style="background:#e88fb4"></i>克莱因派</span>
           <span><i style="background:#f2c14e"></i>预防者</span>
-          <span><i style="background:#c7cfdc"></i>ATX</span>
-          <span><i style="background:#8fb86b"></i>米斯里尔</span>
+          <span><i style="background:#e9e7e2"></i>ATX</span>
+          <span><i style="background:#7d9a58"></i>米斯里尔</span>
           <span><i style="background:#d9564b"></i>敌方</span>
           <span><i style="background:#56606b"></i>已行动</span>
         </div>
@@ -3019,6 +3020,12 @@ const Hooks = {
   on(ev, fn, label){ (this.h[ev] = this.h[ev] || []).push(fn); if (label) this.labels.push(`${ev} · ${label}`); },
   emit(ev, ctx){ (this.h[ev] || []).forEach(fn => fn(ctx)); return ctx; }
 };
+/* 音频状态（放在这里是因为开局 startLevel 就会用到；接线代码在文件末尾「音频接线」一节） */
+const AU = (typeof MechAudio !== 'undefined') ? MechAudio : null;
+const SND_LAST = {};
+const SOUND = {on:true, scene:'battle', jingleAt:-1e9, timer:null};
+try { SOUND.on = localStorage.getItem('mecha-tactics-sound') !== 'off'; } catch(e){}
+let phaseSide = 'ally';
 
 /* ---------- 能力与减免管线 ---------- */
 const ABIL = {
@@ -3196,7 +3203,7 @@ const REDUCTIONS = [
 ];
 REDUCTIONS.push({id:'shield', name:'护盾', stage:4, shield:true,
   applies:c => c.dmg > 0 && shieldOn(c.def) && c.def.shieldHp > 0,
-  apply:c => { const a = Math.min(c.dmg, c.def.shieldHp); c.dmg -= a; if (!c.preview){ c.def.shieldHp -= a; if (c.def.shieldHp <= 0) shieldBroken(c.def); } return `吸收 ${a}（护盾剩 ${c.preview ? c.def.shieldHp - a : c.def.shieldHp}）`; }});
+  apply:c => { const a = Math.min(c.dmg, c.def.shieldHp); c.dmg -= a; if (!c.preview){ c.def.shieldHp -= a; if (a > 0) snd('shield'); if (c.def.shieldHp <= 0) shieldBroken(c.def); } return `吸收 ${a}（护盾剩 ${c.preview ? c.def.shieldHp - a : c.def.shieldHp}）`; }});
 function shieldBroken(u){
   u.shieldBreaks = (u.shieldBreaks || 0) + 1;
   log(`${fullName(u)} 的${u.shieldName || '护盾'}被完全击破${u.lambdaAwaken ? `（${Math.min(u.shieldBreaks, u.lambdaAwaken)}/${u.lambdaAwaken}）` : ''}`, null, 'sys');
@@ -3207,7 +3214,7 @@ function shieldBroken(u){
       const T = ALLY_T.find(t => t.mech === u.mech);
       u.weapons = u.weapons.map(w => { const to = u.awakenSwap[w.name], tw = to && T.weapons.find(x => x.name === to); return tw ? {...tw, cd:0, cdLeft:0, usesLeft:tw.uses} : w; });
     } else u.weapons.forEach(w => { if (w.awaken) Object.assign(w, w.awaken); if (w.lambda){ w.cd = 0; w.cdLeft = 0; } });
-    addFloat(u, 'λ 觉醒', '#c9a8ff');
+    addFloat(u, 'λ 觉醒', '#c9a8ff'); snd('lambda', 0);
     log(`${fullName(u)}【λ 觉醒】所有 λ 武器冷却变为 0，单分子刀升级为 λ 单分子刀`, null, u.side);
   }
 }
@@ -4408,7 +4415,7 @@ async function strike(att, w, def, reaction, {skipConsume=false, zone=null, coun
     addFloat(def, c.nullified ? '无效' : String(c.dmg), isCrit ? '#e9a23b' : '#ffffff');
     log(`${head} ${isCrit ? '暴击！' : '命中'} 伤害 ${c.dmg}`, c.steps, att.side);
     after();
-    Hooks.emit('strikeResolved', {att, def, w, hit:true, dmg:c.dmg, zone:z, counter});
+    Hooks.emit('strikeResolved', {att, def, w, hit:true, crit:isCrit, dmg:c.dmg, zone:z, counter});
     if (def.hp <= 0){ killedTiles = tilesOf(def); destroy(def, att); }
     if (c.reflect > 0 && att.hp > 0){
       att.hp = Math.max(0, att.hp - c.reflect); addFloat(att, String(c.reflect), '#ffd38a');
@@ -4711,7 +4718,7 @@ function checkEnd(){
   else if (!allies.length) defeat();
 }
 function victory(){
-  over = true; S.mode = 'over';
+  over = true; S.mode = 'over'; audioJingle('victory');
   if (LV && LV.run){ runBattleEnd(true); return; }
   if (level !== 'skirmish'){
     log(`${LV.name} 完成（${turn} 回合）`, null, 'sys');
@@ -4739,7 +4746,7 @@ function victory(){
   refresh();
 }
 function defeat(reason){
-  over = true; S.mode = 'over'; updateLimit();
+  over = true; S.mode = 'over'; audioJingle('defeat'); updateLimit();
   if (LV && LV.run){ runBattleEnd(false); return; }
   log(`作战失败：${reason || '我方全灭'}`, null, 'sys');
   $('#endDlg').innerHTML = `<div class="eyebrow">第 ${battleNo} 战 · ${turn} 回合</div><h2>作战失败</h2>
@@ -4816,6 +4823,7 @@ function setCommander(u){
   log(`${fullName(u)} 担任指挥官（不出场）：指挥技能【${COMMANDS[u.command].name}】`, null, 'sys');
 }
 function showFormation(done){
+  audioScene('menu');
   const cap = LV.maxDeploy || roster.length;
   const fixed = !LV.spots && level !== 'skirmish';      // 教学等固定出场的关卡：只选指挥官
   const pool = roster.filter(u => !u.commandOnly);
@@ -4892,6 +4900,7 @@ function cmdCells(cx, cy){
   return out;
 }
 function orderMeteor(cx, cy){
+  snd('warn', 0);
   const k = COMMANDS[CMD.skill], cells = cmdCells(cx, cy);
   CMD.pending.push({cells, land: turn + k.delay});
   CMD.readyTurn = turn + k.cd;
@@ -4961,6 +4970,7 @@ async function resolveMeteors(){
   refresh(); checkEnd();
 }
 function startLevel(id){
+  audioScene('battle');
   CMD = null;
   walls = new Map();
   if (id === 'skirmish'){ newCampaign(); return; }
@@ -4996,7 +5006,7 @@ function startLevel(id){
   log(`${LV.code && !LV.run ? '[' + LV.code + '] ' : ''}${LV.name} 开始 · 胜利条件：${LV.goalText}`, null, 'sys');
   if (LV.waves) log(`第 1 波：${LV.waves[0].label}，回合上限：第 ${deadline} 回合结束前`, null, 'sys');
   S.inspect = null; S.threatSet = null;
-  const go = () => { startPlayerPhase(); focusOn(units.find(u => u.side === 'ally'), false); if (LV.afterStart) LV.afterStart(); };
+  const go = () => { SOUND.scene = 'battle'; startPlayerPhase(); focusOn(units.find(u => u.side === 'ally'), false); if (LV.afterStart) LV.afterStart(); };
   if (LV.formation) showFormation(picked => { if (LV.spots) placeAllies(picked, LV.spots, {facing:LV.allyFacing || 'up'}); go(); });
   else { if (LV.presetCmd) setCommander(roster.find(u => u.mech === LV.presetCmd)); go(); }
 }
@@ -5183,7 +5193,8 @@ function drawFX(now){
     ctx.restore();
   }
 }
-function addFloat(u, text, color){ floats.push({x:u.x*TS+u.w*TS/2, y:u.y*TS, text, color, t0:performance.now()}); }
+function addFloat(u, text, color){ if (color === '#9fe0b8' && text[0] === '+') snd('heal');   // 回复类数字都走这里，顺便出回复音效
+  floats.push({x:u.x*TS+u.w*TS/2, y:u.y*TS, text, color, t0:performance.now()}); }
 function fillTiles(list, color){ ctx.fillStyle = color; for (const t of list) ctx.fillRect(t.x*TS+1, t.y*TS+1, TS-1, TS-1); }
 function draw(now){
   ctx.clearRect(0,0,MW*TS,MH*TS);
@@ -5753,7 +5764,7 @@ function bar(lbl, v, m){
   const r = v/m;
   return `<div class="barrow"><span class="lbl">${lbl}</span><div class="track"><div class="fill ${r <= .25 ? 'low' : r <= .5 ? 'mid' : ''}" style="width:${Math.round(r*100)}%"></div></div><span class="num">${v}/${m}</span></div>`;
 }
-const FACTION_COL = {'影世界':'#8a6bd8', '月球王国':'#9fb7d8', '天人':'#4fc3a1', '克莱因派':'#e88fb4', '预防者':'#f2c14e', 'ATX':'#c7cfdc', '米斯里尔':'#8fb86b'};
+const FACTION_COL = {'影世界':'#8a6bd8', '月球王国':'#9fb7d8', '天人':'#4fc3a1', '克莱因派':'#e88fb4', '预防者':'#f2c14e', 'ATX':'#e9e7e2', '米斯里尔':'#7d9a58'};   // 和 art/mech-icons.js 的 PAL 底色保持一致（v0.19 DSH 定稿）
 const PT = {};
 const ptKey = m => 'mecha-tactics-portrait-' + m;
 function loadPortrait(m){
@@ -6370,7 +6381,7 @@ $('#btnLv1').onclick = () => cheatLevel(Math.max(...roster.map(u => u.lv)) + 1);
 $('#btnLv20').onclick = () => cheatLevel(20);
 $('#btnLv30').onclick = () => cheatLevel(30);
 $('#btnEnd').onclick = endTurn;
-$('#btnRestart').onclick = () => { if (S.mode === 'enemy' || S.mode === 'busy') return; if (LV && LV.run){ if (!over && confirm('撤退会判定为作战失败：剩余敌人数会扣作战耐久。确定撤退？')) defeat('撤退'); return; } (level === 'skirmish' ? startBattle(seed) : startLevel(level)); };
+$('#btnRestart').onclick = () => { if (S.mode === 'enemy' || S.mode === 'busy') return; if (LV && LV.run){ if (!over) ask('撤退？', '撤退会判定为作战失败：剩余敌人数（包括还没出场的波次）会扣作战耐久。战后奖励照常发放。', '撤退').then(y => { if (y && !over) defeat('撤退'); }); return; } (level === 'skirmish' ? startBattle(seed) : startLevel(level)); };
 $('#levelSel').onchange = e => { if (S.mode !== 'enemy' && S.mode !== 'busy') startLevel(e.target.value); else e.target.value = level; };
 $('#btnCmd').onclick = () => {
   if (!CMD || S.mode !== 'idle' || over || turn < CMD.readyTurn) return;
@@ -6529,6 +6540,11 @@ function runOpen(){
 }
 function runHide(){ $('#runView').hidden = true; }
 function runShow(){ $('#runView').hidden = false; runRender(); }
+/* 确认框：不用浏览器自带的确认弹窗——claude.ai 页面和桌面应用里它会被拦截、直接当成「取消」，按钮就像没反应 */
+async function ask(title, detail = '', yes = '确定'){
+  return (await dlg(`<div class="eyebrow" style="color:#e9a23b">确认</div><h2>${title}</h2>${detail ? `<p>${detail}</p>` : ''}
+    <div class="acts"><button class="btn primary" data-v="y">${yes}</button><button class="btn" data-v="n">取消</button></div>`)) === 'y';
+}
 function dlg(html, wide){
   return new Promise(res => {
     $('#endDlg').innerHTML = html; $('#endDlg').classList.toggle('wide', !!wide); $('#endModal').hidden = false;
@@ -6536,6 +6552,7 @@ function dlg(html, wide){
   });
 }
 async function runStartScreen(){
+  audioScene('menu');
   $('#runView').hidden = false; $('#runView').innerHTML = '';
   const squads = [{id:'moon', name:'月之国分队', desc:'Feena 担任指挥官（不出场）：英雄无敌 3 式成长，战斗中可以下达【陨石召唤】，升级时学习二级技能。不送角色，开局希望 +4。'},
     ...CLASSES.map(c => ({id:c, name:`${c}分队`, desc:`开局从${c}角色里选一名 Lv20（免费）。`}))];
@@ -6664,6 +6681,7 @@ function partTargets(p){
 
 /* ---------- 渲染 ---------- */
 function runRender(){
+  audioScene('map');
   if (!RUN){ return; }
   const v = $('#runView'); v.hidden = false;
   const cmdTxt = RUN.cmd ? `Feena Lv${RUN.cmd.lv}` : '—';
@@ -6685,11 +6703,11 @@ function runRender(){
   v.querySelectorAll('[data-node]').forEach(el => el.onclick = () => runClickNode(+el.dataset.node));
   v.querySelectorAll('[data-promo]').forEach(b => b.onclick = () => runPromote(b.dataset.promo));
   v.querySelectorAll('[data-ticket]').forEach(b => b.onclick = async () => { if (runBusy) return; runBusy = true; await useTicket(+b.dataset.ticket); runBusy = false; runRender(); });
-  v.querySelectorAll('[data-fire]').forEach(b => b.onclick = () => { if (confirm(`遣散 ${tplOf(b.dataset.fire).pilot}？`)){ RUN.units = RUN.units.filter(u => u.mech !== b.dataset.fire); runRender(); } });
+  v.querySelectorAll('[data-fire]').forEach(b => b.onclick = async () => { if (await ask(`遣散 ${tplOf(b.dataset.fire).pilot}？`, '遣散后这名角色离开本局队伍。', '遣散')){ RUN.units = RUN.units.filter(u => u.mech !== b.dataset.fire); } runRender(); });
   v.querySelectorAll('[data-usepart]').forEach(b => b.onclick = () => { const i = +b.dataset.usepart; RUN.usingPart = RUN.usingPart === i ? null : i; runRender(); });
   v.querySelectorAll('[data-sellpart]').forEach(b => b.onclick = () => runSellPart(+b.dataset.sellpart));
   const lb = $('#rvLogs'); if (lb) lb.onclick = () => openRunLogs();
-  const q = $('#rvQuit'); if (q) q.onclick = () => { if (confirm('放弃本局？')) runGameOver('放弃了本局'); };
+  const q = $('#rvQuit'); if (q) q.onclick = async () => { if (await ask('放弃本局？', '本局会直接结束，结算到当前为止的进度。', '放弃本局')) runGameOver('放弃了本局'); else runRender(); };
 }
 function mapSVG(){
   const N = RUN.map.nodes, CS = 74, pad = 14, kn = knownSet();
@@ -7147,7 +7165,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.18';
+const GAME_VERSION = 'v0.21';
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
   if (!RUN || !RUN.events) return;
@@ -7237,7 +7255,7 @@ async function openRunLogs(msg){
     return openRunLogs();
   }
   if (v === 'cur' || v === 'all') return openRunLogs(await rlogDownload(v));
-  if (v === 'clear'){ if (confirm('清空本地保存的游玩记录？（云端的不受影响）')){ try { localStorage.removeItem(RLOG_KEY); } catch(e){} } return openRunLogs('本地记录已清空'); }
+  if (v === 'clear'){ if (await ask('清空本地保存的游玩记录？', '云端的不受影响。', '清空')){ try { localStorage.removeItem(RLOG_KEY); } catch(e){} return openRunLogs('本地记录已清空'); } return openRunLogs(); }
 }
 window.addEventListener('error', e => { if (RUN && !RUN.over && RUN.events) rlog('error', {msg:String(e.message).slice(0, 200), at:`${e.lineno}:${e.colno}`}); });
 window.addEventListener('unhandledrejection', e => { if (RUN && !RUN.over && RUN.events) rlog('error', {msg:String(e.reason && (e.reason.message || e.reason.code) || e.reason).slice(0, 200)}); });
@@ -7245,7 +7263,56 @@ window.addEventListener('unhandledrejection', e => { if (RUN && !RUN.over && RUN
 document.querySelectorAll('#levelSel option').forEach(o => { const L = LEVELS[o.value]; if (L && L.code && !o.textContent.startsWith(L.code)) o.textContent = `${L.code} ${o.textContent}`; });
 startLevel('tut1');
 requestAnimationFrame(draw);
-window.__game = {get RUN(){ return RUN; }, STAGES, buildStage, rlogRecord, rlogText, openRunLogs, enterLayer, checkEnd, moveDist, runClickNode, runBattle, moveTargets, partTargets, get level(){ return level; }, get units(){ return units; }, data:{ALLY_T, ENEMY_T, ABIL, COMMANDS, TRIALS, FIRE}, get roster(){ return roster; }, get LV(){ return LV; }, get turn(){ return turn; }, get over(){ return over; }, setSpeed(v){ SPEED = v; }, startLevel, toggleLock, execCommand, attackables, bestWeaponFor, select, weaponUsable, get S(){ return S; }, orderMeteor, resolveMeteors, get CMD(){ return CMD; }, setTurn(t){ turn = t; }, pushUnit, get walls(){ return walls; }, echoArea, finish, zoneOf, battle, onTile, onAction, endTurn, cheatLevel, choosePick, mapDirs, losClear, canHit, forecast, get art(){ return MI; }, unitSprite, iconIdOf,
+/* ---------- 音频接线（Claude 维护） ----------
+   播放层 MechAudio 是 DSH 写的（audio/mech-audio.js，由 tools/build-src.mjs 注入），接口和行为约定见 协作/接口约定.md 第 4 节。
+   这里只决定「什么时候放什么」：
+     场景 menu（编队 / 肉鸽开局）→ title；map（肉鸽大地图）→ mapStrategy；
+     battle → 每个阶段开始按阵营切 allyPhase / enemyPhase，场上有 Boss 级敌人或在终点关时一律 boss；
+     胜利 / 失败 → victory / defeat（不循环），放完约 6 秒后再回到当前场景的曲子。
+   音效：命中 / 未中 / 暴击 / 击破 / 护盾吸收 / λ 觉醒 / 回复 / 预警 / 按钮。同名音效 70ms 内只响一次（多段攻击不会糊成一团）。 */
+function snd(name, gap = 70){
+  if (!AU || !SOUND.on) return;
+  const t = performance.now();
+  if (gap && SND_LAST[name] && t - SND_LAST[name] < gap) return;
+  SND_LAST[name] = t; AU.sfx(name);
+}
+const BOSS_MECH = new Set([...ENEMY_BOSS, 'flagship'].map(k => ENEMY_T[k] && ENEMY_T[k].mech).filter(Boolean));
+const bossOnField = () => !!(LV && LV.run && /-F-/.test(LV.code || '')) || units.some(u => u.side === 'enemy' && u.hp > 0 && BOSS_MECH.has(u.mech));
+function sceneCue(){
+  if (SOUND.scene === 'menu') return 'title';
+  if (SOUND.scene === 'map') return 'mapStrategy';
+  return bossOnField() ? 'boss' : (phaseSide === 'enemy' ? 'enemyPhase' : 'allyPhase');
+}
+function bgm(id){ if (AU && SOUND.on) AU.play(id); }
+/* 切场景：刚放完胜利 / 失败号角的 6 秒内先不切，等它放完 */
+function audioScene(scene){
+  SOUND.scene = scene; clearTimeout(SOUND.timer);
+  const wait = 6000 - (performance.now() - SOUND.jingleAt);
+  if (wait > 0) SOUND.timer = setTimeout(() => bgm(sceneCue()), wait);
+  else if (scene !== 'battle') bgm(sceneCue());       // 战斗的曲子由阶段开始决定
+}
+function audioJingle(id){ SOUND.jingleAt = performance.now(); clearTimeout(SOUND.timer); bgm(id); }
+Hooks.on('phaseStart', c => {
+  phaseSide = c.side; SOUND.scene = 'battle';       // 阶段开始只会发生在战斗里（编队界面结束后）
+  if (over || performance.now() - SOUND.jingleAt < 6000) return;
+  bgm(sceneCue());
+  if (c.side === 'ally' && deadline && deadline - turn <= 1) snd('warn', 0);
+}, '音频：阶段开始切 BGM');
+Hooks.on('strikeResolved', c => snd(!c.hit ? 'miss' : c.crit ? 'crit' : 'hit'), '音频：命中 / 未中 / 暴击');
+Hooks.on('unitDestroyed', () => snd('destroy', 40), '音频：击破');
+document.addEventListener('click', e => { if (e.target.closest && e.target.closest('button')){ if (AU) AU.unlock(); snd('ui', 50); } }, true);
+function setSound(on){
+  SOUND.on = on; try { localStorage.setItem('mecha-tactics-sound', on ? 'on' : 'off'); } catch(e){}
+  const b = $('#btnSound'); if (b){ b.setAttribute('aria-pressed', String(on)); b.textContent = on ? '声音' : '静音'; }
+  if (!AU) return;
+  AU.mute(!on);
+  if (on) bgm(sceneCue()); else AU.stop();
+}
+$('#btnSound').onclick = () => setSound(!SOUND.on);
+document.addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !/INPUT|TEXTAREA|SELECT/.test((e.target.tagName || ''))) setSound(!SOUND.on); });
+if (!AU) $('#btnSound').hidden = true; else setSound(SOUND.on);
+
+window.__game = {get sound(){ return {on:SOUND.on, scene:SOUND.scene, cue:AU && AU.state().cue}; }, get RUN(){ return RUN; }, STAGES, buildStage, rlogRecord, rlogText, openRunLogs, enterLayer, checkEnd, moveDist, runClickNode, runBattle, moveTargets, partTargets, get level(){ return level; }, get units(){ return units; }, data:{ALLY_T, ENEMY_T, ABIL, COMMANDS, TRIALS, FIRE}, get roster(){ return roster; }, get LV(){ return LV; }, get turn(){ return turn; }, get over(){ return over; }, setSpeed(v){ SPEED = v; }, startLevel, toggleLock, execCommand, attackables, bestWeaponFor, select, weaponUsable, get S(){ return S; }, orderMeteor, resolveMeteors, get CMD(){ return CMD; }, setTurn(t){ turn = t; }, pushUnit, get walls(){ return walls; }, echoArea, finish, zoneOf, battle, onTile, onAction, endTurn, cheatLevel, choosePick, mapDirs, losClear, canHit, forecast, get art(){ return MI; }, unitSprite, iconIdOf,
   /* 给工具用：全部单位模板（含未出场的），tools/roster.mjs 靠它检查图标覆盖率。roster 已被玩家编队占用，所以叫 templates */
   get templates(){ return {allies: ALLY_T, enemies: ENEMY_T, forms: FORMS, debris: DEBRIS_T}; },
   get levels(){ return LEVELS; }};
