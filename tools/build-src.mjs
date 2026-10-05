@@ -7,7 +7,8 @@
  *      字体链接 / 平台基础样式）之外，游戏主体必须**逐字相同**。
  * 规定如下，避免出现三份互相不同步的代码：
  *   - art/mech-icons.js 是素材的唯一可编辑源文件；
- *   - src/artifact-fragment.html 是游戏主体的唯一可编辑源文件；
+ *   - 游戏主体的可编辑源文件是 src/shell.html + src/css/ + src/js/（需求单 #1 起），
+ *     src/artifact-fragment.html 由它们拼出，也是生成物；
  *   - src/index.html 的「游戏 CSS + 游戏标记 + 脚本」整段是从 fragment 复制来的；
  *   - HTML 里夹在 ART 标记之间的那一段也是生成出来的。
  *
@@ -17,6 +18,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { hasShell, assemble } from './assemble-src.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..');
@@ -88,7 +90,10 @@ function injectAudio(text) {
 }
 
 /* ---------- 2. 把素材注入 fragment ---------- */
-let frag = readFileSync(FRAG, 'utf8');
+/* 需求单 #1 起：有 src/shell.html 时，fragment 由 shell + css + js 拼出来（源文件），磁盘上的 fragment 只是生成物 */
+const fragDisk = existsSync(FRAG) ? readFileSync(FRAG, 'utf8') : '';
+let frag = hasShell(SRC_DIR) ? assemble(SRC_DIR) : fragDisk;
+if (hasShell(SRC_DIR)) notes.push('fragment 由 src/shell.html + css + js 拼出');
 const eol = frag.includes('\r\n') ? '\r\n' : '\n';
 const toEol = s => eol === '\r\n' ? s.replace(/\n/g, '\r\n') : s;
 
@@ -157,8 +162,8 @@ else {
 }
 
 /* ---------- 4. 只在需要时写 fragment ---------- */
-if (fragOut !== frag) {
-  if (checkOnly) fail('fragment 里的素材代码与 art/mech-icons.js 不同步');
+if (fragOut !== fragDisk) {
+  if (checkOnly) fail('fragment 与源文件（src/js、src/css、shell.html、art、audio）不同步（跑一次 node tools/build-src.mjs）');
   else {
     writeFileSync(FRAG, fragOut, 'utf8');
     notes.push('fragment 已注入最新素材代码');

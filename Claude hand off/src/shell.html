@@ -1,0 +1,142 @@
+<title>机甲战棋 试作版</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+<!-- @include css/main.css -->
+</style>
+
+<div class="app">
+  <header class="bar">
+    <div class="brand"><span class="mark">机甲战棋</span><span class="ver">试作版 v0.27 · <span id="mapSize">40×40</span> 地图</span></div>
+    <div class="hud">
+      <label class="chip lvsel"><span class="lbl">关卡</span><select id="levelSel"><optgroup label="★ 肉鸽模式（推荐）"><option value="roguelike">肉鸽模式 · 混沌迷宫</option></optgroup><optgroup label="剧情模式（待施工）"><option disabled>剧情模式待施工 · 下面是原型关卡</option><option value="tut1">教学 1 · 移动</option><option value="tut2">教学 2 · 夹击与射击</option><option value="tut3">教学 3 · 地形与闪避</option><option value="defense">大规模防卫战（Lv20）</option><option value="drill">弱点演习（Lv20）</option><option value="skirmish">自由对战 · 随机地图</option></optgroup><optgroup label="工具"><option value="editor">关卡编辑器</option><option value="edit" disabled>编辑器试打中</option></optgroup></select></label>
+      <div class="chip"><span class="lbl">作战</span><b id="battleNo">1</b></div>
+      <div class="chip"><span class="lbl">回合</span><b id="turnNo">1</b></div>
+      <div class="phase" id="phase">我方阶段</div>
+      <div class="chip limit" id="limitChip" hidden><span class="lbl">上限</span><b id="limitTxt"></b></div>
+    </div>
+    <div class="ctrl">
+      <div class="cheat"><span>测试</span><button id="btnLv1">全队 +1 级</button><button id="btnLv20">Lv20</button><button id="btnLv30">Lv30</button></div>
+      <button id="btnCmd" hidden>指挥</button>
+      <button id="btnThreat" aria-pressed="false">显示敌方射程</button>
+      <button id="btnNames" aria-pressed="false">机体名</button>
+      <button id="btnGrid" aria-pressed="false">网格</button>
+      <button id="btnSound" aria-pressed="true" title="背景音乐和音效（M 键也可以切换）">声音</button>
+      <button id="btnRestart">重开本战</button>
+      <button id="btnEnd" class="primary">结束回合</button>
+    </div>
+  </header>
+  <main class="main">
+    <section class="mapcol">
+      <div class="tileinfo" id="tileInfo">将鼠标移到格子上查看地形。</div>
+      <div class="mapwrap" id="mapWrap"><canvas id="cv"></canvas></div>
+    </section>
+    <aside class="side">
+      <section class="card tipcard" id="tipCard" hidden><h3>教学提示</h3><div id="tipText"></div></section>
+      <section class="card" id="unitCard"></section>
+      <section class="card" id="actionCard"></section>
+      <section class="card logcard"><h3>作战记录</h3><ol id="log"></ol></section>
+      <details class="card rules">
+        <summary>当前规则 v0.27</summary>
+        <ul>
+          <li>距离和射程一律按菱形计算（只算横竖步数）。</li>
+          <li>命中 = 武器命中 −（闪避 + 地形闪避）；选择回避时命中减半。</li>
+          <li>暴击率 = 10% + 武器修正 + 朝向修正；暴击伤害 ×1.2。地图炮和被动技能不暴击、不判朝向。</li>
+          <li>个人特技：雷萨「门之力」、蕾卡「游刃有余」（剩余移动力每点闪避 +5）、Feena「月光共鸣」（不能主动攻击，行动结束自动释放最高序号武器）、阿布拉德「不动如山」、Iris「战地急救」、洛克昂「狙い撃つぜ」（溢出命中转暴击）。</li>
+          <li>指挥官（剧情模式）：战前编队可以指定 Feena 为指挥官（不出场）。指挥技能【陨石召唤】：指定 3×3，2 回合后落下 7999 物理伤害（敌我都打），空格生成 HP1000 残骸，冷却 3 回合。</li>
+          <li>Esc：选中机体时撤回这台机体本次所有未完成的行动（移动、朝向、起飞落地）并取消选中；传送、变身、额外攻击这类已发生的行动无法撤回，此时 Esc 按待机处理。</li>
+          <li>快捷键：没有选中机体时 Tab / Shift+Tab = 在未行动的机体之间切换光标，空格 = 选中光标所在（或下一台未行动）的机体，全部行动完后空格 = 询问是否结束回合（再按空格确认）；选中机体后空格 = 原地行动；移动后 W/A/S/D = 改朝向（上 / 左 / 下 / 右）；移动后空格 = 攻击（自动高亮可攻击的敌人并预选推荐目标，再按空格选中它，Tab 切换预选）或待机；预测里空格 = 确认攻击；Esc = 返回。</li>
+          <li>起飞 / 落地要在移动前决定。个人特技 Lv10 解锁。</li>
+          <li>近卫（刹那·CB1 能天使）：「连斩」击破后可原地再攻击一次，每回合最多 1 次（Lv30 起 2 次）；特技「我就是高达」每个相邻敌机命中、闪避各 +10（最多 +30）。</li>
+          <li>特种（阿雷路亚）：GN 冲撞把目标推开 2 格，撞到东西双方各受 800，推进裂谷直接坠毁。</li>
+          <li>特种（提耶利亚）：脱装变身纳德雷，外装甲在 3 格内化为 3 格宽的 GN 墙（挡移动和所有直射，持续 2 回合），本体换装近身武器；单向，一场一次。</li>
+          <li>闪避疲劳（蕾卡）：同一回合内每完全闪避一次攻击，闪避 −10，下一个我方阶段开始时恢复。</li>
+          <li>破防：只由标记类技能（TRANS-AM 狙击、火控锁定）附加，目标所有防御按比例下降，到下一个我方阶段开始清除。侧击 / 背击不再附加破防。</li>
+          <li>朝向：正面 +0 / 侧面 目标闪避−10 暴击+10 无视25%装甲 / 背面 目标闪避−20 暴击+25 无视50%装甲（只对这一击生效）。攻击时自动转向目标，被攻击后转向攻击者（可以夹击）。援护一律按正面。</li>
+          <li>伤害生成 = 威力 + 格斗或射击 × 5（暂定）。</li>
+          <li>减免顺序：① 无效化（能量屏障）→ ② 百分比（地形、防御 −50%、抗性、减伤）→ ③ 装甲（扣完最低 10）、λ 力场 → ④ 护盾值。带「无视防御」的武器跳过全部减免（连护盾也无视）；特殊伤害只经过护盾类（屏障 / λ 力场 / 护盾值）。</li>
+          <li>直射：中间有敌方单位或山地就不能打；但目标在空中时，地面的山和单位都不挡，只有空中的大型敌方单位会挡。曲射：无视阻挡，有最小射程。近战不看视线。</li>
+          <li>武器按 CD 和次数计算，没有标注的就是 0 CD、无限次数。</li>
+          <li>除影凤凰外，武器都可以移动后使用（月光祝福也可以）。地图炮必中、不能被反击，影凤凰也会打到友军。</li>
+          <li>伤害类型：物理 / 光束 / 特殊。敌人对物理、光束有不同的弱点 / 抗性；特殊伤害除了护盾什么都不吃。弱点还可以针对近战 / 直射 / 曲射 / 范围 / 背面 / 暴击 / 多段 / 反击。</li><li>浮游炮：16 段，每段从 8 个随机方向攻击，目标闪避减半，不附加破防。多重锁定：一次选多个目标，不能被反击。</li><li>出击上限：防卫战 10 台、弱点演习 8 台、自由对战 8 台；另可选 1 位指挥官（不出场）。角色试炼：每个角色一关，Lv20。</li>
+          <li>月光祝福：友军闪避 +15、命中 +15，到下一个我方阶段开始失效。</li>
+          <li>援护防御（阿布拉德）：敌方阶段相邻友军被攻击时可代为承受并自动防御，每个敌方阶段 2 次。</li>
+          <li>螺旋式打桩机：10 段判定，首段命中 85，命中 −10 / 未中 +10，每段无视一切减免。</li>
+          <li>修理装置：回复 3000 × 射击÷100。月华再生：Iris 行动结束后 5 格内友军回复 10% 最大 HP。</li>
+          <li>残月的余响：Feena 我方阶段行动结束后自动释放；4 格内的月球王国队友按自身最大射程延伸范围，不能接力。</li>
+          <li>友军可穿过不可停留；敌军不可穿过；无控制区。飞行单位移动消耗恒为 1，不吃地形加成。</li>
+          <li>单位标签（势力 / 远近分类 / 战斗分类）目前只做展示，留给以后肉鸽的羁绊和筛选用。</li>
+          <li>胜利条件：全歼敌军。出击即升 1 级（HP +200，格斗 / 射击 / 技量 +2）。</li>
+        </ul>
+        <div class="legend">
+          <span><i style="background:#3b4a37"></i>平原 消耗1</span>
+          <span><i style="background:#264530"></i>森林 消耗2 防10% 闪+10</span>
+          <span><i style="background:#5b4e40"></i>山地 消耗3 防20% 闪+15 挡直射</span>
+          <span><i style="background:#1f3d5c"></i>水域 消耗2</span>
+        </div>
+        <div class="legend">
+          <span><i style="background:#8a6bd8"></i>影世界</span>
+          <span><i style="background:#9fb7d8"></i>月球王国</span>
+          <span><i style="background:#4fc3a1"></i>天人</span>
+          <span><i style="background:#e88fb4"></i>克莱因派</span>
+          <span><i style="background:#f2c14e"></i>预防者</span>
+          <span><i style="background:#e9e7e2"></i>ATX</span>
+          <span><i style="background:#7d9a58"></i>秘银</span>
+          <span><i style="background:#d9564b"></i>敌方</span>
+          <span><i style="background:#56606b"></i>已行动</span>
+        </div>
+        <p class="small">机体图标是原创矢量素材（<code>art/mech-icons.js</code>）：脚下的地面环表示敌我（我方方形 / 敌方圆形），机体剪影表示战斗分类，胸口核心的颜色是分类色，地面环边上的黄色三角是朝向。顶栏「机体名」按钮可以额外显示机体短名。</p>
+        <p class="small" id="hookList"></p>
+      </details>
+    </aside>
+  </main>
+</div>
+
+<input type="file" id="ptFile" accept="image/*" hidden>
+<div class="modal" id="askModal" hidden><div class="dlg" style="width:min(420px,100%)"><div class="eyebrow" style="color:var(--accent)">回合结束</div><h2>全部机体都已行动，结束回合吗？</h2><p class="small">⌨ 空格：结束回合　Esc：取消</p><div class="acts"><button class="btn primary" id="askYes">结束回合</button><button class="btn" id="askNo">取消</button></div></div></div>
+<div class="modal" id="reactModal" hidden><div class="dlg" id="reactDlg"></div></div>
+<div id="runView" hidden></div>
+<div id="editView" hidden></div>
+<div class="modal" id="endModal" hidden><div class="dlg end" id="endDlg"></div></div>
+
+<!-- ===== ART:mech-icons BEGIN（自动生成，请勿手改；源文件 art/mech-icons.js）===== -->
+<!-- ===== ART:mech-icons END ===== -->
+
+<!-- ===== AUDIO BEGIN（自动生成，请勿手改；源文件 audio/score.js + audio/mech-audio.js）===== -->
+<!-- ===== AUDIO END ===== -->
+
+<script>
+<!-- @include js/00-head.js -->
+<!-- @include js/01-地形.js -->
+<!-- @include js/02-事件钩子：以后的英雄技能_遗物都挂在这里.js -->
+<!-- @include js/03-能力与减免管线.js -->
+<!-- @include js/04-武器与机体.js -->
+<!-- @include js/05-关卡.js -->
+<!-- @include js/06-角色试炼：每个角色一关，由下面这张配置表生成.js -->
+<!-- @include js/07-状态.js -->
+<!-- @include js/08-体积与距离.js -->
+<!-- @include js/09-朝向.js -->
+<!-- @include js/10-地图生成.js -->
+<!-- @include js/11-移动.js -->
+<!-- @include js/12-视线（直射）.js -->
+<!-- @include js/13-武器可用性.js -->
+<!-- @include js/14-地图炮方向.js -->
+<!-- @include js/15-战斗计算.js -->
+<!-- @include js/16-默认挂载的规则钩子.js -->
+<!-- @include js/17-战斗执行.js -->
+<!-- @include js/18-回合流程.js -->
+<!-- @include js/19-敌方攻击时的我方应对.js -->
+<!-- @include js/20-绘制.js -->
+<!-- @include js/21-面板.js -->
+<!-- @include js/22-输入.js -->
+<!-- @include js/23-零件.js -->
+<!-- @include js/24-Feena_指挥官.js -->
+<!-- @include js/25-侵蚀场.js -->
+<!-- @include js/26-地图生成.js -->
+<!-- @include js/27-开局.js -->
+<!-- @include js/28-层.js -->
+<!-- @include js/29-渲染.js -->
+<!-- @include js/30-移动与节点.js -->
+<!-- @include js/31-战斗.js -->
+</script>
