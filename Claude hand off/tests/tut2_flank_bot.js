@@ -9,10 +9,12 @@ const { chromium } = require('playwright');
   await p.waitForTimeout(400);
   await p.selectOption('#levelSel','tut2'); await p.waitForTimeout(300);
   const endTurn = async (mode='counter') => {
+    // v0.25：我方攻击后可能弹出「援护攻击」询问，先默认接受
+    for (let i=0;i<20 && await p.isVisible('#reactModal');i++){ const sp = await p.$('#reactDlg [data-sp="0:0"]'); if (sp) await sp.click(); await p.waitForTimeout(300); }
     await p.click('#btnEnd');
     for (let i=0;i<400;i++){
       await p.waitForTimeout(80);
-      if (await p.isVisible('#reactModal')) { const c = mode==='counter' ? await p.$('#reactDlg [data-c]') : null; if (c) await c.click(); else await p.click('#reactDlg [data-r="defend"]'); }
+      if (await p.isVisible('#reactModal')) { const sp = await p.$('#reactDlg [data-sp]'); if (sp){ await sp.click(); continue; } const c = mode==='counter' ? await p.$('#reactDlg [data-c]') : null; if (c) await c.click(); else await p.click('#reactDlg [data-r="defend"]'); }
       if (await p.isVisible('#endModal')) return 'END';
       if ((await p.textContent('#phase')).includes('我方')) return 'ok';
     }
@@ -29,6 +31,7 @@ const { chromium } = require('playwright');
     u.x=ox; u.y=oy;
     if (!best){ await g.onAction('cancel'); return mech+' no position'; }
     g.onTile(best.t.x,best.t.y); await g.onAction('attack'); document.querySelector(`[data-w="${wi}"]`).click(); g.onTile(best.f.x,best.f.y); await g.onAction('fire');
+    if (g.S.sel && (g.S.dash || g.S.mode === 'menu')) await g.onAction('wait');   // v0.25：近卫击破后的 DASH，这个脚本直接放弃
     return `${mech} hit ${best.f.mech} from ${best.z} at ${best.t.x},${best.t.y}; foe hp ${best.f.hp}`;
   }, [mech,wi,wantZones]);
   const info = () => p.evaluate(() => window.__game.units.map(u=>`${u.mech}@${u.x},${u.y} hp${u.hp}`).join(' | ') + ' | ' + document.querySelector('#limitTxt').textContent);
