@@ -3,6 +3,7 @@ const { chromium } = require('playwright');
   const b = await chromium.launch(); const p = await b.newPage({viewport:{width:1400,height:900}}); const errs=[]; p.on('pageerror', e=>errs.push(e.message));
   const html = require('fs').readFileSync(require('path').join(__dirname,'../src/artifact-fragment.html'),'utf8');
   await p.setContent('<!doctype html><html><head><meta charset="utf-8"><style>[hidden]{display:none!important}</style></head><body>'+html+'</body></html>');
+  await p.selectOption('#levelSel','tut1'); await p.waitForTimeout(200);   // v0.23 起默认进入肉鸽模式
   await p.waitForTimeout(300); await p.click('#tipCard');
   console.log(await p.evaluate(async ()=>{ const g=window.__game, b2=g.units.find(u=>u.mech==='B2'), o=[b2.x,b2.y,b2.flying,b2.facing];
     g.onTile(b2.x,b2.y); await g.onAction('fly'); g.onTile(b2.x+3,b2.y); await g.onAction('attack'); return 'before esc: '+g.S.mode+' pos '+b2.x+','+b2.y+' fly '+b2.flying+' orig '+o; }));

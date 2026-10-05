@@ -297,6 +297,14 @@ Playwright 需要联网安装；在装不了它的机器上（例如 npm 缓存�
   - `__game.sound`；测试 `tests/audio_cues.js`。
   - 细节见 `../协作/接口约定.md` 第 4 节。
 
+## 10.8 v0.23：模式划分与默认入口
+- 「关卡」下拉菜单分三类：★ 肉鸽模式（推荐）/ 剧情模式（待施工，放原型关卡）/ 机体展示（原「角色试炼」，按势力分组）。
+- 打开页面默认进入肉鸽（文件末尾 `startLevel('roguelike')`）。
+- **肉鸽进行中切换模式**：`#levelSel.onchange` 把正在打的那一战存进 `RUN_BATTLE`，包括 `level / LV / units / map / roster / turn / walls / CMD / 波次 / 日志` 等；切回时 `runOpen()` 调 `runBattleResume()` 原样恢复。肉鸽对话框开着时不让切。
+- `startLevel()` 开头会关掉上一个模式留下的对话框。
+- 测试：`tests/mode_switch.js`（7 项断言）。`keys_esc`、`tut1_playthrough`、`audio_cues` 改成先选教学 1。
+- GitHub：公开仓库 `fanboy3006/mecha-tactics`，从 v0.22 开始推送（全新历史，不含 `图片库` 和作者邮箱）。这个会话不能建 Release，所以试玩下载走仓库里的 `index.html`。
+
 ## 12. 协作（Claude ↔ DSH）
 见 `C:\DSH-机战\协作\`：
 - `协作日志.md`：每次交付都记一条；

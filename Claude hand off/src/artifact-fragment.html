@@ -225,9 +225,9 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
 
 <div class="app">
   <header class="bar">
-    <div class="brand"><span class="mark">机甲战棋</span><span class="ver">试作版 v0.22 · <span id="mapSize">40×40</span> 地图</span></div>
+    <div class="brand"><span class="mark">机甲战棋</span><span class="ver">试作版 v0.23 · <span id="mapSize">40×40</span> 地图</span></div>
     <div class="hud">
-      <label class="chip lvsel"><span class="lbl">关卡</span><select id="levelSel"><option value="tut1">教学 1 · 移动</option><option value="tut2">教学 2 · 夹击与射击</option><option value="tut3">教学 3 · 地形与闪避</option><option value="defense">大规模防卫战（Lv20）</option><option value="drill">弱点演习（Lv20）</option><option value="skirmish">自由对战 · 随机地图</option><option value="roguelike">肉鸽模式（试作）</option></select></label>
+      <label class="chip lvsel"><span class="lbl">关卡</span><select id="levelSel"><optgroup label="★ 肉鸽模式（推荐）"><option value="roguelike">肉鸽模式 · 混沌迷宫</option></optgroup><optgroup label="剧情模式（待施工）"><option disabled>剧情模式待施工 · 下面是原型关卡</option><option value="tut1">教学 1 · 移动</option><option value="tut2">教学 2 · 夹击与射击</option><option value="tut3">教学 3 · 地形与闪避</option><option value="defense">大规模防卫战（Lv20）</option><option value="drill">弱点演习（Lv20）</option><option value="skirmish">自由对战 · 随机地图</option></optgroup></select></label>
       <div class="chip"><span class="lbl">作战</span><b id="battleNo">1</b></div>
       <div class="chip"><span class="lbl">回合</span><b id="turnNo">1</b></div>
       <div class="phase" id="phase">我方阶段</div>
@@ -255,7 +255,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
       <section class="card" id="actionCard"></section>
       <section class="card logcard"><h3>作战记录</h3><ol id="log"></ol></section>
       <details class="card rules">
-        <summary>当前规则 v0.22</summary>
+        <summary>当前规则 v0.23</summary>
         <ul>
           <li>距离和射程一律按菱形计算（只算横竖步数）。</li>
           <li>命中 = 武器命中 −（闪避 + 地形闪避）；选择回避时命中减半。</li>
@@ -3854,7 +3854,7 @@ function makeTrial(t){
       (lv20.length ? `<br>Lv20+：${lv20.map(w => `【${w.name}】`).join('')}` : '')) +
     `<br><br>${cfg.hint || ''}<br><br><span class="small">按「Lv30」可以把全队升到 30 级试强化效果。</span>`;
   return {
-    code:`CT-${t.mech}`, name:`试炼 · ${t.pilot}（${t.mech}）`, w:W, h:H, speed:.6, enemyLv:1, trial:true,
+    code:`CT-${t.mech}`, name:`机体展示 · ${t.pilot}（${t.mech}）`, w:W, h:H, speed:.6, enemyLv:1, trial:true,
     rows:g.map(row => row.join('')), allies, enemies, presetCmd: cfg.cmd ? t.mech : null,
     afterStart: cfg.hurt ? () => { units.filter(u => u.side === 'ally' && u.mech !== t.mech).forEach(u => { u.hp = Math.round(u.maxHp/2); }); refresh(); } : null,
     victory:{type:'annihilate'}, goalText:'击破全部敌机', winText:`${t.pilot} 的试炼完成。`,
@@ -3862,9 +3862,10 @@ function makeTrial(t){
   };
 }
 ALLY_T.forEach(t => { LEVELS['trial_' + t.mech] = makeTrial(t); });
-{
-  const og = document.createElement('optgroup'); og.label = '角色试炼（Lv20）';
-  ALLY_T.forEach(t => { const o = document.createElement('option'); o.value = 'trial_' + t.mech; o.textContent = `试炼 · ${t.tags.势力} · ${t.pilot}（${t.mech}）`; og.appendChild(o); });
+/* 机体展示模式：按势力分组，每台机体一关（Lv20，敌人 Lv1） */
+for (const f of [...new Set(ALLY_T.map(t => t.tags.势力))]){
+  const og = document.createElement('optgroup'); og.label = `机体展示 · ${f}`;
+  ALLY_T.filter(t => t.tags.势力 === f).forEach(t => { const o = document.createElement('option'); o.value = 'trial_' + t.mech; o.textContent = `${t.pilot}（${t.mech} · ${t.tags.战斗分类}）`; og.appendChild(o); });
   $('#levelSel').appendChild(og);
 }
 /* ---------- 状态 ---------- */
@@ -4957,6 +4958,7 @@ async function resolveMeteors(){
 }
 function startLevel(id){
   audioScene('battle');
+  $('#endModal').hidden = true;      // 关掉上一个模式留下的对话框（例如肉鸽开局选分队）
   CMD = null;
   walls = new Map();
   if (id === 'skirmish'){ newCampaign(); return; }
@@ -6368,7 +6370,29 @@ $('#btnLv20').onclick = () => cheatLevel(20);
 $('#btnLv30').onclick = () => cheatLevel(30);
 $('#btnEnd').onclick = endTurn;
 $('#btnRestart').onclick = () => { if (S.mode === 'enemy' || S.mode === 'busy') return; if (LV && LV.run){ if (!over) ask('撤退？', '撤退会判定为作战失败：剩余敌人数（包括还没出场的波次）会扣作战耐久。战后奖励照常发放。', '撤退').then(y => { if (y && !over) defeat('撤退'); }); return; } (level === 'skirmish' ? startBattle(seed) : startLevel(level)); };
-$('#levelSel').onchange = e => { if (S.mode !== 'enemy' && S.mode !== 'busy') startLevel(e.target.value); else e.target.value = level; };
+/* 切换模式。肉鸽进行中切走时，正在打的那一战原样保存，切回「肉鸽模式」时接着打（RUN 本身一直在内存里）。
+   肉鸽的对话框（编队、事件、商店、战后结算……）开着的时候不能切，免得流程断在半路。 */
+let RUN_BATTLE = null;
+$('#levelSel').onchange = e => {
+  const v = e.target.value, inRun = RUN && !RUN.over && (level === 'run' || level === 'roguelike');
+  const back = () => { e.target.value = level === 'run' ? 'roguelike' : level; };
+  if (S.mode === 'enemy' || S.mode === 'busy'){ back(); return; }
+  if (v === 'roguelike' && inRun){ back(); return; }
+  if (inRun && !$('#endModal').hidden){ back(); log('肉鸽：先处理完当前对话框，再切换模式（进度会保留）', null, 'sys'); return; }
+  if (inRun && level === 'run' && LV && LV.run && !over)
+    RUN_BATTLE = {level, LV, waveIdx, deadline, walls, CMD, map, units, roster, turn, seed, over, phaseNo, MW, MH, SC, log:$('#log').innerHTML, speed:SPEED};
+  startLevel(v);
+};
+function runBattleResume(){
+  const b = RUN_BATTLE; RUN_BATTLE = null;
+  ({level, LV, waveIdx, deadline, walls, CMD, map, units, roster, turn, seed, over, phaseNo} = b); SPEED = b.speed;
+  runHide(); $('#endModal').hidden = true; $('#levelSel').value = 'roguelike';
+  setMapSize(b.MW, b.MH, b.SC); buildTerrain(); $('#log').innerHTML = b.log;
+  Object.assign(S, {mode:'idle', sel:null, origin:null, reach:[], weapon:null, target:null, inspect:null, atkTiles:[], threatSet:null});
+  SOUND.scene = 'battle'; bgm(sceneCue());
+  updateLimit(); refresh(); focusOn(units.find(u => u.side === 'ally'), false);
+  log(`回到肉鸽：${LV.name}，第 ${turn} 回合`, null, 'sys');
+}
 $('#btnCmd').onclick = () => {
   if (!CMD || S.mode !== 'idle' || over || turn < CMD.readyTurn) return;
   S.mode = 'command'; refresh();
@@ -6520,6 +6544,7 @@ const cheb = (a, b) => Math.max(Math.abs(a % GCOLS - b % GCOLS), Math.abs(((a / 
 
 /* ---------- 开局 ---------- */
 function runOpen(){
+  if (RUN && !RUN.over && RUN_BATTLE){ runBattleResume(); return; }   // 切走前正在打的那一战
   level = 'roguelike'; $('#levelSel').value = 'roguelike';
   if (RUN && !RUN.over){ runShow(); return; }
   runStartScreen();
@@ -7151,7 +7176,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.22';
+const GAME_VERSION = 'v0.23';
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
   if (!RUN || !RUN.events) return;
@@ -7247,7 +7272,7 @@ window.addEventListener('error', e => { if (RUN && !RUN.over && RUN.events) rlog
 window.addEventListener('unhandledrejection', e => { if (RUN && !RUN.over && RUN.events) rlog('error', {msg:String(e.reason && (e.reason.message || e.reason.code) || e.reason).slice(0, 200)}); });
 
 document.querySelectorAll('#levelSel option').forEach(o => { const L = LEVELS[o.value]; if (L && L.code && !o.textContent.startsWith(L.code)) o.textContent = `${L.code} ${o.textContent}`; });
-startLevel('tut1');
+startLevel('roguelike');            // 默认入口：肉鸽模式
 requestAnimationFrame(draw);
 /* ---------- 音频接线（Claude 维护） ----------
    播放层 MechAudio 是 DSH 写的（audio/mech-audio.js，由 tools/build-src.mjs 注入），接口和行为约定见 协作/接口约定.md 第 4 节。
