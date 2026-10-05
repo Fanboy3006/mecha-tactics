@@ -249,7 +249,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
 
 <div class="app">
   <header class="bar">
-    <div class="brand"><span class="mark">机甲战棋</span><span class="ver">试作版 v0.27 · <span id="mapSize">40×40</span> 地图</span></div>
+    <div class="brand"><span class="mark">机甲战棋</span><span class="ver">试作版 <span class="gv">v0.30</span> · <span id="mapSize">40×40</span> 地图</span></div>
     <div class="hud">
       <label class="chip lvsel"><span class="lbl">关卡</span><select id="levelSel"><optgroup label="★ 肉鸽模式（推荐）"><option value="roguelike">肉鸽模式 · 混沌迷宫</option></optgroup><optgroup label="剧情模式（待施工）"><option disabled>剧情模式待施工 · 下面是原型关卡</option><option value="tut1">教学 1 · 移动</option><option value="tut2">教学 2 · 夹击与射击</option><option value="tut3">教学 3 · 地形与闪避</option><option value="defense">大规模防卫战（Lv20）</option><option value="drill">弱点演习（Lv20）</option><option value="skirmish">自由对战 · 随机地图</option></optgroup><optgroup label="工具"><option value="editor">关卡编辑器</option><option value="edit" disabled>编辑器试打中</option></optgroup></select></label>
       <div class="chip"><span class="lbl">作战</span><b id="battleNo">1</b></div>
@@ -279,7 +279,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
       <section class="card" id="actionCard"></section>
       <section class="card logcard"><h3>作战记录</h3><ol id="log"></ol></section>
       <details class="card rules">
-        <summary>当前规则 v0.27</summary>
+        <summary>当前规则 <span class="gv">v0.30</span></summary>
         <ul>
           <li>距离和射程一律按菱形计算（只算横竖步数）。</li>
           <li>命中 = 武器命中 −（闪避 + 地形闪避）；选择回避时命中减半。</li>
@@ -7395,7 +7395,8 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.29';
+const GAME_VERSION = 'v0.30';
+document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
   if (!RUN || !RUN.events) return;

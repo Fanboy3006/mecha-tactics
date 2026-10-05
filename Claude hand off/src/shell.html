@@ -8,7 +8,7 @@
 
 <div class="app">
   <header class="bar">
-    <div class="brand"><span class="mark">机甲战棋</span><span class="ver">试作版 v0.27 · <span id="mapSize">40×40</span> 地图</span></div>
+    <div class="brand"><span class="mark">机甲战棋</span><span class="ver">试作版 <span class="gv">v0.30</span> · <span id="mapSize">40×40</span> 地图</span></div>
     <div class="hud">
       <label class="chip lvsel"><span class="lbl">关卡</span><select id="levelSel"><optgroup label="★ 肉鸽模式（推荐）"><option value="roguelike">肉鸽模式 · 混沌迷宫</option></optgroup><optgroup label="剧情模式（待施工）"><option disabled>剧情模式待施工 · 下面是原型关卡</option><option value="tut1">教学 1 · 移动</option><option value="tut2">教学 2 · 夹击与射击</option><option value="tut3">教学 3 · 地形与闪避</option><option value="defense">大规模防卫战（Lv20）</option><option value="drill">弱点演习（Lv20）</option><option value="skirmish">自由对战 · 随机地图</option></optgroup><optgroup label="工具"><option value="editor">关卡编辑器</option><option value="edit" disabled>编辑器试打中</option></optgroup></select></label>
       <div class="chip"><span class="lbl">作战</span><b id="battleNo">1</b></div>
@@ -38,7 +38,7 @@
       <section class="card" id="actionCard"></section>
       <section class="card logcard"><h3>作战记录</h3><ol id="log"></ol></section>
       <details class="card rules">
-        <summary>当前规则 v0.27</summary>
+        <summary>当前规则 <span class="gv">v0.30</span></summary>
         <ul>
           <li>距离和射程一律按菱形计算（只算横竖步数）。</li>
           <li>命中 = 武器命中 −（闪避 + 地形闪避）；选择回避时命中减半。</li>
