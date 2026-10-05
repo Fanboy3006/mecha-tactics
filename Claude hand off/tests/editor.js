@@ -29,14 +29,14 @@ const fs = require('fs');
   const st = await p.evaluate(() => JSON.parse(JSON.stringify(window.__game.editor.store['ISW-1-N-7'])));
   check('刷地形自动保存', st && st.rows.slice(3, 9).every(r => r[10] === 'm'));
   check('第 1 波多了一台重型坦克', st && st.waves[0].enemies.some(e => e.t === 'tank' && e.x === 20 && e.y === 2));
-  check('新增第 3 波（含指挥官机）', st && st.waves.length === 3 && st.waves[2].enemies.some(e => e.t === 'captain'));
+  check('新增第 4 波（含指挥官机；本关 v0.28 起原有 3 波）', st && st.waves.length === 4 && st.waves[3].enemies.some(e => e.t === 'captain'));
   await p.screenshot({path: __dirname + '/editor.png'});
   // 试打
   await p.click('#edTest'); await p.waitForTimeout(400);
   check('试打进入编队', await p.isVisible('#btnForm'));
   await p.click('#btnForm'); await p.waitForTimeout(400);
   const t = await p.evaluate(() => { const g = window.__game; return {lv: g.level, tank: g.units.some(u => u.mech === '重型坦克' && u.x === 20 && u.y === 2), m: g.LV.rows[5][10], waves: g.LV.waves.length}; });
-  check('试打用的是编辑后的关卡', t.lv === 'edit' && t.tank && t.m === 'm' && t.waves === 3, JSON.stringify(t));
+  check('试打用的是编辑后的关卡', t.lv === 'edit' && t.tank && t.m === 'm' && t.waves === 4, JSON.stringify(t));
   // 回编辑器，改动还在
   await p.selectOption('#levelSel', 'editor'); await p.waitForTimeout(300);
   check('回到编辑器、仍是 ISW-1-N-7', await p.evaluate(() => document.querySelector('#edSel').value === 'ISW-1-N-7'));
@@ -46,7 +46,7 @@ const fs = require('fs');
   // 导出
   await p.click('#edExport'); await p.waitForTimeout(300);
   const txt = await p.evaluate(() => document.querySelector('#edOut') && document.querySelector('#edOut').value);
-  let ok = false; try { const j = JSON.parse(txt); ok = !!j.edits['ISW-1-N-7'] && j.edits['ISW-1-N-7'].waves.length === 2; } catch(e){}
-  check('导出 JSON 正确（肉鸽关的后续波次 2 波）', ok);
+  let ok = false; try { const j = JSON.parse(txt); ok = !!j.edits['ISW-1-N-7'] && j.edits['ISW-1-N-7'].waves.length === 3; } catch(e){}
+  check('导出 JSON 正确（肉鸽关的后续波次 3 波）', ok);
   console.log('ERRS', errs); await b.close(); process.exit(bad || errs.length ? 1 : 0);
 })();

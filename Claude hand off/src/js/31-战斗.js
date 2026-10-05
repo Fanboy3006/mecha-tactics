@@ -41,6 +41,10 @@ const STAGE_POOL = {N:8, E:3, G:2, S:2, C:2};
 const LEVEL_EDITS = {};
 const STAGE_OVERRIDES = {
   // 例：'ISW-1-N-1': {name:'起始回廊', enemies:[{t:'grunt', x:20, y:7}, {t:'grunt', x:21, y:9}], desc:'教学用的第一战'},
+  'ISW-1-N-7': {why:'作者反馈太简单（反馈表第 20 条）：第 1 波加指挥官机，第 2 波提前到第 2 回合，新增第 3 波',
+    enemies:[{t:'berserker', x:17, y:8, facing:'left', lv:1}, {t:'drone', x:23, y:2, facing:'left', lv:1}, {t:'funnel', x:18, y:7, facing:'left', lv:1}, {t:'bomber', x:18, y:6, facing:'left', lv:1}, {t:'captain', x:25, y:8, facing:'left', lv:3}],
+    waves:[{at:2, enemies:[{t:'bomber', x:23, y:9, facing:'left', lv:1}, {t:'bomber', x:21, y:12, facing:'left', lv:1}, {t:'artillery', x:23, y:8, facing:'left', lv:1}, {t:'venom', x:23, y:14, facing:'left', lv:3}]},
+           {at:4, enemies:[{t:'berserker', x:25, y:12, facing:'left', lv:1}, {t:'berserker', x:25, y:14, facing:'left', lv:1}, {t:'tank', x:23, y:0, facing:'left', lv:1}]}]},
 };
 for (const [k, o] of Object.entries(LEVEL_EDITS)) if (k.startsWith('ISW-')) STAGE_OVERRIDES[k] = {...(STAGE_OVERRIDES[k] || {}), ...o};
 const NAME_A = ['破碎','扭曲','沉没','回响','锈蚀','坠落','双生','裂隙','倒悬','静默','燃烧','冰封','错位','遗忘','镜像','漂流'];
@@ -270,7 +274,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.27';
+const GAME_VERSION = 'v0.28';
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
   if (!RUN || !RUN.events) return;
