@@ -224,5 +224,56 @@ console.log('\n[5] 游戏 HTML：内联脚本语法 + 图标接入点');
   }
 }
 
+console.log('\n[6] 势力配色互斥性（7 个势力，两两不能太像）');
+{
+  /* 用「亮面」颜色来比：它是机体上面积最大的那个色。 */
+  function toHsl(hex) {
+    const [r0, g0, b0] = Icons.hex2rgb(hex).map(v => v / 255);
+    const mx = Math.max(r0, g0, b0), mn = Math.min(r0, g0, b0);
+    const l = (mx + mn) / 2;
+    let h = 0, s = 0;
+    const d = mx - mn;
+    if (d > 1e-6) {
+      s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+      if (mx === r0) h = ((g0 - b0) / d + (g0 < b0 ? 6 : 0)) * 60;
+      else if (mx === g0) h = ((b0 - r0) / d + 2) * 60;
+      else h = ((r0 - g0) / d + 4) * 60;
+    }
+    return {h, s, l};
+  }
+  const facs = Object.entries(Icons.FACTION_PAL)
+    .filter(([, key]) => Icons.PAL[key])
+    .map(([name, key]) => {
+      const c = toHsl(Icons.PAL[key].light);
+      return {name, key, ...c};
+    });
+  const dh = (a, b) => { let d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
+
+  const rows = [];
+  for (let i = 0; i < facs.length; i++) {
+    for (let j = i + 1; j < facs.length; j++) {
+      const A = facs[i], B = facs[j];
+      const hue = dh(A.h, B.h), dls = Math.abs(A.l - B.l), dsat = Math.abs(A.s - B.s);
+      /* 打架的判定：色相接近 **且** 明度也接近（饱和度的差别不足以在小尺寸下区分）。
+         明度差够大时，同色相也能分（这就是 ATX 修好之后的情况）。 */
+      const clash = hue < 28 && dls < 0.13;
+      const watch = !clash && hue < 40 && dls < 0.20;
+      rows.push({A, B, hue: Math.round(hue), dls: dls.toFixed(3), dsat: dsat.toFixed(3), clash, watch});
+    }
+  }
+  rows.sort((a, b) => a.hue - b.hue);
+  console.log('    势力两两对比（只列色相差 < 40° 的组合）');
+  console.log('      ' + '组合'.padEnd(24) + '色相差  明度差  饱和度差');
+  for (const r of rows.filter(r => r.hue < 40)) {
+    const tag = r.clash ? '  ✗ 太像' : r.watch ? '  ⚠ 偏近' : '';
+    console.log('      ' + `${r.A.name} / ${r.B.name}`.padEnd(24) +
+      `${String(r.hue).padStart(5)}°  ${r.dls.padStart(6)}  ${r.dsat.padStart(7)}${tag}`);
+  }
+  const clash = rows.filter(r => r.clash);
+  if (clash.length) bad(`${clash.length} 对势力配色太接近（同色相 + 同明度，小尺寸下分不出来）：` +
+    clash.map(r => `${r.A.name}/${r.B.name}`).join('、'));
+  else ok(`${facs.length} 个势力的亮面色两两都拉得开（没有「同色相又同明度」的组合）`);
+}
+
 console.log(fails ? `\n共 ${fails} 项失败` : '\n全部通过');
 process.exit(fails ? 1 : 0);

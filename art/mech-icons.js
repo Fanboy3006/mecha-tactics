@@ -45,16 +45,22 @@
     acted:  {armor:'#444b56', light:'#6b7480', dark:'#24282f', accent:'#98a2ae', trim:'#79828e', visor:'#a8b2be'},
     // 中立（陨石残骸）
     rock:   {armor:'#5d554e', light:'#8b7f74', dark:'#2f2b27', accent:'#c9b9a8', trim:'#7a6f65', visor:'#c9b9a8'},
-    /* v0.17 新势力（Claude 合并时补的占位配色，DSH 可以随意调）。底色取自游戏里
-     * 头像徽章用的 FACTION_COL，保证地图和面板颜色一致。 */
-    // 克莱因派：樱粉 + 白
+    /* v0.17 新势力（Claude 合并时补的占位配色，DSH 在 v0.19 调整了两套）。
+     * 底色取自游戏里头像徽章用的 FACTION_COL，保证地图和面板颜色一致。 */
+    // 克莱因派：樱粉 + 白　（色相 335°，和其他六套都拉得开）
     clyne:  {armor:'#a85d80', light:'#e88fb4', dark:'#4f2a3d', accent:'#ffe3f0', trim:'#f2b3cf', visor:'#ffd6ea'},
-    // 预防者：金黄 + 白
+    // 预防者：金黄 + 白　（色相 42°，唯一大面积暖黄）
     prev:   {armor:'#a8822c', light:'#f2c14e', dark:'#4d3a12', accent:'#fff1c4', trim:'#f7d77f', visor:'#fff0b8'},
-    // ATX：银白 + 钢蓝
-    atx:    {armor:'#8a93a3', light:'#c7cfdc', dark:'#3c424d', accent:'#f4f8ff', trim:'#dbe2ee', visor:'#cfe8ff'},
-    // 米斯里尔：橄榄绿 + 军用黄
-    mithril:{armor:'#5e7d44', light:'#8fb86b', dark:'#2a3a1e', accent:'#e8f5c8', trim:'#a9cc88', visor:'#f0e6a0'},
+    /* ATX：近白钢 + 橙红能量。
+     * 原来填的是「银白 #c7cfdc」，和月球王国「银蓝 #9fb7d8」**色相几乎一样、明度也接近**，
+     * 35px 下两台机体分不出来。改成：亮面推到近白（#e6eaf0，几乎不带蓝）、装甲压暗到中性钢，
+     * 靠**明度差**和月球王国拉开；强调色换成橙红（古铁的红黑印象），
+     * 这是全七套里唯一的暖红点缀，识别度最高。 */
+    atx:    {armor:'#6e7684', light:'#e9e7e2', dark:'#2b3038', accent:'#ff8a5c', trim:'#c6c3bc', visor:'#ffd9c0'},
+    /* 米斯里尔：军用深橄榄绿 + 沙色。
+     * 原来偏亮偏黄绿（#8fb86b），和天人「亮青绿 #4fc3a1」同属绿色区、又是接近的明度。
+     * 整体压暗、去饱和，走军用橄榄的路子；强调色从淡绿换成沙色，避免和身体同色。 */
+    mithril:{armor:'#54683a', light:'#7d9a58', dark:'#222d17', accent:'#ffd98a', trim:'#8fa970', visor:'#e6dfa4'},
   };
 
   // 战斗分类的强调色（图标上用来区分定位的小面积点缀）

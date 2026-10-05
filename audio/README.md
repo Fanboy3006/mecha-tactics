@@ -65,6 +65,9 @@ node tools/analyze-audio.mjs 原始.wav --compare 转回来的.wav
 | 文件 | 作用 |
 |---|---|
 | `audio/score.js` | **乐谱数据（唯一真源）**。所有音乐只在这里写一次 |
+| `audio/mech-audio.js` | **游戏里的播放层 `MechAudio`**：Web Audio 现场合成、切曲交叉淡入、音效。由 `tools/build-src.mjs` 注入游戏 |
+| `audio/preview.html` | **试听页**（双击打开）：一键听全部 8 首和 9 个音效、调音量 |
+| `tools/check-audio.mjs` | 播放层自检：摊平 / 音高 / 时间 / 音域 / 接口一致性 / 试听页语法 |
 | `tools/audio-lab.mjs` | 离线工作台：合成 → WAV、导出 MIDI、画频谱图、跑自检 |
 | `tools/analyze-audio.mjs` | WAV 分析器：格式/电平统计、两文件相似度、转码验证 |
 | `tools/transcode.ps1` | **用 Windows 自带 Media Foundation 转码**（不需要 ffmpeg） |
@@ -74,6 +77,27 @@ node tools/analyze-audio.mjs 原始.wav --compare 转回来的.wav
 | `audio/out/` | 渲染产物（**不入库**，随时可重生成） |
 
 为什么 PNG 编码器和 MIDI 写入器都自己写：这台机器 npm 缓存目录在工作区外，装不了任何包；而 PNG 去掉压缩后只剩 CRC32 加分块，MIDI 去掉解析后只剩变长整数，都是几十行的事。
+
+---
+
+## 播放层（`mech-audio.js`）：一个刻意的两段式设计
+
+音频这边我看不见也听不见，所以播放层拆成两半，把「能判定的部分」单独拎出来：
+
+1. **`flatten(cue)`**：纯函数，把乐谱摊平成 `{第几拍, 声部, 音高, 时值}` 的时间表。
+   不需要 `AudioContext`，所以能在 Node 里跑自检 —— 音高、时间、音域、和弦齐不齐全都能验。
+2. **`voices`**：把时间表上的一个音符变成 Web Audio 节点（12 个声部各一个函数）。
+
+好处是「音高写错了」「八度写错了」这类 bug 在**跑自检时**就会被抓住，
+不用等到有人听了说「哪里怪怪的」。这和美术那边用 `render-art.mjs` 先把图画出来看是同一个套路。
+
+`node tools/check-audio.mjs` 会用一个**假 AudioContext** 把 `play / sfx / setVolume / mute / stop`
+整条流程跑一遍，确认不抛异常、节点真的被创建、排程在往前走。
+
+**警告：Web Audio 版本和离线渲染版本音色不完全一样。** 离线版是 `audio-lab.mjs` 里的
+polyBLEP 振荡器 + 自定义滤波器；游戏里是用 Web Audio 的原生节点重搭的同一套结构。
+结构、音高、节奏一致，**音色细节有差别**。要听「成品音色」听 `audio/out/*.wav`，
+要听「音符本身」听 `audio/out/*.mid`。
 
 ---
 
@@ -241,7 +265,10 @@ const CUES = {
 | 唯一真源 | `art/mech-icons.js` | `audio/score.js` |
 | 我的"眼睛" | `tools/render-art.mjs` → PNG → `read_image` | `tools/audio-lab.mjs` → 频谱图 → `read_image` |
 | 我验不了的 | 好不好看 | 好不好听 |
-| 你的验收页 | `art/preview.html` | （待做，见下） |
+| 你的验收页 | `art/preview.html` | `audio/preview.html` |
+| 游戏里的模块 | `MechIcons` | `MechAudio` |
+| 自检 | `tools/check-art.mjs` | `tools/check-audio.mjs` |
 
-**还没做**：`audio/preview.html`（浏览器里一键试听所有曲目、看波形）。
-以及游戏本体的音频接入（目前游戏**完全没有音频系统**，`AudioContext` 一次都没出现）。
+**游戏接入已完成（v0.19）**：`MechAudio` 由 `tools/build-src.mjs` 注入游戏，
+接口登记在 `协作/接口约定.md` 第 4 节；游戏侧在各阶段调用 `MechAudio.play(...)` /
+`MechAudio.sfx(...)` 由 Claude 接线。

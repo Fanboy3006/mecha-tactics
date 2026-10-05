@@ -28,6 +28,8 @@ const ART_SRC = join(ROOT, 'art', 'mech-icons.js');
 
 const BEGIN = '<!-- ===== ART:mech-icons BEGIN（自动生成，请勿手改；源文件 art/mech-icons.js）===== -->';
 const END = '<!-- ===== ART:mech-icons END ===== -->';
+const AUDIO_BEGIN = '<!-- ===== AUDIO BEGIN（自动生成，请勿手改；源文件 audio/score.js + audio/mech-audio.js）===== -->';
+const AUDIO_END = '<!-- ===== AUDIO END ===== -->';
 const ANCHOR = "<script>\n(() => {\n'use strict';\nconst N = 40, TS = 22;";
 
 const checkOnly = process.argv.includes('--check');
@@ -48,6 +50,42 @@ const artBlock = [
   '</script>',
   END,
 ].join('\n');
+
+/* ---------- 1b. 生成音频代码块（乐谱 + 播放层） ---------- */
+/* 顺序要紧：mech-audio.js 在工厂函数里就读 globalThis.MechScore，所以 score.js 必须在前。 */
+function readModule(rel, label) {
+  const s = readFileSync(join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n');
+  if (s.includes('</script')) throw new Error(`${rel} 里出现了 </script，无法安全内联`);
+  return [`<script>`, `/* ${label} · 源文件 ${rel} · 由 tools/build-src.mjs 注入 */`, s.replace(/\n+$/, ''), `</script>`].join('\n');
+}
+const audioSrcFiles = ['audio/score.js', 'audio/mech-audio.js'];
+for (const f of audioSrcFiles) if (!existsSync(join(ROOT, f))) { console.error(`缺少 ${f}`); process.exit(1); }
+
+const audioBlock = [
+  AUDIO_BEGIN,
+  readModule('audio/score.js', '乐谱数据（唯一真源，改音乐只改这个文件）'),
+  readModule('audio/mech-audio.js', '音频播放层 MechAudio（Web Audio 现场合成）'),
+  AUDIO_END,
+].join('\n');
+
+/* 把音频块插到 ART 块后面（ART 块紧邻游戏主脚本之前） */
+function injectAudio(text) {
+  const i = text.indexOf(AUDIO_BEGIN);
+  if (i >= 0) {
+    const j = text.indexOf(AUDIO_END, i);
+    if (j < 0) return {text, note: '音频块有 BEGIN 没有 END'};
+    if (text.slice(i, j + AUDIO_END.length) === audioBlock) return {text, note: '音频代码已是最新'};
+    return {text: text.slice(0, i) + audioBlock + text.slice(j + AUDIO_END.length), note: '音频代码已更新'};
+  }
+  const artEnd = text.indexOf(END);
+  if (artEnd >= 0) {
+    const at = artEnd + END.length;
+    return {text: text.slice(0, at) + '\n\n' + audioBlock + text.slice(at), note: '音频代码已插入'};
+  }
+  const a = text.indexOf(ANCHOR);
+  if (a < 0) return {text, note: null};
+  return {text: text.slice(0, a) + audioBlock + '\n\n' + text.slice(a), note: '音频代码已插入（无 ART 块）'};
+}
 
 /* ---------- 2. 把素材注入 fragment ---------- */
 let frag = readFileSync(FRAG, 'utf8');
@@ -71,8 +109,16 @@ let fragBody = frag.replace(/\r\n/g, '\n');
     else fragBody = fragBody.slice(0, a) + artBlock + '\n\n' + fragBody.slice(a);
   }
 }
+/* 音频块：插在 ART 块之后 */
+{
+  const r = injectAudio(fragBody);
+  if (!r.note) fail('fragment 里既没有音频块也没有 ART 块，无法插入音频代码');
+  else {
+    if (r.text !== fragBody) fragBody = r.text;
+    notes.push('fragment：' + r.note);
+  }
+}
 const fragOut = toEol(fragBody);
-
 /* ---------- 3. 把 fragment 的游戏主体同步到 index.html ---------- */
 /* 主体 = 紧挨着 <div class="app"> 之前的那段 <style> 起，到最后一个 </script> 结束。
    这段里包含：游戏 CSS、ART 素材块、游戏标记、游戏脚本。 */

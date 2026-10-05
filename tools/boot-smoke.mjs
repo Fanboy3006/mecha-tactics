@@ -305,5 +305,32 @@ try {
   ok(`对 ${n} 个单位执行了点击 + 面板刷新 + 跑帧`);
 } catch (e) { bad('点击 / 面板报错：' + (e && e.stack ? e.stack.split('\n').slice(0, 5).join('\n      ') : e)); }
 
+console.log('\n[8] 音频模块（注入顺序 + 无 AudioContext 时的降级）');
+try {
+  const MA = sandbox.MechAudio, MS = sandbox.MechScore;
+  if (!MS) bad('游戏里没有 MechScore（乐谱没注入，或者注入顺序不对）');
+  else if (!MS.CUES || Object.keys(MS.CUES).length < 8) bad(`MechScore.CUES 只有 ${MS.CUES ? Object.keys(MS.CUES).length : 0} 首`);
+  else ok(`MechScore 已注入，${Object.keys(MS.CUES).length} 首曲子`);
+
+  if (!MA) bad('游戏里没有 MechAudio');
+  else {
+    const api = ['play', 'sfx', 'setVolume', 'mute', 'unlock', 'state', 'stop'];
+    const miss = api.filter(k => typeof MA[k] !== 'function');
+    if (miss.length) bad('MechAudio 缺接口：' + miss.join('、'));
+    else ok('MechAudio 接口齐全');
+    // 这个替身环境里没有 AudioContext：必须**优雅降级**，而不是抛异常
+    let threw = null;
+    try {
+      const r = MA.play('allyPhase');
+      MA.sfx('hit'); MA.setVolume(0.5, 0.5); MA.mute(true); MA.mute(false); MA.stop();
+      const st = MA.state();
+      if (r !== false) info(`没有 AudioContext 时 play() 返回了 ${r}（预期 false）`);
+      if (st.ready !== false) bad('没有 AudioContext 时 state().ready 应该是 false');
+      else ok('没有 AudioContext 时优雅降级（play 返回 false，不抛异常）');
+    } catch (e) { threw = e; }
+    if (threw) bad('没有 AudioContext 时抛异常了：' + threw.message);
+  }
+} catch (e) { bad('音频检查报错：' + e.message); }
+
 console.log(fails ? `\n共 ${fails} 项失败` : '\n冒烟测试全部通过');
 process.exit(fails ? 1 : 0);
