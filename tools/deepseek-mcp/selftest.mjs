@@ -141,12 +141,6 @@ check('普通 task 会加 PREAMBLE', /注意：Claude hand off\/src\/js\//.test(
 const r8 = await dsCode({ task: '/run git push', files: ['src/fake.js'] });
 check('/ 开头的 task 不加 PREAMBLE', !/注意：Claude hand off\/src\/js\//.test(r8.text) && /\/run git push/.test(r8.text));
 
-/* task 以 '/' 开头是 aider 自己的命令，不该被加上 PREAMBLE */
-const r7 = await dsCode({ task: '/run git push', files: ['src/fake.js'] });
-check('普通 task 会加 PREAMBLE', /注意：Claude hand off\/src\/js\//.test(r7.text));
-const r8 = await dsCode({ task: '/run git push', files: ['src/fake.js'] });
-check('/ 开头的 task 不加 PREAMBLE', !/注意：Claude hand off\/src\/js\//.test(r8.text) && /\/run git push/.test(r8.text));
-
 console.log('\n[3] ds_status');
 const s1 = await dsStatus();
 check('回了最近提交', /fake aider|初始提交/.test(s1.text));
