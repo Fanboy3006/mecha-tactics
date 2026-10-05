@@ -6754,6 +6754,53 @@ function relicApplyFoe(e, allies){
   }
   e.relicMods = m;
 }
+/* ---- 获取（v0.31 第二步）：三选一、掉落偏重、免费晋升、黑市价格、大地图卡片 ---- */
+const relicFavCls = () => !RUN ? null : CLASSES.includes(RUN.squad) ? RUN.squad : RUN.squad === 'moon' ? '辅助' : null;   // 势力分队不偏重
+const relicIsFav = (id, c) => { const r = RELICS[id]; return !!c && ((r.cls || []).includes(c) || (r.stack && r.stack.by.includes(c)) || (r.foeStack && r.foeStack.by.includes(c)) || r.promo === c); };
+/* 从指定稀有度里挑 n 件没拿过的：每件 70% 从当前分队职业的藏品里出 */
+function relicPick(tiers, n){
+  const own = RUN.relics || [], pool = Object.keys(RELICS).filter(id => tiers.includes(RELICS[id].tier) && !own.includes(id)), out = [];
+  const c = relicFavCls();
+  while (out.length < n){
+    const left = pool.filter(id => !out.includes(id)); if (!left.length) break;
+    const fav = left.filter(id => relicIsFav(id, c));
+    out.push(pick(fav.length && Math.random() < .7 ? fav : left));
+  }
+  return out;
+}
+const relicPrice = id => Math.round(RELICS[id].price * (hasRelic('f1') ? .7 : 1));
+function relicPromo(cls){
+  const u = RUN.units.filter(x => tplOf(x.mech).tags.战斗分类 === cls && x.lv < 30).sort((a, b) => b.lv - a.lv)[0];
+  if (!u){ RUN.pendingPromo = [...(RUN.pendingPromo || []), cls]; runLog(`${cls}教范：队里还没有${cls}，招到人后自动使用`); return; }
+  const to = u.lv === 10 ? 20 : 30; u.lv = to;
+  runLog(`${tplOf(u.mech).pilot} 免费晋升到 Lv${to}（${cls}教范）`);
+}
+/* 招募之后调用：把还没用掉的教范用掉 */
+function relicPendingPromo(){
+  const left = [];
+  for (const cls of RUN.pendingPromo || []){ if (RUN.units.some(x => tplOf(x.mech).tags.战斗分类 === cls && x.lv < 30)) relicPromo(cls); else left.push(cls); }
+  RUN.pendingPromo = left;
+}
+function gainRelicRun(id, src){
+  const r = RELICS[id]; if (!r || hasRelic(id)) return;
+  RUN.relics = RUN.relics || []; RUN.relics.push(id);
+  runLog(`获得藏品【${r.name}】（${src}）`); rlog('relic', {id, src});
+  if (r.special === 'promo') relicPromo(r.promo);
+}
+const relicCardHtml = (id, v, extra = '') => { const r = RELICS[id]; return `<button class="rcard" style="--fc:${r.tier === '传说' ? 'var(--accent)' : r.tier === '稀有' ? '#9fb7d8' : 'var(--good)'}" data-v="${v}" ${extra}><b>${r.name}</b><small>${r.tier}${r.cls ? ' · ' + r.cls.join('/') : ''}</small><small>${r.desc}</small></button>`; };
+/* 三选一，可以跳过 */
+async function offerRelics(tiers, src){
+  const ids = relicPick(tiers, 3); if (!ids.length) return;
+  runShow();
+  const v = await dlg(`<div class="eyebrow" style="color:var(--accent)">${src}</div><h2>选择一件藏品</h2>
+    <div class="rcards">${ids.map(id => relicCardHtml(id, id)).join('')}</div>
+    <div class="acts"><button class="btn" data-v="skip">都不要</button></div>`, true);
+  if (v !== 'skip') gainRelicRun(v, src);
+}
+function relicsCard(){
+  const own = RUN.relics || [];
+  return `<div class="rv-card"><h3>藏品（${own.length}）</h3>${own.length ? own.map(id => { const r = RELICS[id]; return `<div class="rv-row"><span class="nm">${r.name}<small>${r.tier}</small><br><small style="margin-left:0">${r.desc}</small></span></div>`; }).join('') : '<p class="small">还没有。精英战、层底守军、黑市可以获得。</p>'}</div>`;
+}
 /* ---------- Feena 指挥官 ---------- */
 const SKILLS = {
   '领航':{desc:['推进剂上限 +2','推进剂上限 +3','推进剂上限 +4']},
