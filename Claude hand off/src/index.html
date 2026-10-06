@@ -6160,7 +6160,7 @@ function usableAttackWeapons(u){ return u.weapons.filter(w => ATTACK_FIRES.inclu
 function attackables(u){
   if (hasTrait(u,'autoCast')) return [];
   const ws = usableAttackWeapons(u).filter(w => w.special !== 'lock');
-  return units.filter(e => (e.side === 'enemy' || (e.chest && u.side === 'ally')) && e.hp > 0 && ws.some(w => canHit(u, w, e)));
+  return units.filter(e => (e.side === 'enemy' || (u.side === 'ally' && e.side === 'neutral')) && e.hp > 0 && ws.some(w => canHit(u, w, e)));   // v0.34.1 中立物（陨石残骸、补给箱）我方都能打，近战也算
 }
 function bestWeaponFor(u, t){
   let best = null, bs = -1;
@@ -7420,8 +7420,13 @@ function genArena(sd, W, H){
     const top = ri(r, 3, 4), bot = H - 1 - ri(r, 3, 4);   // 中间一条宽走廊，上下两侧是裂谷 / 山地
     for (let x = x0; x <= x1; x++){ for (let y = 0; y < top; y++) set(x, y, 'c'); for (let y = bot + 1; y < H; y++) set(x, y, 'c'); if (r() < .12) set(x, top, 'm'); if (r() < .12) set(x, bot, 'm'); }
   } else {
-    const cuts = lanes === 2 ? [Math.floor(H / 2) + ri(r, -1, 1)] : [Math.floor(H / 3) + ri(r, -1, 0), Math.floor(2 * H / 3) + ri(r, 0, 1)];
-    for (const y of cuts){ const gs = gapsFor(); wall(y, gs); if (r() < .5) wall(y + 1, gs); }
+    /* v0.34.1 战线收窄（作者：两边的路太宽）：上下外缘也封上（2 条战线封 2 行、3 条封 1 行），分隔墙固定 2 行厚。
+       16 行高的地图：2 条战线各 5 行；3 条战线 3 / 4 / 3 行 */
+    const ob = lanes === 2 ? 2 : 1;
+    for (let x = x0; x <= x1; x++){ for (let y = 0; y < ob; y++) set(x, y, 'c'); for (let y = H - ob; y < H; y++) set(x, y, 'c'); }
+    const inner = H - 2 * ob - 2 * (lanes - 1), base = Math.floor(inner / lanes), extra = inner - base * lanes, cuts = [];
+    let y = ob; for (let i = 0; i < lanes - 1; i++){ y += base + (i === Math.floor(lanes / 2) - (lanes === 3 ? 0 : 1) && extra ? extra : 0); cuts.push(y); y += 2; }
+    for (const cy of cuts){ const gs = gapsFor(); wall(cy, gs); wall(cy + 1, gs); }
   }
   /* v0.34 战线墙里混一段飞行也过不去的地形：50% 有一段 3 格绝壁（挡视线），30% 有一段 3 格重力深渊（不挡视线） */
   const seg = (ch, y) => { const sx = ri(r, x0 + 1, x1 - 3); for (let x = sx; x < sx + 3; x++) if (g[y] && g[y][x] === 'c') set(x, y, ch); };
@@ -7716,7 +7721,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.34';
+const GAME_VERSION = 'v0.34.1';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){

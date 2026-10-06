@@ -237,7 +237,7 @@ function usableAttackWeapons(u){ return u.weapons.filter(w => ATTACK_FIRES.inclu
 function attackables(u){
   if (hasTrait(u,'autoCast')) return [];
   const ws = usableAttackWeapons(u).filter(w => w.special !== 'lock');
-  return units.filter(e => (e.side === 'enemy' || (e.chest && u.side === 'ally')) && e.hp > 0 && ws.some(w => canHit(u, w, e)));
+  return units.filter(e => (e.side === 'enemy' || (u.side === 'ally' && e.side === 'neutral')) && e.hp > 0 && ws.some(w => canHit(u, w, e)));   // v0.34.1 中立物（陨石残骸、补给箱）我方都能打，近战也算
 }
 function bestWeaponFor(u, t){
   let best = null, bs = -1;
