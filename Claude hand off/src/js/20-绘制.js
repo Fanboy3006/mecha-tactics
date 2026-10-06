@@ -186,9 +186,12 @@ function draw(now){
       ctx.stroke();
     }
   }
-  if (S.mode === 'moving') fillTiles(S.reach, COL.move);
+  if (S.mode === 'moving' || S.mode === 'moving2'){
+    fillTiles(S.reach, COL.move);
+    ctx.strokeStyle = 'rgba(224,90,79,.85)'; ctx.lineWidth = 1.5;   // v0.36 控制区：走到这里就得停
+    for (const t of S.reach) if (t.zoc) ctx.strokeRect(t.x*TS+3.5, t.y*TS+3.5, TS-7, TS-7);
+  }
   if (S.mode === 'target' || S.mode === 'confirm' || S.mode === 'lock') fillTiles(S.atkTiles, COL.atk);
-  if (S.mode === 'moving2') fillTiles(S.reach, COL.move);
   if (S.mode === 'mapdir' || S.mode === 'mapconfirm'){
     for (const d of S.dirs){
       if (!d.ok) continue;

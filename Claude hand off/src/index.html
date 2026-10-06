@@ -3097,6 +3097,8 @@ const ABIL = {
   jamAura:{name:'电子干扰', desc:'光环：3 格内的敌对单位命中 −15。'},
   commandAura:{name:'指挥链路', desc:'光环：3 格内的其他同伴命中 +15、受到的伤害 −10%。'},
   berserk:{name:'狂暴', desc:'HP 低于 50% 时伤害 +30%。'},
+  zocFree:{name:'渗透', desc:'（尖兵）无视敌方控制区：穿过敌人身边的格子不用停下。'},
+  summon:{name:'召唤物', desc:'没有控制区：我方可以从它身边直接走过去。'},
   mook:{name:'压制杂兵', desc:'（近卫）对杂兵伤害 +60%、命中 +20：一刀一个。'},
   lambdaShield:{name:'λ 力场', desc:'每个阶段前 2 次受到的伤害各减少 3000（在装甲之后结算）。'},
   /* ---- v0.24 普通档晋升被动（Lv20 解锁，Lv30 加强）：原来的 Lv20 武装改成了这些被动 ---- */
@@ -3523,6 +3525,7 @@ ALLY_T.forEach(t => {
   const cls = t.tags.战斗分类, add = k => { if (!t.abilities.includes(k)) t.abilities.push(k); };
   if (cls === '近卫'){ add('dash'); add('mook'); }   // v0.35 近卫：压制杂兵
   if (cls === '狙击') add('supportAtk');
+  if (cls === '尖兵') add('zocFree');   // v0.36 ZOC：尖兵无视控制区
   if (cls === '重装') add('guard');
   if (t.mech === 'S2') add('guardAtk');
   /* v0.30 友军加强（作者试玩）：近卫威力 +20%、初始近战射程至少 2；不能移动后使用的武器（地图炮除外）威力 +25%；刹那、雷萨、Nagi 单独调整 */
@@ -3567,7 +3570,7 @@ const ENEMY_T = {
   hound:{pilot:'敌兵', mech:'猎犬', short:'猎', weak:{光束:30}, hp:3000, armor:200, eva:10, mov:5, melee:90, shoot:100, skill:100, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'猎枪', power:500, fire:'direct', range:[1,3]}),
   ]},
-  drone:{pilot:'敌兵', mech:'无人机', short:'机', weak:{范围:50}, hp:2000, armor:100, eva:25, mov:7, melee:60, shoot:90, skill:100, flying:true, w:1, h:1, abilities:[], weapons:[
+  drone:{pilot:'敌兵', mech:'无人机', short:'机', weak:{范围:50}, hp:2000, armor:100, eva:25, mov:7, melee:60, shoot:90, skill:100, flying:true, w:1, h:1, abilities:['summon'], weapons:[
     wp({name:'机枪', power:450, fire:'direct', range:[1,2]}),
   ]},
   ironwall:{pilot:'敌兵', mech:'铁壁', short:'铁', weak:{多段:30}, noEvade:true, hp:9950, armor:800, eva:0, mov:0, melee:120, shoot:80, skill:100, flying:false, w:1, h:1, abilities:['frontArmor'], weapons:[]},
@@ -3611,7 +3614,7 @@ const ENEMY_T = {
   stealth:{pilot:'敌兵', mech:'隐形侦察机', short:'隐', weak:{范围:50}, hp:2600, armor:100, eva:30, mov:6, melee:80, shoot:120, skill:110, flying:false, w:1, h:1, abilities:['stealth'], weapons:[
     wp({name:'狙击枪', power:1500, fire:'direct', range:[2,6]}),
   ]},
-  swarm:{pilot:'敌兵', mech:'蜂群无人机', short:'蜂', weak:{范围:100, 多段:50}, hp:1400, armor:0, eva:45, mov:7, melee:60, shoot:90, skill:100, flying:true, w:1, h:1, abilities:[], weapons:[
+  swarm:{pilot:'敌兵', mech:'蜂群无人机', short:'蜂', weak:{范围:100, 多段:50}, hp:1400, armor:0, eva:45, mov:7, melee:60, shoot:90, skill:100, flying:true, w:1, h:1, abilities:['summon'], weapons:[
     wp({name:'微型机枪', power:600, fire:'direct', range:[1,2]}),
   ]},
   beetle:{pilot:'敌兵', mech:'甲虫型重机', short:'甲', weak:{背面:40}, noEvade:true, hp:7000, armor:900, eva:0, mov:4, melee:130, shoot:80, skill:100, flying:false, w:1, h:1, abilities:['frontArmor'], weapons:[
@@ -4110,12 +4113,31 @@ function stepCost(u, x, y){
   }
   return c;
 }
-function reach(u, cap = u.mov){
+/* v0.36 控制区（ZOC，作者 10-06 定）：
+   - 敌方机体上下左右相邻的格子（大体积按整个身体外围）是它的控制区；
+   - 走进敌方控制区的格子就要停下；起点已经在控制区里的可以正常离开；
+   - 没有控制区：空中的机体、召唤物（summon）、中立单位；
+   - 无视控制区：尖兵（zocFree）、隐形机（stealth）。传送不走路，本来就不受影响。 */
+const zocFree = u => u.abilities.includes('zocFree') || u.abilities.includes('stealth');
+const exertsZoc = o => o.hp > 0 && o.side !== 'neutral' && !o.flying && !o.abilities.includes('summon');
+function zocSet(u){
+  const s = new Set();
+  if (zocFree(u)) return s;
+  for (const o of units){
+    if (o === u || o.side === u.side || !exertsZoc(o)) continue;
+    for (const [tx,ty] of tilesOf(o)) for (const [dx,dy] of DIRS){ const nx = tx+dx, ny = ty+dy; if (inb(nx,ny)) s.add(ny*N+nx); }
+  }
+  return s;
+}
+const inZoc = (u, x, y, zs) => zs.size > 0 && tilesOf(u,x,y).some(([a,b]) => zs.has(b*N+a));
+function reach(u, cap = u.mov, opts = {}){
+  const zs = opts.zoc === false ? new Set() : zocSet(u);
   const key = (x,y) => y*N+x, best = new Map([[key(u.x,u.y),0]]), pq = [[0,u.x,u.y]], par = new Map();
   while (pq.length){
     pq.sort((a,b) => a[0]-b[0]);
     const [d,x,y] = pq.shift();
     if (d > best.get(key(x,y))) continue;
+    if ((x !== u.x || y !== u.y) && inZoc(u, x, y, zs)) continue;   // 进了控制区：停下
     for (const [dx,dy] of DIRS){
       const nx = x+dx, ny = y+dy;
       const c = stepCost(u,nx,ny); if (c == null) continue;
@@ -4124,7 +4146,7 @@ function reach(u, cap = u.mov){
     }
   }
   const out = [];
-  for (const [k,d] of best){ const x = k%N, y = (k/N)|0, st = par.get(k); if (canStand(u,x,y)) out.push({x, y, d, face: st ? (st[0] ? (st[0] > 0 ? 'right' : 'left') : (st[1] > 0 ? 'down' : 'up')) : null}); }
+  for (const [k,d] of best){ const x = k%N, y = (k/N)|0, st = par.get(k); if (canStand(u,x,y)) out.push({x, y, d, zoc: (x !== u.x || y !== u.y) && inZoc(u, x, y, zs), face: st ? (st[0] ? (st[0] > 0 ? 'right' : 'left') : (st[1] > 0 ? 'down' : 'up')) : null}); }
   return out;
 }
 function moveUnit(u,x,y){ if (u.x!==x || u.y!==y){ u.moved = true; u.movedThisRound = true; } u.x = x; u.y = y; }
@@ -4794,7 +4816,7 @@ async function aiAct(e){
     if (players.some(p => distU(e, p) <= e.guardZone)){ e.awake = true; log(`${fullName(e)} 发现目标，开始行动`, null, 'sys'); }
     else { e.acted = true; return; }
   }
-  const far = reach(e, 60);
+  const far = reach(e, 60, {zoc:false});   // 算远处目标的步数时不管控制区
   const steps = p => { let m = Infinity; for (const t of far) if (t.d < m && distU(e, p, t.x, t.y) <= 1) m = t.d; return m === Infinity ? 1000 + distU(e, p) : m; };
   const hpr = p => p.hp / p.maxHp;
   const target = [...players].sort((a, b) => e.assassin ? (hpr(a) - hpr(b) || steps(a) - steps(b)) : (steps(a) - steps(b) || hpr(a) - hpr(b)))[0];
@@ -5430,9 +5452,12 @@ function draw(now){
       ctx.stroke();
     }
   }
-  if (S.mode === 'moving') fillTiles(S.reach, COL.move);
+  if (S.mode === 'moving' || S.mode === 'moving2'){
+    fillTiles(S.reach, COL.move);
+    ctx.strokeStyle = 'rgba(224,90,79,.85)'; ctx.lineWidth = 1.5;   // v0.36 控制区：走到这里就得停
+    for (const t of S.reach) if (t.zoc) ctx.strokeRect(t.x*TS+3.5, t.y*TS+3.5, TS-7, TS-7);
+  }
   if (S.mode === 'target' || S.mode === 'confirm' || S.mode === 'lock') fillTiles(S.atkTiles, COL.atk);
-  if (S.mode === 'moving2') fillTiles(S.reach, COL.move);
   if (S.mode === 'mapdir' || S.mode === 'mapconfirm'){
     for (const d of S.dirs){
       if (!d.ok) continue;
@@ -7734,7 +7759,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.35.1';
+const GAME_VERSION = 'v0.36';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
@@ -8147,7 +8172,7 @@ $('#btnSound').onclick = () => setSound(!SOUND.on);
 document.addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !/INPUT|TEXTAREA|SELECT/.test((e.target.tagName || ''))) setSound(!SOUND.on); });
 if (!AU) $('#btnSound').hidden = true; else setSound(SOUND.on);
 
-window.__game = {makeUnit, levelUp, RELICS, gainRelic(id){ if (RUN && RELICS[id]){ RUN.relics = RUN.relics || []; if (!RUN.relics.includes(id)) RUN.relics.push(id); } return RUN ? RUN.relics : null; }, AIM_BY_CLASS, guardReach, recCost, tierOf, FACTIONS, ticketOk, ticketName, get sound(){ return {on:SOUND.on, scene:SOUND.scene, cue:AU && AU.state().cue}; }, get RUN(){ return RUN; }, STAGES, buildStage, rlogRecord, rlogText, openRunLogs, enterLayer, checkEnd, moveDist, runClickNode, runBattle, moveTargets, partTargets, get level(){ return level; }, get units(){ return units; }, data:{ALLY_T, ENEMY_T, ABIL, COMMANDS, TRIALS, FIRE}, get roster(){ return roster; }, get LV(){ return LV; }, get turn(){ return turn; }, get over(){ return over; }, setSpeed(v){ SPEED = v; }, startLevel, toggleLock, execCommand, attackables, bestWeaponFor, select, weaponUsable, get S(){ return S; }, orderMeteor, resolveMeteors, get CMD(){ return CMD; }, setTurn(t){ turn = t; }, pushUnit, get walls(){ return walls; }, echoArea, finish, zoneOf, battle, onTile, onAction, endTurn, cheatLevel, choosePick, mapDirs, losClear, canHit, forecast, get editor(){ return {ED, store:edStore()}; }, get art(){ return MI; }, unitSprite, iconIdOf,
+window.__game = {makeUnit, levelUp, reach, zocSet, get map(){ return map; }, RELICS, gainRelic(id){ if (RUN && RELICS[id]){ RUN.relics = RUN.relics || []; if (!RUN.relics.includes(id)) RUN.relics.push(id); } return RUN ? RUN.relics : null; }, AIM_BY_CLASS, guardReach, recCost, tierOf, FACTIONS, ticketOk, ticketName, get sound(){ return {on:SOUND.on, scene:SOUND.scene, cue:AU && AU.state().cue}; }, get RUN(){ return RUN; }, STAGES, buildStage, rlogRecord, rlogText, openRunLogs, enterLayer, checkEnd, moveDist, runClickNode, runBattle, moveTargets, partTargets, get level(){ return level; }, get units(){ return units; }, data:{ALLY_T, ENEMY_T, ABIL, COMMANDS, TRIALS, FIRE}, get roster(){ return roster; }, get LV(){ return LV; }, get turn(){ return turn; }, get over(){ return over; }, setSpeed(v){ SPEED = v; }, startLevel, toggleLock, execCommand, attackables, bestWeaponFor, select, weaponUsable, get S(){ return S; }, orderMeteor, resolveMeteors, get CMD(){ return CMD; }, setTurn(t){ turn = t; }, pushUnit, get walls(){ return walls; }, echoArea, finish, zoneOf, battle, onTile, onAction, endTurn, cheatLevel, choosePick, mapDirs, losClear, canHit, forecast, get editor(){ return {ED, store:edStore()}; }, get art(){ return MI; }, unitSprite, iconIdOf,
   /* 给工具用：全部单位模板（含未出场的），tools/roster.mjs 靠它检查图标覆盖率。roster 已被玩家编队占用，所以叫 templates */
   get templates(){ return {allies: ALLY_T, enemies: ENEMY_T, forms: FORMS, debris: DEBRIS_T}; },
   get levels(){ return LEVELS; }};

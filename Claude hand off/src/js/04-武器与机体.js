@@ -253,6 +253,7 @@ ALLY_T.forEach(t => {
   const cls = t.tags.战斗分类, add = k => { if (!t.abilities.includes(k)) t.abilities.push(k); };
   if (cls === '近卫'){ add('dash'); add('mook'); }   // v0.35 近卫：压制杂兵
   if (cls === '狙击') add('supportAtk');
+  if (cls === '尖兵') add('zocFree');   // v0.36 ZOC：尖兵无视控制区
   if (cls === '重装') add('guard');
   if (t.mech === 'S2') add('guardAtk');
   /* v0.30 友军加强（作者试玩）：近卫威力 +20%、初始近战射程至少 2；不能移动后使用的武器（地图炮除外）威力 +25%；刹那、雷萨、Nagi 单独调整 */
@@ -297,7 +298,7 @@ const ENEMY_T = {
   hound:{pilot:'敌兵', mech:'猎犬', short:'猎', weak:{光束:30}, hp:3000, armor:200, eva:10, mov:5, melee:90, shoot:100, skill:100, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'猎枪', power:500, fire:'direct', range:[1,3]}),
   ]},
-  drone:{pilot:'敌兵', mech:'无人机', short:'机', weak:{范围:50}, hp:2000, armor:100, eva:25, mov:7, melee:60, shoot:90, skill:100, flying:true, w:1, h:1, abilities:[], weapons:[
+  drone:{pilot:'敌兵', mech:'无人机', short:'机', weak:{范围:50}, hp:2000, armor:100, eva:25, mov:7, melee:60, shoot:90, skill:100, flying:true, w:1, h:1, abilities:['summon'], weapons:[
     wp({name:'机枪', power:450, fire:'direct', range:[1,2]}),
   ]},
   ironwall:{pilot:'敌兵', mech:'铁壁', short:'铁', weak:{多段:30}, noEvade:true, hp:9950, armor:800, eva:0, mov:0, melee:120, shoot:80, skill:100, flying:false, w:1, h:1, abilities:['frontArmor'], weapons:[]},
@@ -341,7 +342,7 @@ const ENEMY_T = {
   stealth:{pilot:'敌兵', mech:'隐形侦察机', short:'隐', weak:{范围:50}, hp:2600, armor:100, eva:30, mov:6, melee:80, shoot:120, skill:110, flying:false, w:1, h:1, abilities:['stealth'], weapons:[
     wp({name:'狙击枪', power:1500, fire:'direct', range:[2,6]}),
   ]},
-  swarm:{pilot:'敌兵', mech:'蜂群无人机', short:'蜂', weak:{范围:100, 多段:50}, hp:1400, armor:0, eva:45, mov:7, melee:60, shoot:90, skill:100, flying:true, w:1, h:1, abilities:[], weapons:[
+  swarm:{pilot:'敌兵', mech:'蜂群无人机', short:'蜂', weak:{范围:100, 多段:50}, hp:1400, armor:0, eva:45, mov:7, melee:60, shoot:90, skill:100, flying:true, w:1, h:1, abilities:['summon'], weapons:[
     wp({name:'微型机枪', power:600, fire:'direct', range:[1,2]}),
   ]},
   beetle:{pilot:'敌兵', mech:'甲虫型重机', short:'甲', weak:{背面:40}, noEvade:true, hp:7000, armor:900, eva:0, mov:4, melee:130, shoot:80, skill:100, flying:false, w:1, h:1, abilities:['frontArmor'], weapons:[

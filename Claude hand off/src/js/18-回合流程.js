@@ -64,7 +64,7 @@ async function aiAct(e){
     if (players.some(p => distU(e, p) <= e.guardZone)){ e.awake = true; log(`${fullName(e)} 发现目标，开始行动`, null, 'sys'); }
     else { e.acted = true; return; }
   }
-  const far = reach(e, 60);
+  const far = reach(e, 60, {zoc:false});   // 算远处目标的步数时不管控制区
   const steps = p => { let m = Infinity; for (const t of far) if (t.d < m && distU(e, p, t.x, t.y) <= 1) m = t.d; return m === Infinity ? 1000 + distU(e, p) : m; };
   const hpr = p => p.hp / p.maxHp;
   const target = [...players].sort((a, b) => e.assassin ? (hpr(a) - hpr(b) || steps(a) - steps(b)) : (steps(a) - steps(b) || hpr(a) - hpr(b)))[0];
