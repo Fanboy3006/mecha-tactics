@@ -28,7 +28,7 @@ Hooks.on('strikeResolved', c => {
   log(`${fullName(c.def)} 闪避疲劳：闪避 −10（本回合合计 −${c.def.dodgePen}，当前 ${Math.max(0, c.def.eva - c.def.dodgePen)}）`, null, c.def.side);
 }, '闪避疲劳：完全闪避一次攻击后闪避 −10');
 Hooks.on('phaseStart', c => { if (c.side === 'ally') units.forEach(u => { u.dodgePen = 0; }); }, '闪避疲劳：我方阶段开始时恢复');
-Hooks.on('phaseStart', c => { units.filter(u => u.side === c.side && u.shield).forEach(u => { u.shieldHp = u.shield; }); }, '护盾：己方阶段开始时回满');
+Hooks.on('phaseStart', c => { units.filter(u => u.side === c.side && u.shield && !u.shieldNoRegen).forEach(u => { u.shieldHp = u.shield; }); }, '护盾：己方阶段开始时回满');
 Hooks.on('strikeResolved', c => {
   if (!c.hit || !c.dmg || c.w.special !== 'splash') return;
   const amt = Math.round(c.dmg * .5);

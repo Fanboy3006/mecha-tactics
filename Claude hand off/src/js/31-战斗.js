@@ -7,7 +7,8 @@ const THEMES = [
   {name:'机动部队', units:['fighter','hound','raider','drone']},
 ];
 const AFFIXES = [
-  {name:'护盾', desc:'所有敌人获得 3000 护盾', fn:e => { e.shield = (e.shield || 0) + 3000; e.shieldHp = e.shield; e.shieldName = e.shieldName || '护盾'; }},
+  /* v0.34.2 护盾词缀：只给精锐 / 头目 / Boss，量 = 1000 × 层数，打掉就没了（不再每回合回满）；杂兵不带 */
+  {name:'护盾', desc:'精锐、头目、Boss 获得一次性护盾（1000 × 层数，打掉不再恢复）', fn:e => { const k = Object.keys(ENEMY_T).find(id => ENEMY_T[id].mech === e.mech); if (tierOfEnemy(k) === '杂兵') return; const n = 1000 * ((RUN && RUN.layer) || 1); if (!e.shield) e.shieldNoRegen = true; e.shield = (e.shield || 0) + n; e.shieldHp = e.shield;   /* 自带护盾的（空中要塞等）照旧回满 */ e.shieldName = e.shieldName || '护盾'; }},
   {name:'强化', desc:'所有敌人 HP +30%', fn:e => { e.maxHp = Math.round(e.maxHp * 1.3); e.hp = e.maxHp; }},
   {name:'光束抗性', desc:'所有敌人光束抗性 −40%', fn:e => { e.weak = {...(e.weak || {}), 光束:(e.weak && e.weak.光束 || 0) - 40}; }},
   {name:'物理抗性', desc:'所有敌人物理抗性 −40%', fn:e => { e.weak = {...(e.weak || {}), 物理:(e.weak && e.weak.物理 || 0) - 40}; }},
@@ -126,7 +127,8 @@ function buildStage(st, extra = 0){
     if (kind === 'final'){ keys = ['captain','tank','funnel','sniper','berserker','regen']; later.push(['venom','venom','skyfort','captain','bomber','bomber']); later.push(['flagship','fortress','venom','captain']); }
   }
   if (st.waves) later = [];
-  const affixDefault = (kind === 'elite' || kind === 'guard' || kind === 'final') ? AFFIXES[Math.floor(r() * AFFIXES.length)] : null;
+  const affixPool = L === 1 ? AFFIXES.filter(a => a.name !== '护盾' && a.name !== '再生') : AFFIXES;   // v0.34.2 第 1 层不出护盾、再生词缀
+  const affixDefault = (kind === 'elite' || kind === 'guard' || kind === 'final') ? affixPool[Math.floor(r() * affixPool.length)] : null;
   const affix = 'affix' in st ? (st.affix ? AFFIXES.find(a => a.name === st.affix) : null) : affixDefault;
   const r2 = mulberry32(st.seed ^ 0x77);
   for (let i=0; i<extra; i++) keys.push(...tierPick(r2, theme, '杂兵', 1));
@@ -176,7 +178,7 @@ async function runBattle(kind, code){
   RUN.battleKind = kind; RUN.lostThis = []; RUN.bstat = {}; RUN.chestParts = 0;
   rlog('battle_start', {code, kind, lv, affix: affix ? affix.name : null, erosion: RUN.mods.overload || RUN.mods.fog || (RUN.erosion && !RUN.erosionCleared) ? RUN.erosion : null, enemies:keys});
   LEVELS.run = {
-    run:true, code, name:`${code} ${st.name} · ${label}${obj !== 'annihilate' ? ' · ' + OBJ_NAME[obj] : ''}${affix ? ' · 【' + affix.name + '】' : ''}`, w:W, h:H, speed:.6, formation:true, noCmd:true,
+    run:true, affix, code, name:`${code} ${st.name} · ${label}${obj !== 'annihilate' ? ' · ' + OBJ_NAME[obj] : ''}${affix ? ' · 【' + affix.name + '】' : ''}`, w:W, h:H, speed:.6, formation:true, noCmd:true,
     rows:g.map(row => row.join('')), rosterList:RUN.units.map(u => ({...u})), maxDeploy:deployCap(), spots, allyFacing:'right',
     defaultDeploy:[...RUN.units].sort((a,b) => b.lv - a.lv).map(u => u.mech),
     waves: waves.map((w, i) => ({at:w.at, lv, label:`第 ${i+1} 波`, enemies:w.enemies})),
@@ -332,7 +334,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.34.1';
+const GAME_VERSION = 'v0.34.2';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
