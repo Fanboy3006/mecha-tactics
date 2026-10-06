@@ -3227,7 +3227,7 @@ const REDUCTIONS = [
     apply:c => { const base = effArmor(c.def), pr = c.zone && !hasTrait(c.def,'wSeries') ? ZONE[c.zone].pierce : 0, a = Math.round(base * c.defMul * (1 - pr/100)); c.dmg = Math.max(10, c.dmg - a); return `−${a}${a !== c.def.armor ? `（原 ${c.def.armor}${pr ? `，${ZONE[c.zone].name}无视 ${pr}%` : ''}）` : ''}`; }},
   {id:'lambdaShield', name:'λ 力场', stage:3, shield:true,
     applies:c => c.dmg > 0 && abilOn(c.def,'lambdaShield') && lsLeft(c.def) > 0,
-    apply:c => { const a = Math.round(3000 * c.defMul); c.dmg = Math.max(0, c.dmg - a); if (!c.preview){ if (c.def.lsPhase !== phaseNo){ c.def.lsPhase = phaseNo; c.def.lsCount = 0; } c.def.lsCount++; } return `−${a}（本阶段剩 ${lsLeft(c.def)} 次）`; }},
+    apply:c => { const a = Math.round(3000 * c.defMul); c.dmg = Math.max(0, c.dmg - a); if (!c.preview){ if (c.def.lsPhase !== phaseNo){ c.def.lsPhase = phaseNo; c.def.lsCount = 0; } c.def.lsCount++; refreshBadges(c.def); } return `−${a}（本阶段剩 ${lsLeft(c.def)} 次）`; }},
 ];
 REDUCTIONS.push({id:'shield', name:'护盾', stage:4, shield:true,
   applies:c => c.dmg > 0 && shieldOn(c.def) && c.def.shieldHp > 0,
@@ -4901,7 +4901,8 @@ function spawnWave(i, quiet){
   for (const e of wv.enemies){
     const t = ENEMY_T[e.t], [x,y] = freeSpotNear(t, e.x, e.y);
     const u = makeUnit(t, 'enemy', x, y); u.facing = e.facing || 'down'; u.wave = i;
-    if (e.target){ u.target = true; u.badgeList = [{color:'#ff5a5a', glyph:'★'}]; }   // v0.32 斩首目标
+    if (e.target) u.target = true;   // v0.32 斩首目标
+    refreshBadges(u);
     for (let k=1; k<(e.lv || wv.lv || 1); k++) levelUp(u); u.hp = u.maxHp;
     if (LV.onSpawn) LV.onSpawn(u);
     units.push(u);
@@ -5976,7 +5977,7 @@ function unitCardHTML(u){
   const st = [['移动',u.mov],['装甲', effArmor(u) !== u.armor ? `${effArmor(u)}（+30%）` : u.armor],['命中', u.aim ?? 160],['回避', u.noEvade ? '—' : `${100 + 2 * (Math.max(0, u.eva - (u.dodgePen || 0)) + (u.moveEva || 0))}${u.moveEva ? `（+${2 * u.moveEva}）` : ''}${u.dodgePen ? `（疲劳 −${2 * u.dodgePen}）` : ''}`],['朝向',FACE_ARROW[u.facing]],['体积',`${u.w}×${u.h}`],['格斗',u.melee],['射击',u.shoot],['技量',u.skill],['等级',u.lv]]
     .map(([k,v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
   const traitH = u.trait ? `<div class="abil"><div style="${hasTrait(u, u.trait) ? '' : 'opacity:.55'}"><b>个人特技 · ${ABIL[u.trait].name}${hasTrait(u, u.trait) ? '' : `（Lv${TRAIT_LV} 解锁）`}</b>${ABIL[u.trait].desc}${hasTrait(u,'moveEva') && u.moveEva ? `（当前 +${u.moveEva}）` : ''}${hasTrait(u,'steadfast') && !u.movedThisRound ? '（生效中）' : ''}</div></div>` : '';
-  const abil = u.abilities.map(a => `<div><b>${ABIL[a].name}</b>${ABIL[a].desc}${a === 'barrier' ? `（剩 ${u.barrierLeft} 次）` : a === 'guard' ? `（本阶段剩 ${u.guardLeft} 次）` : a === 'dodgeFatigue' && u.dodgePen ? `（当前 −${u.dodgePen}）` : ''}</div>`).join('');
+  const abil = u.abilities.map(a => `<div><b>${ABIL[a].name}</b>${ABIL[a].desc}${a === 'barrier' ? `（剩 ${u.barrierLeft} 次）` : a === 'lambdaShield' ? `（本阶段剩 ${lsLeft(u)} 次，头顶紫色 λ）` : a === 'guard' ? `（本阶段剩 ${u.guardLeft} 次）` : a === 'dodgeFatigue' && u.dodgePen ? `（当前 −${u.dodgePen}）` : ''}</div>`).join('');
   return `<div class="uc-top">${portraitHTML(u)}<div><div class="u-head"><span class="sw ${u.side}"></span><h2>${u.side === 'ally' ? u.pilot : u.mech}</h2>${u.side === 'ally' ? `<span class="mech">${u.mech}${u.mechName ? ' · ' + u.mechName : ''}</span>` : ''}<span class="lv">Lv ${u.lv}</span>
       <span class="tag">${u.flying ? '飞行' : '地面'}</span>${u.transform ? `<span class="tag">${u.transformed ? FORMS[u.transform].name + '形态' : '德天使形态'}</span>` : ''}${u.stunned ? '<span class="tag" style="color:var(--enemy)">被骇入</span>' : ''}${u.disarmed ? '<span class="tag" style="color:var(--enemy)">武装损坏</span>' : ''}${hasStealth(u) ? '<span class="tag">隐形</span>' : ''}${u.side==='enemy' ? '<span class="tag">敌方</span>' : ''}${u.acted && u.side==='ally' ? '<span class="tag">已行动</span>' : ''}</div>
     ${Object.keys(u.tags).length ? `<div class="utags">${Object.entries(u.tags).map(([k,v]) => `<span><i>${k}</i>${v}</span>`).join('')}</div>` : ''}</div></div>
@@ -7316,11 +7317,22 @@ for (const k of ENEMY_TIER.头目) if (ENEMY_T[k]) ENEMY_T[k].weak = {...(ENEMY_
 const tierOfEnemy = k => ENEMY_BOSS.includes(k) || k === 'flagship' ? 'Boss' : Object.keys(ENEMY_TIER).find(t => ENEMY_TIER[t].includes(k)) || '杂兵';
 const TIER_LV = {杂兵:0, 精锐:1, 头目:2, Boss:2};
 /* 按梯队挑 n 个：一半概率从本关主题里有的挑 */
-function tierPick(r, theme, tier, n){
-  const pool = ENEMY_TIER[tier], th = ((theme && theme.units) || []).filter(k => pool.includes(k)), out = [];
+/* v0.32.1 头目按层开放：第 1 层只有指挥官机、狂战士；第 2 层加浮游炮母机、自修复机；第 3 层起才有 λ 试作机 */
+const HEAD_BY_LAYER = [null, ['captain','berserker'], ['captain','berserker','funnel','regen'], null, null];
+function tierPick(r, theme, tier, n, layer){
+  const pool = tier === '头目' && layer && HEAD_BY_LAYER[layer] ? HEAD_BY_LAYER[layer] : ENEMY_TIER[tier], th = ((theme && theme.units) || []).filter(k => pool.includes(k)), out = [];
   for (let i = 0; i < n; i++){ const src = th.length && r() < .5 ? th : pool; out.push(src[Math.floor(r() * src.length)]); }
   return out;
 }
+/* 头顶徽记：斩首目标 ★、λ 力场剩余次数（紫色 λ，每个阶段 2 次） */
+function refreshBadges(u){
+  if (!u) return;
+  const b = [];
+  if (u.target) b.push({color:'#ff5a5a', glyph:'★'});
+  if (u.abilities && u.abilities.includes('lambdaShield')) for (let i = 0; i < lsLeft(u); i++) b.push({color:'#c08cff', glyph:'λ'});
+  u.badgeList = b;
+}
+Hooks.on('phaseStart', () => { units.forEach(refreshBadges); }, '徽记：每个阶段刷新 λ 力场次数');
 const OBJ_NAME = {annihilate:'全歼', survive:'坚守', reach:'突破', targets:'斩首'};
 const SURVIVE_TURNS = 6;
 /* 普通作战的目标：全歼 40% / 坚守 20% / 突破 20% / 斩首 20%（按关卡种子固定） */
@@ -7341,7 +7353,7 @@ function respawnFoes(list, lv){
       const u = makeUnit(t, 'enemy', x, y); u.facing = 'left';
       for (let i = 1; i < lv + TIER_LV[tierOfEnemy(k)]; i++) levelUp(u); u.hp = u.maxHp;
       if (LV.onSpawn) LV.onSpawn(u);
-      units.push(u); break;
+      refreshBadges(u); units.push(u); break;
     }
   }
 }
@@ -7442,7 +7454,7 @@ function buildStage(st, extra = 0){
   const W = st.w || (kind === 'final' ? 30 : 26), H = st.h || (kind === 'final' ? 18 : 16);
   const g = st.rows ? st.rows.map(row => [...row]) : genArena(st.seed, W, H);
   const theme = THEMES[st.theme % THEMES.length], lv = runEnemyLv(kind, st.layer);
-  const obj = stageObj(st), L = st.layer, T = (tier, n) => tierPick(r, theme, tier, n), boss = () => ENEMY_BOSS[Math.floor(r() * ENEMY_BOSS.length)];
+  const obj = stageObj(st), L = st.layer, T = (tier, n) => tierPick(r, theme, tier, n, L), boss = () => ENEMY_BOSS[Math.floor(r() * ENEMY_BOSS.length)];
   /* v0.32 按梯队配兵：杂兵给 AOE 清，精锐各有克制，头目带范围护壁要集火 / 近卫补刀 */
   let keys = [], later = [], targets = 0;
   if (!st.enemies){
@@ -7467,7 +7479,7 @@ function buildStage(st, extra = 0){
     for (const k of list){
       const t = ENEMY_T[k];
       for (let tries = 0; tries < 400; tries++){
-        const x = obj === 'reach' ? ri(r, Math.floor(W / 2) - 3, W - t.w - 5) : ri(r, W - 10, W - t.w - 1), y = ri(r, 1, H - t.h - 1), probe = {x, y, w:t.w, h:t.h};
+        const x = obj === 'reach' ? ri(r, Math.floor(W / 2) - 3, W - t.w - 5) : obj === 'targets' ? ri(r, Math.floor(W / 2), W - t.w - 6) : ri(r, W - 10, W - t.w - 1), y = ri(r, 1, H - t.h - 1), probe = {x, y, w:t.w, h:t.h};
         if (occ.some(o => distU(probe, o) < 1)) continue;
         occ.push(probe); out.push({t:k, x, y, facing:'left', lv: lv + TIER_LV[tierOfEnemy(k)]});
         break;
@@ -7515,8 +7527,8 @@ async function runBattle(kind, code){
       note:'★ 是 Lv20 大招。宗介 U7 的 λ 武器不能直接带：λ 觉醒后，带上的单分子刀会变成隔空 λ 拳、散弹炮变成 λ 驱动·散弹炮（仍算 2 个武装）。'},
     ...(obj === 'survive' ? {victory:{type:'survive', turns:SURVIVE_TURNS}, goalText:`坚守 ${SURVIVE_TURNS} 回合（撑到第 ${SURVIVE_TURNS + 1} 回合我方阶段）。敌人每 2 回合从右侧增援，打不完也没关系`,
           respawn:{every:2, lv, list:t => [...tierPick(Math.random, null, '杂兵', 2 + st.layer), ...(t >= 5 ? tierPick(Math.random, null, '精锐', 1) : [])]}}
-      : obj === 'targets' ? {victory:{type:'targets'}, goalText:`斩首：击破所有标 ★ 的头目（${enemies.filter(e => e.target).length} 台）。杂兵每回合增援`,
-          respawn:{every:1, lv, list:() => tierPick(Math.random, null, '杂兵', 2)}}
+      : obj === 'targets' ? {victory:{type:'targets'}, goalText:`斩首：击破所有标 ★ 的头目（${enemies.filter(e => e.target).length} 台）。杂兵${st.layer >= 2 ? '每回合' : '每 2 回合'}增援`,
+          respawn:{every:st.layer >= 2 ? 1 : 2, lv, list:() => tierPick(Math.random, null, '杂兵', 2)}}
       : obj === 'reach' ? {victory:{type:'reachAny'}, zone:{x0:W - 3, y0:2, x1:W - 1, y1:H - 3}, goalText:'突破：任意一台我方机体进入右侧撤离区（绿色框）'}
       : {victory:{type:'annihilate'}, goalText:`击破全部 ${waves.length} 波敌军（第 2 波起按回合到达，清空当前敌人会让下一波提前出现）`}),
     tips: st.desc ? [{on:'turn:1', text:`<b>${code} ${st.name}</b><br>${st.desc}`}] : [],
@@ -7662,7 +7674,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.32';
+const GAME_VERSION = 'v0.32.1';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){

@@ -84,7 +84,7 @@ function buildStage(st, extra = 0){
   const W = st.w || (kind === 'final' ? 30 : 26), H = st.h || (kind === 'final' ? 18 : 16);
   const g = st.rows ? st.rows.map(row => [...row]) : genArena(st.seed, W, H);
   const theme = THEMES[st.theme % THEMES.length], lv = runEnemyLv(kind, st.layer);
-  const obj = stageObj(st), L = st.layer, T = (tier, n) => tierPick(r, theme, tier, n), boss = () => ENEMY_BOSS[Math.floor(r() * ENEMY_BOSS.length)];
+  const obj = stageObj(st), L = st.layer, T = (tier, n) => tierPick(r, theme, tier, n, L), boss = () => ENEMY_BOSS[Math.floor(r() * ENEMY_BOSS.length)];
   /* v0.32 按梯队配兵：杂兵给 AOE 清，精锐各有克制，头目带范围护壁要集火 / 近卫补刀 */
   let keys = [], later = [], targets = 0;
   if (!st.enemies){
@@ -109,7 +109,7 @@ function buildStage(st, extra = 0){
     for (const k of list){
       const t = ENEMY_T[k];
       for (let tries = 0; tries < 400; tries++){
-        const x = obj === 'reach' ? ri(r, Math.floor(W / 2) - 3, W - t.w - 5) : ri(r, W - 10, W - t.w - 1), y = ri(r, 1, H - t.h - 1), probe = {x, y, w:t.w, h:t.h};
+        const x = obj === 'reach' ? ri(r, Math.floor(W / 2) - 3, W - t.w - 5) : obj === 'targets' ? ri(r, Math.floor(W / 2), W - t.w - 6) : ri(r, W - 10, W - t.w - 1), y = ri(r, 1, H - t.h - 1), probe = {x, y, w:t.w, h:t.h};
         if (occ.some(o => distU(probe, o) < 1)) continue;
         occ.push(probe); out.push({t:k, x, y, facing:'left', lv: lv + TIER_LV[tierOfEnemy(k)]});
         break;
@@ -157,8 +157,8 @@ async function runBattle(kind, code){
       note:'★ 是 Lv20 大招。宗介 U7 的 λ 武器不能直接带：λ 觉醒后，带上的单分子刀会变成隔空 λ 拳、散弹炮变成 λ 驱动·散弹炮（仍算 2 个武装）。'},
     ...(obj === 'survive' ? {victory:{type:'survive', turns:SURVIVE_TURNS}, goalText:`坚守 ${SURVIVE_TURNS} 回合（撑到第 ${SURVIVE_TURNS + 1} 回合我方阶段）。敌人每 2 回合从右侧增援，打不完也没关系`,
           respawn:{every:2, lv, list:t => [...tierPick(Math.random, null, '杂兵', 2 + st.layer), ...(t >= 5 ? tierPick(Math.random, null, '精锐', 1) : [])]}}
-      : obj === 'targets' ? {victory:{type:'targets'}, goalText:`斩首：击破所有标 ★ 的头目（${enemies.filter(e => e.target).length} 台）。杂兵每回合增援`,
-          respawn:{every:1, lv, list:() => tierPick(Math.random, null, '杂兵', 2)}}
+      : obj === 'targets' ? {victory:{type:'targets'}, goalText:`斩首：击破所有标 ★ 的头目（${enemies.filter(e => e.target).length} 台）。杂兵${st.layer >= 2 ? '每回合' : '每 2 回合'}增援`,
+          respawn:{every:st.layer >= 2 ? 1 : 2, lv, list:() => tierPick(Math.random, null, '杂兵', 2)}}
       : obj === 'reach' ? {victory:{type:'reachAny'}, zone:{x0:W - 3, y0:2, x1:W - 1, y1:H - 3}, goalText:'突破：任意一台我方机体进入右侧撤离区（绿色框）'}
       : {victory:{type:'annihilate'}, goalText:`击破全部 ${waves.length} 波敌军（第 2 波起按回合到达，清空当前敌人会让下一波提前出现）`}),
     tips: st.desc ? [{on:'turn:1', text:`<b>${code} ${st.name}</b><br>${st.desc}`}] : [],
@@ -304,7 +304,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.32';
+const GAME_VERSION = 'v0.32.1';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){

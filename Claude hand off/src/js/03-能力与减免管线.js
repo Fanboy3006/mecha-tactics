@@ -201,7 +201,7 @@ const REDUCTIONS = [
     apply:c => { const base = effArmor(c.def), pr = c.zone && !hasTrait(c.def,'wSeries') ? ZONE[c.zone].pierce : 0, a = Math.round(base * c.defMul * (1 - pr/100)); c.dmg = Math.max(10, c.dmg - a); return `−${a}${a !== c.def.armor ? `（原 ${c.def.armor}${pr ? `，${ZONE[c.zone].name}无视 ${pr}%` : ''}）` : ''}`; }},
   {id:'lambdaShield', name:'λ 力场', stage:3, shield:true,
     applies:c => c.dmg > 0 && abilOn(c.def,'lambdaShield') && lsLeft(c.def) > 0,
-    apply:c => { const a = Math.round(3000 * c.defMul); c.dmg = Math.max(0, c.dmg - a); if (!c.preview){ if (c.def.lsPhase !== phaseNo){ c.def.lsPhase = phaseNo; c.def.lsCount = 0; } c.def.lsCount++; } return `−${a}（本阶段剩 ${lsLeft(c.def)} 次）`; }},
+    apply:c => { const a = Math.round(3000 * c.defMul); c.dmg = Math.max(0, c.dmg - a); if (!c.preview){ if (c.def.lsPhase !== phaseNo){ c.def.lsPhase = phaseNo; c.def.lsCount = 0; } c.def.lsCount++; refreshBadges(c.def); } return `−${a}（本阶段剩 ${lsLeft(c.def)} 次）`; }},
 ];
 REDUCTIONS.push({id:'shield', name:'护盾', stage:4, shield:true,
   applies:c => c.dmg > 0 && shieldOn(c.def) && c.def.shieldHp > 0,

@@ -197,7 +197,8 @@ function spawnWave(i, quiet){
   for (const e of wv.enemies){
     const t = ENEMY_T[e.t], [x,y] = freeSpotNear(t, e.x, e.y);
     const u = makeUnit(t, 'enemy', x, y); u.facing = e.facing || 'down'; u.wave = i;
-    if (e.target){ u.target = true; u.badgeList = [{color:'#ff5a5a', glyph:'★'}]; }   // v0.32 斩首目标
+    if (e.target) u.target = true;   // v0.32 斩首目标
+    refreshBadges(u);
     for (let k=1; k<(e.lv || wv.lv || 1); k++) levelUp(u); u.hp = u.maxHp;
     if (LV.onSpawn) LV.onSpawn(u);
     units.push(u);
