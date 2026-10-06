@@ -55,7 +55,7 @@ function nodeCard(){
   if (!RUN.map) return '';
   const n = RUN.map.nodes[RUN.cur];
   const using = RUN.usingPart != null ? RUN.parts[RUN.usingPart] : null;
-  return `<div class="rv-card"><h3>当前位置</h3><div><b style="color:${NODE[n.type].col}">${NODE[n.type].icon} ${NODE[n.type].name}</b>${n.stage ? ` <small style="color:var(--muted)">${n.stage} ${STAGES[n.stage].name}</small>` : ''}</div>
+  return `<div class="rv-card"><h3>当前位置</h3><div><b style="color:${NODE[n.type].col}">${NODE[n.type].icon} ${NODE[n.type].name}</b>${n.stage ? ` <small style="color:var(--muted)">${n.stage} ${STAGES[n.stage].name}${stageObj(STAGES[n.stage]) !== 'annihilate' ? ' · 目标：' + OBJ_NAME[stageObj(STAGES[n.stage])] : ''}</small>` : ''}</div>
     ${using ? `<p class="small" style="color:var(--accent)">正在使用【${PARTS[using.k].name}】：点击地图上高亮的节点。再点一次零件取消。</p>` : `<p class="small">高亮虚线框是可以前往的节点。</p>`}
     ${n.type === 'shop' ? '<button class="rv-btn" data-node="' + RUN.cur + '">进入黑市</button>' : ''}</div>`;
 }
@@ -67,7 +67,7 @@ function teamCard(){
       <button class="rv-btn" data-fire="${u.mech}" title="遣散">×</button></div>`;
   }).join('');
   return `<div class="rv-card"><h3>队伍（${RUN.units.length} / 12）· 出击上限 ${deployCap()}</h3>${rows || '<p class="small">还没有角色。</p>'}
-    <p class="small">招募价格：精锐 5，骨干 3，普通免费。晋升价格：精锐 3 / 4，骨干 2 / 3，普通 1 / 2 希望${RUN.promoDiscount ? '（下次晋升 −1）' : ''}。出击上限：初始 3 人，部队每升 3 级 +1。</p></div>`;
+    <p class="small">招募价格：精锐 5，骨干 3，普通免费。晋升价格：精锐 3 / 4，骨干 2 / 3，普通 1 / 2 希望${RUN.promoDiscount ? '（下次晋升 −1）' : ''}。出击上限：初始 4 人，部队每升 3 级 +1。</p></div>`;
 }
 function ticketCard(){
   if (!RUN.tickets.length) return '';

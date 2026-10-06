@@ -21,7 +21,7 @@ const fs = require('fs');
   // g2 +25, g3 +40, g4 一名近卫 +6 → 71；暴击 15；装甲 g1 +15 g3 −40 → −25
   check('伤害 = 25 + 40 + 6（突击编队 1 名近卫）+ 8（混编 1 种职业）+ 50（孤狼 1 人出击）', r.mods && r.mods.dmg === 129, JSON.stringify(r.mods));
   check('装甲 = +15 −40（双刃代价）+30（孤狼）= 5', r.mods && r.mods.armorPct === 5);
-  check('编制扩充令：出击上限 +1', r.cap === 4, String(r.cap));
+  check('编制扩充令：出击上限 +1（初始 4 → 5）', r.cap === 5, String(r.cap));
   check('HP +30%（格斗框架）：雷萨 Lv20 是 11000 → 14300', r.maxHp === 14300, String(r.maxHp));
   check('敌方减益：命中 −5、装甲 −10%；游击网络没有尖兵出击 = 0', r.foe && r.foe.hit === -5 && r.foe.armorPct === -10, JSON.stringify(r.foe));
   console.log('ERRS', errs); await b.close(); process.exit(bad || errs.length ? 1 : 0);

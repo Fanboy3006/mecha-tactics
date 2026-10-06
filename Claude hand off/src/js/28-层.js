@@ -1,6 +1,6 @@
 /* ---------- 层 ---------- */
 async function enterLayer(n){
-  RUN.layer = n;
+  RUN.layer = n; RUN.layerBattles = 0;
   if (n === 4){ RUN.map = null; runRender(); await runFinal(); return; }
   RUN.map = genLayer(n, RUN.seedBase + n * 101);
   RUN.cur = RUN.map.start; RUN.prev = RUN.cur;

@@ -119,6 +119,10 @@ function checkEnd(){
   }
   const allies = units.filter(u => u.side === 'ally'), foes = units.filter(u => u.side === 'enemy');
   if (!allies.length) return defeat();
+  /* v0.32 关卡目标 */
+  if (LV && LV.victory.type === 'survive') return;   // 坚守：撑够回合数才算赢（见 30b），敌人打光也会继续增援
+  if (LV && LV.victory.type === 'targets'){ if (!units.some(u => u.target && u.side === 'enemy' && u.hp > 0)) victory(); return; }
+  if (LV && LV.victory.type === 'reachAny'){ if (allies.some(u => u.hp > 0 && inZone(u))) victory(); return; }
   if (!foes.length && LV && LV.waves && waveIdx < LV.waves.length - 1){ spawnWave(waveIdx + 1); refresh(); return; }
   if (!foes.length) victory();
   else if (!allies.length) defeat();
@@ -193,6 +197,7 @@ function spawnWave(i, quiet){
   for (const e of wv.enemies){
     const t = ENEMY_T[e.t], [x,y] = freeSpotNear(t, e.x, e.y);
     const u = makeUnit(t, 'enemy', x, y); u.facing = e.facing || 'down'; u.wave = i;
+    if (e.target){ u.target = true; u.badgeList = [{color:'#ff5a5a', glyph:'★'}]; }   // v0.32 斩首目标
     for (let k=1; k<(e.lv || wv.lv || 1); k++) levelUp(u); u.hp = u.maxHp;
     if (LV.onSpawn) LV.onSpawn(u);
     units.push(u);

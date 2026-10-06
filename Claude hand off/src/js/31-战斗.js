@@ -23,7 +23,11 @@ function genArena(sd, W, H){
   if (r() < .35){ const cx = ri(r,10,W-11), cy = ri(r,3,H-4); for (let y=cy-1; y<=cy+1; y++) for (let x=cx; x<=cx+1; x++) set(x,y,'c'); }
   return g;
 }
-function runEnemyLv(kind, layer = RUN.layer){ return [0, 1, 8, 16, 22][layer] + (kind === 'elite' || kind === 'guard' || kind === 'source' ? 3 : 0) + (kind === 'chase' ? 2 : 0); }
+/* v0.32 难度曲线：一层里随场次上升（第 1 层 Lv1→3、第 2 层 4→7、第 3 层 8→12、第 4 层 13→18），不再层间断崖 */
+function runEnemyLv(kind, layer = RUN.layer){
+  const base = [0, 1, 4, 8, 13][layer], span = [0, 2, 3, 4, 5][layer], n = RUN && RUN.layer === layer ? (RUN.layerBattles || 0) : 0;
+  return base + Math.min(span, n) + (kind === 'elite' || kind === 'guard' || kind === 'source' ? 2 : 0) + (kind === 'chase' ? 1 : 0);
+}
 
 /* ---------- 肉鸽关卡编号 ----------
    编号格式：ISW-<层>-<类型>-<序号>，例如 ISW-1-N-3 = 第 1 层可能出现的第 3 个普通作战。
@@ -80,39 +84,34 @@ function buildStage(st, extra = 0){
   const W = st.w || (kind === 'final' ? 30 : 26), H = st.h || (kind === 'final' ? 18 : 16);
   const g = st.rows ? st.rows.map(row => [...row]) : genArena(st.seed, W, H);
   const theme = THEMES[st.theme % THEMES.length], lv = runEnemyLv(kind, st.layer);
-  let keys = [];
+  const obj = stageObj(st), L = st.layer, T = (tier, n) => tierPick(r, theme, tier, n), boss = () => ENEMY_BOSS[Math.floor(r() * ENEMY_BOSS.length)];
+  /* v0.32 按梯队配兵：杂兵给 AOE 清，精锐各有克制，头目带范围护壁要集火 / 近卫补刀 */
+  let keys = [], later = [], targets = 0;
   if (!st.enemies){
-    const n = 3 + st.layer + (kind === 'elite' ? 1 : 0) + (kind === 'guard' ? 2 : 0) + (kind === 'chase' ? 2 : 0) + (kind === 'source' ? 1 : 0);
-    for (let i=0; i<n; i++) keys.push(r() < .5 ? theme.units[Math.floor(r() * theme.units.length)] : ENEMY_POOL[Math.floor(r() * ENEMY_POOL.length)]);
-    if (kind === 'elite' || kind === 'guard') keys.push(ENEMY_BOSS[Math.floor(r() * ENEMY_BOSS.length)]);
-    if (kind === 'source') keys.push(r() < .5 ? 'venom' : 'captain', 'skyfort');
-    if (kind === 'chase') keys.push('pursuer', 'pursuer');
-    if (kind === 'final') keys = ['flagship', 'captain', 'venom', 'tank', 'funnel', 'sniper', 'berserker', 'regen'];
+    if (kind === 'battle'){
+      if (obj === 'survive') keys = [...T('杂兵', 3 + L), ...T('精锐', 1)];
+      else if (obj === 'targets'){ targets = L >= 2 ? 3 : 2; keys = [...T('头目', targets), ...T('杂兵', 2 + L), ...T('精锐', 1)]; }
+      else { keys = [...T('杂兵', 3 + L), ...T('精锐', 1), ...(L >= 2 ? T('头目', 1) : [])]; later.push([...T('杂兵', 2 + L), ...(L >= 2 ? T('精锐', 1) : []), ...T('头目', 1)]); }
+    }
+    if (kind === 'source'){ keys = [...T('杂兵', 3 + L), ...T('精锐', 2), ...T('头目', 1)]; later.push([...T('杂兵', 2 + L), ...T('精锐', 1), ...T('头目', 1)]); }
+    if (kind === 'elite' || kind === 'guard'){ keys = [...T('杂兵', 3 + L), ...T('精锐', 2), boss()]; later.push([...T('杂兵', 2 + L), ...T('精锐', 1), ...T('头目', 1)]); later.push([...T('精锐', 1), ...T('头目', 2), boss()]); }
+    if (kind === 'chase'){ keys = [...T('杂兵', 3 + L), ...T('精锐', 1), 'pursuer', 'pursuer']; later.push([...T('杂兵', 3 + L), 'pursuer']); }
+    if (kind === 'final'){ keys = ['captain','tank','funnel','sniper','berserker','regen']; later.push(['venom','venom','skyfort','captain','bomber','bomber']); later.push(['flagship','fortress','venom','captain']); }
   }
+  if (st.waves) later = [];
   const affixDefault = (kind === 'elite' || kind === 'guard' || kind === 'final') ? AFFIXES[Math.floor(r() * AFFIXES.length)] : null;
   const affix = 'affix' in st ? (st.affix ? AFFIXES.find(a => a.name === st.affix) : null) : affixDefault;
   const r2 = mulberry32(st.seed ^ 0x77);
-  for (let i=0; i<extra; i++) keys.push(ENEMY_POOL[Math.floor(r2() * ENEMY_POOL.length)]);
-  // 后续波次：普通 / 侵蚀源 / 追击 2 波，精英 / 守军 / 终点 3 波；每波都带精英怪
-  const rw = mulberry32(st.seed ^ 0x3c1), mix = () => rw() < .5 ? theme.units[Math.floor(rw() * theme.units.length)] : ENEMY_POOL[Math.floor(rw() * ENEMY_POOL.length)];
-  const elite = () => ELITE_UNITS[Math.floor(rw() * ELITE_UNITS.length)], boss = () => ENEMY_BOSS[Math.floor(rw() * ENEMY_BOSS.length)];
-  const base = 3 + st.layer, later = [];
-  if (!st.waves){
-    if (kind === 'battle') later.push([...Array(base - 1)].map(mix).concat([elite()]));
-    if (kind === 'source') later.push([...Array(base - 1)].map(mix).concat([elite(), elite()]));
-    if (kind === 'chase') later.push([...Array(base)].map(mix).concat(['pursuer']));
-    if (kind === 'elite' || kind === 'guard'){ later.push([...Array(base)].map(mix).concat([elite(), boss()])); later.push([elite(), elite(), elite(), boss()]); }
-    if (kind === 'final'){ keys = ['captain','tank','funnel','sniper','berserker','regen']; later.push(['venom','venom','skyfort','captain','bomber','bomber']); later.push(['flagship','fortress','venom','captain']); }
-  }
+  for (let i=0; i<extra; i++) keys.push(...tierPick(r2, theme, '杂兵', 1));
   const occ = [];
   const place = (list, eliteLv) => {
     const out = [];
     for (const k of list){
       const t = ENEMY_T[k];
       for (let tries = 0; tries < 400; tries++){
-        const x = ri(r, W - 10, W - t.w - 1), y = ri(r, 1, H - t.h - 1), probe = {x, y, w:t.w, h:t.h};
+        const x = obj === 'reach' ? ri(r, Math.floor(W / 2) - 3, W - t.w - 5) : ri(r, W - 10, W - t.w - 1), y = ri(r, 1, H - t.h - 1), probe = {x, y, w:t.w, h:t.h};
         if (occ.some(o => distU(probe, o) < 1)) continue;
-        occ.push(probe); out.push({t:k, x, y, facing:'left', lv: lv + (eliteLv && (ELITE_UNITS.includes(k) || ENEMY_BOSS.includes(k)) ? 2 : 0)});
+        occ.push(probe); out.push({t:k, x, y, facing:'left', lv: lv + TIER_LV[tierOfEnemy(k)]});
         break;
       }
     }
@@ -121,6 +120,7 @@ function buildStage(st, extra = 0){
   const enemies = [];
   if (st.enemies) for (const e of st.enemies){ enemies.push({t:e.t, x:e.x, y:e.y, facing:e.facing || 'left', lv:e.lv || lv}); occ.push({x:e.x, y:e.y, w:ENEMY_T[e.t].w, h:ENEMY_T[e.t].h}); }
   enemies.push(...place(keys, false));
+  for (let i = 0; i < targets && i < enemies.length; i++) enemies[enemies.length - keys.length + i].target = true;   // 斩首目标 = 最先配的那几个头目
   const waves = [{at:null, enemies}];
   if (st.waves) st.waves.forEach((wv, i) => { occ.length = 0; waves.push({at:wv.at || 3 + i*2, enemies:wv.enemies.map(e => ({t:e.t, x:e.x, y:e.y, facing:e.facing || 'left', lv:e.lv || lv}))}); });
   else later.forEach((list, i) => { occ.length = 0; waves.push({at:3 + i*2, enemies:place(list, true)}); });
@@ -128,14 +128,15 @@ function buildStage(st, extra = 0){
   const my = Math.floor(H/2);
   const spots = st.spots || [[2,my],[2,my-2],[2,my+2],[4,my-1],[4,my+1],[1,my-4],[1,my+4],[4,my-3],[4,my+3]].map(([x,y]) => [x, clamp(y,0,H-2)]);
   if (!st.rows) for (const [x,y] of spots) for (let j=0;j<2;j++) for (let i=0;i<2;i++) if (g[y+j] && g[y+j][x+i]) g[y+j][x+i] = '.';
-  return {W, H, g, enemies, waves, spots, affix, theme, lv};
+  return {W, H, g, enemies, waves, spots, affix, theme, lv, obj};
 }
 async function runBattle(kind, code){
   RUN.battles++;
   if (!code || !STAGES[code]){ const pool = stagesOf(RUN.layer, kind); code = (pool[Math.floor(Math.random() * pool.length)] || {}).code; }
   const st = STAGES[code];
   const extra = RUN.erosion === 'reinforce' && !RUN.erosionCleared ? Math.max(1, Math.round((3 + RUN.layer) * .3)) : 0;
-  const {W, H, g, enemies, waves, spots, affix, lv} = buildStage(st, extra);
+  const {W, H, g, enemies, waves, spots, affix, lv, obj} = buildStage(st, extra);
+  RUN.layerBattles = (RUN.layerBattles || 0) + 1;
   const keys = waves.map(w => w.enemies.map(e => e.t).join(',')).join(' | ');
   const label = KIND_NAME[kind];
   const c = RUN.cmd;
@@ -147,14 +148,20 @@ async function runBattle(kind, code){
   RUN.battleKind = kind; RUN.lostThis = []; RUN.bstat = {}; RUN.chestParts = 0;
   rlog('battle_start', {code, kind, lv, affix: affix ? affix.name : null, erosion: RUN.mods.overload || RUN.mods.fog || (RUN.erosion && !RUN.erosionCleared) ? RUN.erosion : null, enemies:keys});
   LEVELS.run = {
-    run:true, code, name:`${code} ${st.name} · ${label}${affix ? ' · 【' + affix.name + '】' : ''}`, w:W, h:H, speed:.6, formation:true, noCmd:true,
+    run:true, code, name:`${code} ${st.name} · ${label}${obj !== 'annihilate' ? ' · ' + OBJ_NAME[obj] : ''}${affix ? ' · 【' + affix.name + '】' : ''}`, w:W, h:H, speed:.6, formation:true, noCmd:true,
     rows:g.map(row => row.join('')), rosterList:RUN.units.map(u => ({...u})), maxDeploy:deployCap(), spots, allyFacing:'right',
     defaultDeploy:[...RUN.units].sort((a,b) => b.lv - a.lv).map(u => u.mech),
     waves: waves.map((w, i) => ({at:w.at, lv, label:`第 ${i+1} 波`, enemies:w.enemies})),
     onSpawn: e => { e.facing = 'left'; if (affix) affix.fn(e); relicApplyFoe(e, units.filter(u => u.side === 'ally')); },
     loadout:{init:RUN.loadouts || {}, save:lo => { RUN.loadouts = {...lo}; }, hide:(u, w) => !!(u.awakenSwap && Object.values(u.awakenSwap).includes(w.name)),
       note:'★ 是 Lv20 大招。宗介 U7 的 λ 武器不能直接带：λ 觉醒后，带上的单分子刀会变成隔空 λ 拳、散弹炮变成 λ 驱动·散弹炮（仍算 2 个武装）。'},
-    victory:{type:'annihilate'}, goalText:`击破全部 ${waves.length} 波敌军（第 2 波起按回合到达，清空当前敌人会让下一波提前出现）`, tips: st.desc ? [{on:'turn:1', text:`<b>${code} ${st.name}</b><br>${st.desc}`}] : [],
+    ...(obj === 'survive' ? {victory:{type:'survive', turns:SURVIVE_TURNS}, goalText:`坚守 ${SURVIVE_TURNS} 回合（撑到第 ${SURVIVE_TURNS + 1} 回合我方阶段）。敌人每 2 回合从右侧增援，打不完也没关系`,
+          respawn:{every:2, lv, list:t => [...tierPick(Math.random, null, '杂兵', 2 + st.layer), ...(t >= 5 ? tierPick(Math.random, null, '精锐', 1) : [])]}}
+      : obj === 'targets' ? {victory:{type:'targets'}, goalText:`斩首：击破所有标 ★ 的头目（${enemies.filter(e => e.target).length} 台）。杂兵每回合增援`,
+          respawn:{every:1, lv, list:() => tierPick(Math.random, null, '杂兵', 2)}}
+      : obj === 'reach' ? {victory:{type:'reachAny'}, zone:{x0:W - 3, y0:2, x1:W - 1, y1:H - 3}, goalText:'突破：任意一台我方机体进入右侧撤离区（绿色框）'}
+      : {victory:{type:'annihilate'}, goalText:`击破全部 ${waves.length} 波敌军（第 2 波起按回合到达，清空当前敌人会让下一波提前出现）`}),
+    tips: st.desc ? [{on:'turn:1', text:`<b>${code} ${st.name}</b><br>${st.desc}`}] : [],
     afterStart:() => {
       units.filter(u => u.side === 'ally').forEach(u => {
         if (RUN.erosion === 'gravity' && !RUN.erosionCleared){ u.flying = false; u.canFly = false; }
@@ -213,7 +220,7 @@ async function runBattleEnd(win){
   const lines = [];
   if (RUN.lostThis.length) lines.push(`被击破 ${RUN.lostThis.length} 台（不扣作战耐久）`);
   if (!win){
-    const left = units.filter(u => u.side === 'enemy' && u.hp > 0).length + unspawned;
+    const left = LV.victory.type === 'annihilate' ? units.filter(u => u.side === 'enemy' && u.hp > 0).length + unspawned : 3;   // v0.32 坚守 / 突破 / 斩首失败固定扣 3
     RUN.dur -= left;
     lines.push(`作战失败：剩余敌人 ${left} 台，作战耐久 −${left}`);
     runLog(`作战失败，剩余敌人 ${left} 台，耐久 −${left}`);
@@ -297,7 +304,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.31';
+const GAME_VERSION = 'v0.32';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){

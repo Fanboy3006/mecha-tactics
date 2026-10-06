@@ -23,7 +23,7 @@ const fs = require('fs');
       c.hp = 1; u.x = c.x - 1; u.y = c.y; u.moved = false; u.acted = false;
       const can = g.attackables(u).includes(c);
       const he0 = g.RUN.he, parts0 = g.RUN.chestParts || 0;
-      g.onTile(u.x, u.y); g.onTile(u.x, u.y); g.choosePick(c); await g.onAction('fire');
+      const w = u.weapons.find(x => x.name === '近战斩击'); await g.battle(u, w, c, null);
       for (let i = 0; i < 40 && c.hp > 0; i++) await new Promise(r => setTimeout(r, 100));
       return {can, dead: c.hp <= 0, gain: g.RUN.he - he0, parts: (g.RUN.chestParts || 0) - parts0};
     });

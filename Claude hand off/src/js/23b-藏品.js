@@ -122,7 +122,7 @@ function relicPick(tiers, n){
 const relicPrice = id => Math.round(RELICS[id].price * (hasRelic('f1') ? .7 : 1));
 function relicPromo(cls){
   const u = RUN.units.filter(x => tplOf(x.mech).tags.战斗分类 === cls && x.lv < 30).sort((a, b) => b.lv - a.lv)[0];
-  if (!u){ RUN.pendingPromo = [...(RUN.pendingPromo || []), cls]; runLog(`${cls}教范：队里还没有${cls}，招到人后自动使用`); return; }
+  if (!u){ RUN.pendingPromo = [...(RUN.pendingPromo || []), cls]; runLog(`${cls}教范：队里没有能晋升的${cls}，招到人后自动使用`); return; }
   const to = u.lv === 10 ? 20 : 30; u.lv = to;
   runLog(`${tplOf(u.mech).pilot} 免费晋升到 Lv${to}（${cls}教范）`);
 }
