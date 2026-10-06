@@ -9,8 +9,6 @@ const ENEMY_TIER = {
 };
 for (const k of ENEMY_TIER.头目) if (ENEMY_T[k]) ENEMY_T[k].weak = {...(ENEMY_T[k].weak || {}), 范围:-50};   // 范围护壁
 for (const k of Object.keys(ENEMY_T)) ENEMY_T[k].key = k;   // v0.35 单位上记住模板键，方便按梯队判断
-/* v0.35 精锐减肉（作者：精锐的战斗力非常不对）：HP ×0.8、装甲 ×0.75；甲虫型重机（正面装甲机制本身就很硬）HP 再 ×0.875（合计 ×0.7） */
-for (const k of ENEMY_TIER.精锐){ const t = ENEMY_T[k]; if (!t) continue; t.hp = Math.round(t.hp * (k === 'beetle' ? .7 : .8) / 100) * 100; t.armor = Math.round(t.armor * .75 / 10) * 10; }
 const tierOfEnemy = k => ENEMY_BOSS.includes(k) || k === 'flagship' ? 'Boss' : Object.keys(ENEMY_TIER).find(t => ENEMY_TIER[t].includes(k)) || '杂兵';
 const TIER_LV = {杂兵:0, 精锐:1, 头目:2, Boss:2};
 /* 按梯队挑 n 个：一半概率从本关主题里有的挑 */

@@ -263,6 +263,11 @@ ALLY_T.forEach(t => {
   });
   /* v0.35 大规模平衡：我方所有武装威力 ×1.15（作者：10 级阶段太弱） */
   t.weapons.forEach(w => { if (w.power > 0) w.power = Math.round(w.power * 1.15); });
+  /* v0.35.1 档位保底（作者：我方精锐 10 级就该是第一档，骨干也要部分加强）。
+     按 Lv10 对第 1 层杂兵的平均伤害算：精锐保底约 6000、骨干约 4500（近卫有压制杂兵、Feena 另算，不在表里）。
+     倍率 = 保底 ÷ 现值，最多 ×1.8；作用于该角色全部非地图炮武装（含 Lv20 / Lv30），保持档位成长。 */
+  const TIER_FLOOR = {S1:1.6, U7:1.8, W1:1.35, CB4:1.15, A2:1.22, A3:1.28, M2:1.17, B2:1.55, W4:1.12};
+  if (TIER_FLOOR[t.mech]) t.weapons.forEach(w => { if (w.power > 0 && w.fire !== 'map') w.power = Math.round(w.power * TIER_FLOOR[t.mech]); });
   if (t.mech === 'CB1'){ t.canFly = true; t.critBase = 15; t.weapons.forEach(w => { if (w.fire !== 'map' && w.range[1] < 3) w.range = [w.range[0], 3]; }); }
   if (t.mech === 'B1') t.weapons.forEach(w => { if (w.unlock <= 1 && w.fire === 'melee') w.range = [w.range[0], 4]; });
   if (t.mech === 'M4') t.weapons.push(wp({name:'月光手枪', power:1500, fire:'direct', range:[1,4], hit:110, desc:'移动后也能用的副武器。'}));
