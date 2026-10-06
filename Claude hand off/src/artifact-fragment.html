@@ -7391,12 +7391,26 @@ function genArena(sd, W, H){
   for (let i=0; i<2; i++){ const x = ri(r,8,W-9), y0 = ri(r,0,H-6), len = ri(r,3,6); for (let y=y0; y<y0+len; y++) set(x + (r() < .3 ? 1 : 0), y, 'm'); }
   if (r() < .5){ const cx = ri(r,9,W-10), cy = ri(r,2,H-3); for (let y=cy-1; y<=cy+1; y++) for (let x=cx-2; x<=cx+2; x++) set(x,y,'w'); }
   if (r() < .35){ const cx = ri(r,10,W-11), cy = ri(r,3,H-4); for (let y=cy-1; y<=cy+1; y++) for (let x=cx; x<=cx+1; x++) set(x,y,'c'); }
+  /* v0.33 战线：用不可进入的地形把中段切成 1–3 条战线（25% / 45% / 30%）。
+     分隔带横贯 x = 6 … W-5，全是裂谷（地面不可通行，飞行可越过，不挡视线），旁边零星山地（挡直射）；
+     每条分隔带留 1–2 个缺口当交叉通道；两端（出击区、敌方集结区）保持开阔。 */
+  const lr = r(), lanes = lr < .25 ? 1 : lr < .7 ? 2 : 3, x0 = 6, x1 = W - 5;
+  const wall = (y, gaps) => { for (let x = x0; x <= x1; x++){ if (gaps.some(gx => Math.abs(x - gx) <= 1)) { set(x, y, '.'); continue; } set(x, y, 'c'); if (r() < .15) set(x, y + (r() < .5 ? -1 : 2), 'm'); } };   // 墙本身全是裂谷（不可进入），旁边零星山地挡直射
+  const gapsFor = () => { const n = r() < .7 ? 1 : 2, out = []; for (let i = 0; i < n; i++) out.push(ri(r, x0 + 3, x1 - 3)); return out; };
+  if (lanes === 1){
+    const top = ri(r, 3, 4), bot = H - 1 - ri(r, 3, 4);   // 中间一条宽走廊，上下两侧是裂谷 / 山地
+    for (let x = x0; x <= x1; x++){ for (let y = 0; y < top; y++) set(x, y, 'c'); for (let y = bot + 1; y < H; y++) set(x, y, 'c'); if (r() < .12) set(x, top, 'm'); if (r() < .12) set(x, bot, 'm'); }
+  } else {
+    const cuts = lanes === 2 ? [Math.floor(H / 2) + ri(r, -1, 1)] : [Math.floor(H / 3) + ri(r, -1, 0), Math.floor(2 * H / 3) + ri(r, 0, 1)];
+    for (const y of cuts){ const gs = gapsFor(); wall(y, gs); if (r() < .5) wall(y + 1, gs); }
+  }
+  g.lanes = lanes;
   return g;
 }
 /* v0.32 难度曲线：一层里随场次上升（第 1 层 Lv1→3、第 2 层 4→7、第 3 层 8→12、第 4 层 13→18），不再层间断崖 */
 function runEnemyLv(kind, layer = RUN.layer){
   const base = [0, 1, 4, 8, 13][layer], span = [0, 2, 3, 4, 5][layer], n = RUN && RUN.layer === layer ? (RUN.layerBattles || 0) : 0;
-  return base + Math.min(span, n) + (kind === 'elite' || kind === 'guard' || kind === 'source' ? 2 : 0) + (kind === 'chase' ? 1 : 0);
+  return base + Math.min(span, n) + (kind === 'elite' || kind === 'guard' || kind === 'source' ? (layer === 1 ? 1 : 2) : 0) + (kind === 'chase' ? 1 : 0);   // v0.33 第 1 层精英类只 +1
 }
 
 /* ---------- 肉鸽关卡编号 ----------
@@ -7464,7 +7478,11 @@ function buildStage(st, extra = 0){
       else { keys = [...T('杂兵', 3 + L), ...T('精锐', 1), ...(L >= 2 ? T('头目', 1) : [])]; later.push([...T('杂兵', 2 + L), ...(L >= 2 ? T('精锐', 1) : []), ...T('头目', 1)]); }
     }
     if (kind === 'source'){ keys = [...T('杂兵', 3 + L), ...T('精锐', 2), ...T('头目', 1)]; later.push([...T('杂兵', 2 + L), ...T('精锐', 1), ...T('头目', 1)]); }
-    if (kind === 'elite' || kind === 'guard'){ keys = [...T('杂兵', 3 + L), ...T('精锐', 2), boss()]; later.push([...T('杂兵', 2 + L), ...T('精锐', 1), ...T('头目', 1)]); later.push([...T('精锐', 1), ...T('头目', 2), boss()]); }
+    if (kind === 'elite' || kind === 'guard'){
+      /* v0.33 第 1 层：精英战不出 Boss（压轴改成 2 个头目），出口守军的 Boss 只在最后一波；第 2 层起才是原来的配置 */
+      if (L === 1){ keys = [...T('杂兵', 4), ...T('精锐', 1), ...T('头目', 1)]; later.push([...T('杂兵', 3), ...T('精锐', 1)]); later.push(kind === 'guard' ? [...T('头目', 1), boss()] : T('头目', 2)); }
+      else { keys = [...T('杂兵', 3 + L), ...T('精锐', 2), boss()]; later.push([...T('杂兵', 2 + L), ...T('精锐', 1), ...T('头目', 1)]); later.push([...T('精锐', 1), ...T('头目', 2), boss()]); }
+    }
     if (kind === 'chase'){ keys = [...T('杂兵', 3 + L), ...T('精锐', 1), 'pursuer', 'pursuer']; later.push([...T('杂兵', 3 + L), 'pursuer']); }
     if (kind === 'final'){ keys = ['captain','tank','funnel','sniper','berserker','regen']; later.push(['venom','venom','skyfort','captain','bomber','bomber']); later.push(['flagship','fortress','venom','captain']); }
   }
@@ -7481,6 +7499,7 @@ function buildStage(st, extra = 0){
       for (let tries = 0; tries < 400; tries++){
         const x = obj === 'reach' ? ri(r, Math.floor(W / 2) - 3, W - t.w - 5) : obj === 'targets' ? ri(r, Math.floor(W / 2), W - t.w - 6) : ri(r, W - 10, W - t.w - 1), y = ri(r, 1, H - t.h - 1), probe = {x, y, w:t.w, h:t.h};
         if (occ.some(o => distU(probe, o) < 1)) continue;
+        if (!st.rows && tilesOf(probe).some(([a, b]) => g[b] && (g[b][a] === 'c' || (!t.flying && g[b][a] === 'w')))) continue;   // v0.33 不把敌人放进裂谷，免得把战线墙挖穿
         occ.push(probe); out.push({t:k, x, y, facing:'left', lv: lv + TIER_LV[tierOfEnemy(k)]});
         break;
       }
@@ -7674,7 +7693,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.32.1';
+const GAME_VERSION = 'v0.33';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
