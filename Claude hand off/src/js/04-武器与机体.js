@@ -251,7 +251,7 @@ ALLY_T.forEach(t => {
   if (PROMO_PASSIVE[t.mech]) t.abilities.push(PROMO_PASSIVE[t.mech]);
   /* v0.25 分类通用机制：近卫 DASH、狙击援护攻击、重装援护防御；卡嘉莉的援护防御在我方阶段也能用 */
   const cls = t.tags.战斗分类, add = k => { if (!t.abilities.includes(k)) t.abilities.push(k); };
-  if (cls === '近卫') add('dash');
+  if (cls === '近卫'){ add('dash'); add('mook'); }   // v0.35 近卫：压制杂兵
   if (cls === '狙击') add('supportAtk');
   if (cls === '重装') add('guard');
   if (t.mech === 'S2') add('guardAtk');
@@ -261,6 +261,8 @@ ALLY_T.forEach(t => {
     if (cls === '近卫' && w.fire === 'melee' && w.unlock <= 1 && w.range[1] < 2) w.range = [w.range[0], 2];
     if (w.afterMove === false && w.fire !== 'map' && w.power > 0) w.power = Math.round(w.power * 1.25);
   });
+  /* v0.35 大规模平衡：我方所有武装威力 ×1.15（作者：10 级阶段太弱） */
+  t.weapons.forEach(w => { if (w.power > 0) w.power = Math.round(w.power * 1.15); });
   if (t.mech === 'CB1'){ t.canFly = true; t.critBase = 15; t.weapons.forEach(w => { if (w.fire !== 'map' && w.range[1] < 3) w.range = [w.range[0], 3]; }); }
   if (t.mech === 'B1') t.weapons.forEach(w => { if (w.unlock <= 1 && w.fire === 'melee') w.range = [w.range[0], 4]; });
   if (t.mech === 'M4') t.weapons.push(wp({name:'月光手枪', power:1500, fire:'direct', range:[1,4], hit:110, desc:'移动后也能用的副武器。'}));

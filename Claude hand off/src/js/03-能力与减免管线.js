@@ -55,6 +55,7 @@ const ABIL = {
   jamAura:{name:'电子干扰', desc:'光环：3 格内的敌对单位命中 −15。'},
   commandAura:{name:'指挥链路', desc:'光环：3 格内的其他同伴命中 +15、受到的伤害 −10%。'},
   berserk:{name:'狂暴', desc:'HP 低于 50% 时伤害 +30%。'},
+  mook:{name:'压制杂兵', desc:'（近卫）对杂兵伤害 +60%、命中 +20：一刀一个。'},
   lambdaShield:{name:'λ 力场', desc:'每个阶段前 2 次受到的伤害各减少 3000（在装甲之后结算）。'},
   /* ---- v0.24 普通档晋升被动（Lv20 解锁，Lv30 加强）：原来的 Lv20 武装改成了这些被动 ---- */
   lunaPower:{name:'全功率炮装', lv:20, desc:'（Lv20）光束攻击伤害 +20%；Lv30 起 +35%。'},
@@ -156,6 +157,7 @@ function genMods(att, w, def, o = {}){
   for (const [k, v] of weakList(def, w, o)) if (v > 0){ pct += v; notes.push(`弱点·${k} +${v}%`); }
   const t = tfx(att, 'dmg', def, w, o); if (t){ pct += t; notes.push(`特技 ${t > 0 ? '+' : ''}${t}%`); }
   const b = att ? buffSum(att, 'dmg') : 0; if (b){ pct += b; notes.push(`增益 ${b > 0 ? '+' : ''}${b}%`); }
+  if (att && def && abilOn(att, 'mook') && def.key && tierOfEnemy(def.key) === '杂兵'){ pct += 60; notes.push('压制杂兵 +60%'); }   // v0.35 近卫
   const rl = relicDmg(att, def, w, o); if (rl){ pct += rl; notes.push(`藏品 ${rl > 0 ? '+' : ''}${rl}%`); }
   const rm = RM();
   if (rm && att && att.side === 'ally'){
