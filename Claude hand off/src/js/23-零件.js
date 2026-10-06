@@ -6,7 +6,7 @@ const PARTS = {
   hover:  {name:'气垫底座', kind:'加工品', uses:2, move:'ringline', price:5, desc:'报废假肢 + 报废轮子：周围一圈或直线 2 格，不消耗推进剂'},
   exo:    {name:'试作外骨骼', kind:'加工品', uses:2, move:'line3', price:5, desc:'沿直线跳最多 3 格，不消耗推进剂'},
   engine: {name:'标准引擎', kind:'加工品', uses:3, move:'ring', price:4, desc:'相当于能用 3 次的报废假肢'},
-  spring: {name:'重弹簧', kind:'加工品', uses:1, move:'step', price:2, desc:'一次不消耗推进剂的普通移动'},
+  spring: {name:'重弹簧', kind:'加工品', uses:1, move:'step', price:2, desc:'沿直线移动 1–2 格，不消耗推进剂'},
   jet:    {name:'一次性喷气背包', kind:'加工品', uses:1, move:'any', price:8, desc:'不消耗推进剂，移动到地图上任意节点（包括迷雾里的）'},
   bagua:  {name:'小八界', kind:'加工品', uses:1, move:'any', price:9, desc:'传送到任意节点（包括迷雾里的）'},
   thaw:   {name:'老妈的融雪', kind:'加工品', uses:1, move:'fly', price:6, desc:'飞到 3 格内任意已知的非战斗节点，并获得 3 经验'},

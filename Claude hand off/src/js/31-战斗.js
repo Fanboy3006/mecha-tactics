@@ -34,6 +34,10 @@ function genArena(sd, W, H){
     const cuts = lanes === 2 ? [Math.floor(H / 2) + ri(r, -1, 1)] : [Math.floor(H / 3) + ri(r, -1, 0), Math.floor(2 * H / 3) + ri(r, 0, 1)];
     for (const y of cuts){ const gs = gapsFor(); wall(y, gs); if (r() < .5) wall(y + 1, gs); }
   }
+  /* v0.34 战线墙里混一段飞行也过不去的地形：50% 有一段 3 格绝壁（挡视线），30% 有一段 3 格重力深渊（不挡视线） */
+  const seg = (ch, y) => { const sx = ri(r, x0 + 1, x1 - 3); for (let x = sx; x < sx + 3; x++) if (g[y] && g[y][x] === 'c') set(x, y, ch); };
+  const wallRows = []; for (let y = 0; y < H; y++) if (g[y].slice(x0, x1 + 1).filter(c => c === 'c').length > (x1 - x0) / 2) wallRows.push(y);
+  for (const y of wallRows.filter(y => !wallRows.includes(y - 1) || !wallRows.includes(y + 1))){ if (r() < .5) seg('x', y); if (r() < .3) seg('v', y); }   // 只改墙的边缘行
   g.lanes = lanes;
   return g;
 }
@@ -129,7 +133,7 @@ function buildStage(st, extra = 0){
       for (let tries = 0; tries < 400; tries++){
         const x = obj === 'reach' ? ri(r, Math.floor(W / 2) - 3, W - t.w - 5) : obj === 'targets' ? ri(r, Math.floor(W / 2), W - t.w - 6) : ri(r, W - 10, W - t.w - 1), y = ri(r, 1, H - t.h - 1), probe = {x, y, w:t.w, h:t.h};
         if (occ.some(o => distU(probe, o) < 1)) continue;
-        if (!st.rows && tilesOf(probe).some(([a, b]) => g[b] && (g[b][a] === 'c' || (!t.flying && g[b][a] === 'w')))) continue;   // v0.33 不把敌人放进裂谷，免得把战线墙挖穿
+        if (!st.rows && tilesOf(probe).some(([a, b]) => g[b] && (['c','x','v'].includes(g[b][a]) || (!t.flying && g[b][a] === 'w')))) continue;   // v0.33 不把敌人放进裂谷，免得把战线墙挖穿
         occ.push(probe); out.push({t:k, x, y, facing:'left', lv: lv + TIER_LV[tierOfEnemy(k)]});
         break;
       }
@@ -143,7 +147,7 @@ function buildStage(st, extra = 0){
   const waves = [{at:null, enemies}];
   if (st.waves) st.waves.forEach((wv, i) => { occ.length = 0; waves.push({at:wv.at || 3 + i*2, enemies:wv.enemies.map(e => ({t:e.t, x:e.x, y:e.y, facing:e.facing || 'left', lv:e.lv || lv}))}); });
   else later.forEach((list, i) => { occ.length = 0; waves.push({at:3 + i*2, enemies:place(list, true)}); });
-  for (const e of waves.flatMap(w => w.enemies)){ const t = ENEMY_T[e.t]; for (let j=0;j<t.h;j++) for (let i=0;i<t.w;i++) if (g[e.y+j] && (g[e.y+j][e.x+i] === 'c' || (!t.flying && g[e.y+j][e.x+i] === 'w'))) g[e.y+j][e.x+i] = '.'; }
+  for (const e of waves.flatMap(w => w.enemies)){ const t = ENEMY_T[e.t]; for (let j=0;j<t.h;j++) for (let i=0;i<t.w;i++) if (g[e.y+j] && (['c','x','v'].includes(g[e.y+j][e.x+i]) || (!t.flying && g[e.y+j][e.x+i] === 'w'))) g[e.y+j][e.x+i] = '.'; }
   const my = Math.floor(H/2);
   const spots = st.spots || [[2,my],[2,my-2],[2,my+2],[4,my-1],[4,my+1],[1,my-4],[1,my+4],[4,my-3],[4,my+3]].map(([x,y]) => [x, clamp(y,0,H-2)]);
   if (!st.rows) for (const [x,y] of spots) for (let j=0;j<2;j++) for (let i=0;i<2;i++) if (g[y+j] && g[y+j][x+i]) g[y+j][x+i] = '.';
@@ -323,7 +327,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.33';
+const GAME_VERSION = 'v0.34';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
@@ -463,7 +467,7 @@ requestAnimationFrame(draw);
  * ========================================================================== */
 const ED_KEY = 'mecha-tactics-editor';
 const ED_PROTO = ['tut1', 'tut2', 'tut3', 'defense', 'drill'];
-const ED_TER = [['.', '平原'], ['f', '森林'], ['m', '山地'], ['w', '水域'], ['c', '裂谷']];
+const ED_TER = [['.', '平原'], ['f', '森林'], ['m', '山地'], ['w', '水域'], ['c', '裂谷'], ['x', '绝壁'], ['v', '重力深渊']];
 const ED = {id:null, d:null, tool:'paint', ter:'.', etype:'grunt', elv:'', efacing:'left', wave:0, tp:24, drag:null, painting:false, dirty:false, testLv:20};
 /* 改动先放在内存里（ED_ALL），同时尽量写进浏览器存储；浏览器存储被禁用时也能照常编辑、试打和导出，只是刷新后会丢 */
 let ED_ALL = null, ED_SAVE_OK = true;

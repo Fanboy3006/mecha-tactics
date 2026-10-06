@@ -18,6 +18,7 @@ function losClear(att, ax, ay, tgt){
     if (own.has(k) || tg.has(k)) return false;
     if (walls.has(k)) return true;
     const o = occupant(x,y);
+    if (map[y][x] === 'cliff') return true;   // v0.34 绝壁连空中目标的视线也挡
     if (tgt.flying){
       // 空中目标：地面阻挡（山地、地面单位）都不算，只有中间的空中大型敌方单位会挡
       return !!(o && o !== att && o.side !== att.side && o.flying && o.w * o.h > 1);

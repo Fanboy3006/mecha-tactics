@@ -39,7 +39,7 @@ function partTargets(p){
     case 'line3': return line(3);
     case 'ring': return ring();
     case 'ringline': return [...new Set([...ring(), ...line(2)])];
-    case 'step': return nbrs(cur).filter(k => N[k]);
+    case 'step': return all.filter(k => { const c = k % GCOLS, r = (k / GCOLS) | 0; return (c === c0 || r === r0) && gdist(k, cur) <= 2; });   // v0.34 重弹簧：直线 1–2 格
     case 'known': return all.filter(k => kn.has(k));
     case 'any': return all;
     case 'fly': return all.filter(k => kn.has(k) && gdist(k, cur) <= 3 && !['battle','elite','guard','source'].includes(N[k].type));

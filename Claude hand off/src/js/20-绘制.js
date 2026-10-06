@@ -22,6 +22,8 @@ function buildTerrain(){
       for (const [ox,oy] of [[6,9],[14,7],[10,15]]){ g.beginPath(); g.moveTo(px+ox,py+oy-5); g.lineTo(px+ox+4,py+oy+3); g.lineTo(px+ox-4,py+oy+3); g.closePath(); g.fill(); } }
     if (t === 'mountain'){ g.fillStyle = COL.mountainPeak; g.beginPath(); g.moveTo(px+11,py+4); g.lineTo(px+19,py+18); g.lineTo(px+3,py+18); g.closePath(); g.fill(); }
     if (t === 'chasm'){ g.strokeStyle = COL.crack; g.lineWidth = 1; g.beginPath(); g.moveTo(px+3+r()*5,py+2); g.lineTo(px+8+r()*6,py+11); g.lineTo(px+4+r()*8,py+20); g.stroke(); }
+    if (t === 'cliff'){ g.strokeStyle = COL.cliffEdge; g.lineWidth = 1.5; for (const o of [4, 10, 16]){ g.beginPath(); g.moveTo(px+o, py+2); g.lineTo(px+o+4, py+TS-2); g.stroke(); } g.strokeRect(px+1, py+1, TS-2, TS-2); }   // v0.34 绝壁：深色岩壁 + 斜纹
+    if (t === 'abyss'){ g.strokeStyle = COL.abyssRing; g.lineWidth = 1.2; for (const rr of [3, 6, 9]){ g.beginPath(); g.arc(px+TS/2, py+TS/2, rr, 0, Math.PI*2); g.stroke(); } }   // v0.34 重力深渊：紫色同心圆
     if (t === 'water'){ g.strokeStyle = COL.wave; g.lineWidth = 1.2;
       for (const oy of [8,15]){ g.beginPath(); g.moveTo(px+4,py+oy); g.quadraticCurveTo(px+8,py+oy-3,px+11,py+oy); g.quadraticCurveTo(px+14,py+oy+3,px+18,py+oy); g.stroke(); } }
   }

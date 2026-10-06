@@ -1,5 +1,5 @@
 /* ---------- 关卡 ---------- */
-const TILE_CH = {'.':'plain', f:'forest', m:'mountain', w:'water', c:'chasm'};
+const TILE_CH = {'.':'plain', f:'forest', m:'mountain', w:'water', c:'chasm', x:'cliff', v:'abyss'};
 const LEVELS = {
   tut1:{
     code:'TR-01', name:'教学 1 · 移动', w:26, h:12,

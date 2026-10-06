@@ -2985,7 +2985,7 @@ const N = 40, TS = 22;
 let MW = 40, MH = 40, SC = 1;
 const COL = {
   plain:'#3b4a37', plainDot:'#45553f', forest:'#264530', forestTree:'#1b3524',
-  mountain:'#5b4e40', mountainPeak:'#7a6a57', water:'#1f3d5c', wave:'#2f5679', chasm:'#07090c', crack:'#2a2f38',
+  mountain:'#5b4e40', mountainPeak:'#7a6a57', water:'#1f3d5c', wave:'#2f5679', chasm:'#07090c', crack:'#2a2f38', cliff:'#2b2622', cliffEdge:'#6b5f52', abyss:'#0d0718', abyssRing:'#5e2f94',
   grid:'rgba(0,0,0,.22)', ally:'#4f95e0', enemy:'#d9564b', acted:'#56606b',
   move:'rgba(90,160,230,.40)', atk:'rgba(224,90,79,.38)', threat:'#e9a23b', map:'rgba(233,162,59,.42)'
 };
@@ -3007,6 +3007,8 @@ const TER = {
   mountain:{name:'山地', cost:3, def:20, eva:15, blockLOS:true,  groundBlock:false, flyBlock:false},
   water:   {name:'水域', cost:2, def:0,  eva:0,  blockLOS:false, groundBlock:false, flyBlock:false},
   chasm:   {name:'裂谷', cost:99, def:0, eva:0,  blockLOS:false, groundBlock:true,  flyBlock:false},
+  cliff:   {name:'绝壁', cost:99, def:0, eva:0,  blockLOS:true,  groundBlock:true,  flyBlock:true},    // v0.34 地面、飞行都过不去，挡视线（只有曲射能越过）
+  abyss:   {name:'重力深渊', cost:99, def:0, eva:0, blockLOS:false, groundBlock:true, flyBlock:true},    // v0.34 地面、飞行都过不去，不挡视线
 };
 const FIRE = {melee:'近战', direct:'直射', indirect:'曲射', map:'地图炮', support:'辅助地图炮', passive:'被动', heal:'修理', device:'装置'};
 const ATTACK_FIRES = ['melee','direct','indirect'];
@@ -3635,7 +3637,7 @@ const ENEMY_POOL = ['grunt','fighter','artillery','hound','raider','drone','shie
 const ENEMY_BOSS = ['fortress','tank','skyfort'];
 
 /* ---------- 关卡 ---------- */
-const TILE_CH = {'.':'plain', f:'forest', m:'mountain', w:'water', c:'chasm'};
+const TILE_CH = {'.':'plain', f:'forest', m:'mountain', w:'water', c:'chasm', x:'cliff', v:'abyss'};
 const LEVELS = {
   tut1:{
     code:'TR-01', name:'教学 1 · 移动', w:26, h:12,
@@ -4124,6 +4126,7 @@ function losClear(att, ax, ay, tgt){
     if (own.has(k) || tg.has(k)) return false;
     if (walls.has(k)) return true;
     const o = occupant(x,y);
+    if (map[y][x] === 'cliff') return true;   // v0.34 绝壁连空中目标的视线也挡
     if (tgt.flying){
       // 空中目标：地面阻挡（山地、地面单位）都不算，只有中间的空中大型敌方单位会挡
       return !!(o && o !== att && o.side !== att.side && o.flying && o.w * o.h > 1);
@@ -5240,6 +5243,8 @@ function buildTerrain(){
       for (const [ox,oy] of [[6,9],[14,7],[10,15]]){ g.beginPath(); g.moveTo(px+ox,py+oy-5); g.lineTo(px+ox+4,py+oy+3); g.lineTo(px+ox-4,py+oy+3); g.closePath(); g.fill(); } }
     if (t === 'mountain'){ g.fillStyle = COL.mountainPeak; g.beginPath(); g.moveTo(px+11,py+4); g.lineTo(px+19,py+18); g.lineTo(px+3,py+18); g.closePath(); g.fill(); }
     if (t === 'chasm'){ g.strokeStyle = COL.crack; g.lineWidth = 1; g.beginPath(); g.moveTo(px+3+r()*5,py+2); g.lineTo(px+8+r()*6,py+11); g.lineTo(px+4+r()*8,py+20); g.stroke(); }
+    if (t === 'cliff'){ g.strokeStyle = COL.cliffEdge; g.lineWidth = 1.5; for (const o of [4, 10, 16]){ g.beginPath(); g.moveTo(px+o, py+2); g.lineTo(px+o+4, py+TS-2); g.stroke(); } g.strokeRect(px+1, py+1, TS-2, TS-2); }   // v0.34 绝壁：深色岩壁 + 斜纹
+    if (t === 'abyss'){ g.strokeStyle = COL.abyssRing; g.lineWidth = 1.2; for (const rr of [3, 6, 9]){ g.beginPath(); g.arc(px+TS/2, py+TS/2, rr, 0, Math.PI*2); g.stroke(); } }   // v0.34 重力深渊：紫色同心圆
     if (t === 'water'){ g.strokeStyle = COL.wave; g.lineWidth = 1.2;
       for (const oy of [8,15]){ g.beginPath(); g.moveTo(px+4,py+oy); g.quadraticCurveTo(px+8,py+oy-3,px+11,py+oy); g.quadraticCurveTo(px+14,py+oy+3,px+18,py+oy); g.stroke(); } }
   }
@@ -6627,7 +6632,7 @@ const PARTS = {
   hover:  {name:'气垫底座', kind:'加工品', uses:2, move:'ringline', price:5, desc:'报废假肢 + 报废轮子：周围一圈或直线 2 格，不消耗推进剂'},
   exo:    {name:'试作外骨骼', kind:'加工品', uses:2, move:'line3', price:5, desc:'沿直线跳最多 3 格，不消耗推进剂'},
   engine: {name:'标准引擎', kind:'加工品', uses:3, move:'ring', price:4, desc:'相当于能用 3 次的报废假肢'},
-  spring: {name:'重弹簧', kind:'加工品', uses:1, move:'step', price:2, desc:'一次不消耗推进剂的普通移动'},
+  spring: {name:'重弹簧', kind:'加工品', uses:1, move:'step', price:2, desc:'沿直线移动 1–2 格，不消耗推进剂'},
   jet:    {name:'一次性喷气背包', kind:'加工品', uses:1, move:'any', price:8, desc:'不消耗推进剂，移动到地图上任意节点（包括迷雾里的）'},
   bagua:  {name:'小八界', kind:'加工品', uses:1, move:'any', price:9, desc:'传送到任意节点（包括迷雾里的）'},
   thaw:   {name:'老妈的融雪', kind:'加工品', uses:1, move:'fly', price:6, desc:'飞到 3 格内任意已知的非战斗节点，并获得 3 经验'},
@@ -7070,7 +7075,7 @@ function partTargets(p){
     case 'line3': return line(3);
     case 'ring': return ring();
     case 'ringline': return [...new Set([...ring(), ...line(2)])];
-    case 'step': return nbrs(cur).filter(k => N[k]);
+    case 'step': return all.filter(k => { const c = k % GCOLS, r = (k / GCOLS) | 0; return (c === c0 || r === r0) && gdist(k, cur) <= 2; });   // v0.34 重弹簧：直线 1–2 格
     case 'known': return all.filter(k => kn.has(k));
     case 'any': return all;
     case 'fly': return all.filter(k => kn.has(k) && gdist(k, cur) <= 3 && !['battle','elite','guard','source'].includes(N[k].type));
@@ -7404,6 +7409,10 @@ function genArena(sd, W, H){
     const cuts = lanes === 2 ? [Math.floor(H / 2) + ri(r, -1, 1)] : [Math.floor(H / 3) + ri(r, -1, 0), Math.floor(2 * H / 3) + ri(r, 0, 1)];
     for (const y of cuts){ const gs = gapsFor(); wall(y, gs); if (r() < .5) wall(y + 1, gs); }
   }
+  /* v0.34 战线墙里混一段飞行也过不去的地形：50% 有一段 3 格绝壁（挡视线），30% 有一段 3 格重力深渊（不挡视线） */
+  const seg = (ch, y) => { const sx = ri(r, x0 + 1, x1 - 3); for (let x = sx; x < sx + 3; x++) if (g[y] && g[y][x] === 'c') set(x, y, ch); };
+  const wallRows = []; for (let y = 0; y < H; y++) if (g[y].slice(x0, x1 + 1).filter(c => c === 'c').length > (x1 - x0) / 2) wallRows.push(y);
+  for (const y of wallRows.filter(y => !wallRows.includes(y - 1) || !wallRows.includes(y + 1))){ if (r() < .5) seg('x', y); if (r() < .3) seg('v', y); }   // 只改墙的边缘行
   g.lanes = lanes;
   return g;
 }
@@ -7499,7 +7508,7 @@ function buildStage(st, extra = 0){
       for (let tries = 0; tries < 400; tries++){
         const x = obj === 'reach' ? ri(r, Math.floor(W / 2) - 3, W - t.w - 5) : obj === 'targets' ? ri(r, Math.floor(W / 2), W - t.w - 6) : ri(r, W - 10, W - t.w - 1), y = ri(r, 1, H - t.h - 1), probe = {x, y, w:t.w, h:t.h};
         if (occ.some(o => distU(probe, o) < 1)) continue;
-        if (!st.rows && tilesOf(probe).some(([a, b]) => g[b] && (g[b][a] === 'c' || (!t.flying && g[b][a] === 'w')))) continue;   // v0.33 不把敌人放进裂谷，免得把战线墙挖穿
+        if (!st.rows && tilesOf(probe).some(([a, b]) => g[b] && (['c','x','v'].includes(g[b][a]) || (!t.flying && g[b][a] === 'w')))) continue;   // v0.33 不把敌人放进裂谷，免得把战线墙挖穿
         occ.push(probe); out.push({t:k, x, y, facing:'left', lv: lv + TIER_LV[tierOfEnemy(k)]});
         break;
       }
@@ -7513,7 +7522,7 @@ function buildStage(st, extra = 0){
   const waves = [{at:null, enemies}];
   if (st.waves) st.waves.forEach((wv, i) => { occ.length = 0; waves.push({at:wv.at || 3 + i*2, enemies:wv.enemies.map(e => ({t:e.t, x:e.x, y:e.y, facing:e.facing || 'left', lv:e.lv || lv}))}); });
   else later.forEach((list, i) => { occ.length = 0; waves.push({at:3 + i*2, enemies:place(list, true)}); });
-  for (const e of waves.flatMap(w => w.enemies)){ const t = ENEMY_T[e.t]; for (let j=0;j<t.h;j++) for (let i=0;i<t.w;i++) if (g[e.y+j] && (g[e.y+j][e.x+i] === 'c' || (!t.flying && g[e.y+j][e.x+i] === 'w'))) g[e.y+j][e.x+i] = '.'; }
+  for (const e of waves.flatMap(w => w.enemies)){ const t = ENEMY_T[e.t]; for (let j=0;j<t.h;j++) for (let i=0;i<t.w;i++) if (g[e.y+j] && (['c','x','v'].includes(g[e.y+j][e.x+i]) || (!t.flying && g[e.y+j][e.x+i] === 'w'))) g[e.y+j][e.x+i] = '.'; }
   const my = Math.floor(H/2);
   const spots = st.spots || [[2,my],[2,my-2],[2,my+2],[4,my-1],[4,my+1],[1,my-4],[1,my+4],[4,my-3],[4,my+3]].map(([x,y]) => [x, clamp(y,0,H-2)]);
   if (!st.rows) for (const [x,y] of spots) for (let j=0;j<2;j++) for (let i=0;i<2;i++) if (g[y+j] && g[y+j][x+i]) g[y+j][x+i] = '.';
@@ -7693,7 +7702,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.33';
+const GAME_VERSION = 'v0.34';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
@@ -7833,7 +7842,7 @@ requestAnimationFrame(draw);
  * ========================================================================== */
 const ED_KEY = 'mecha-tactics-editor';
 const ED_PROTO = ['tut1', 'tut2', 'tut3', 'defense', 'drill'];
-const ED_TER = [['.', '平原'], ['f', '森林'], ['m', '山地'], ['w', '水域'], ['c', '裂谷']];
+const ED_TER = [['.', '平原'], ['f', '森林'], ['m', '山地'], ['w', '水域'], ['c', '裂谷'], ['x', '绝壁'], ['v', '重力深渊']];
 const ED = {id:null, d:null, tool:'paint', ter:'.', etype:'grunt', elv:'', efacing:'left', wave:0, tp:24, drag:null, painting:false, dirty:false, testLv:20};
 /* 改动先放在内存里（ED_ALL），同时尽量写进浏览器存储；浏览器存储被禁用时也能照常编辑、试打和导出，只是刷新后会丢 */
 let ED_ALL = null, ED_SAVE_OK = true;

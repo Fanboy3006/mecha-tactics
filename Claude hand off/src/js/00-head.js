@@ -4,7 +4,7 @@ const N = 40, TS = 22;
 let MW = 40, MH = 40, SC = 1;
 const COL = {
   plain:'#3b4a37', plainDot:'#45553f', forest:'#264530', forestTree:'#1b3524',
-  mountain:'#5b4e40', mountainPeak:'#7a6a57', water:'#1f3d5c', wave:'#2f5679', chasm:'#07090c', crack:'#2a2f38',
+  mountain:'#5b4e40', mountainPeak:'#7a6a57', water:'#1f3d5c', wave:'#2f5679', chasm:'#07090c', crack:'#2a2f38', cliff:'#2b2622', cliffEdge:'#6b5f52', abyss:'#0d0718', abyssRing:'#5e2f94',
   grid:'rgba(0,0,0,.22)', ally:'#4f95e0', enemy:'#d9564b', acted:'#56606b',
   move:'rgba(90,160,230,.40)', atk:'rgba(224,90,79,.38)', threat:'#e9a23b', map:'rgba(233,162,59,.42)'
 };
