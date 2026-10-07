@@ -34,6 +34,7 @@ const ABIL = {
   lightning:{name:'闪电伯爵', desc:'本回合移动了 3 格以上后发动的近战攻击，暴击 +30。'},
   hitAway:{name:'一击脱离', desc:'主动攻击后，可以用本回合剩下的移动力继续移动。'},
   allIn:{name:'赌徒', desc:'命中率低于 70% 时，暴击 +30。'},
+  gambler:{name:'赌神', desc:'未命中的攻击有 50% 改为命中并暴击，这时暴击威力从 ×2 变成 ×4。'},
   lucky:{name:'天然', desc:'每个阶段第一次被攻击时，闪避 +30。'},
   wSeries:{name:'W 系列', desc:'人造人的冷静：被侧击 / 背击时不会被无视装甲，也不会被标记类技能破防。'},
   hotBlood:{name:'热血', desc:'每回合第一次主动攻击，伤害 +25%。'},
@@ -57,7 +58,7 @@ const ABIL = {
   berserk:{name:'狂暴', desc:'HP 低于 50% 时伤害 +30%。'},
   zocFree:{name:'渗透', desc:'（尖兵）无视敌方控制区：穿过敌人身边的格子不用停下。'},
   summon:{name:'召唤物', desc:'没有控制区：我方可以从它身边直接走过去。'},
-  mook:{name:'压制杂兵', desc:'（近卫）对杂兵伤害 +60%、命中 +20：一刀一个。'},
+  mook:{name:'压制杂兵', desc:'（近卫）打杂兵时攻击能力值 +100、命中 +20：一刀一个。'},
   lambdaShield:{name:'λ 力场', desc:'每个阶段前 2 次受到的伤害各减少 3000（在装甲之后结算）。'},
   /* ---- v0.24 普通档晋升被动（Lv20 解锁，Lv30 加强）：原来的 Lv20 武装改成了这些被动 ---- */
   lunaPower:{name:'全功率炮装', lv:20, desc:'（Lv20）光束攻击伤害 +20%；Lv30 起 +35%。'},
@@ -135,7 +136,8 @@ const distFrom = (u, d, o) => o && o.from ? distU(u, d, o.from[0], o.from[1]) : 
 const foesNear = (u, r) => units.filter(e => e.side !== u.side && e.side !== 'neutral' && e.hp > 0 && distU(u, e) <= r).length;
 const seedOn = u => u.hp < u.maxHp * .7 || foesNear(u, 2) >= 3;
 const trioN = u => units.filter(a => a !== u && a.side === u.side && a.hp > 0 && hasTrait(a,'trio') && distU(a, u) <= 3).length;
-const critMul = u => hasTrait(u,'zero') ? 1.5 : 1.2;
+const gamblerProc = u => hasTrait(u,'gambler') && Math.random() < .5;
+const critMul = u => hasTrait(u,'zero') ? 2.5 : 2;   // v0.37 暴击：武器威力 ×2（零式 ×2.5；赌神触发时 ×4）
 const hasStealth = t => abilOn(t,'stealth') || hasTrait(t,'hyperJammer') || (hasTrait(t,'ecs') && t.firedTurn !== turn);
 const noCounterVs = (att, w) => !!w && (w.noCounter || w.special === 'lock' || hasTrait(att,'hyperJammer'));
 /* 弱点 / 抗性：正数 = 弱点（生成阶段增伤），负数 = 抗性（百分比减免阶段，受破防削弱） */
@@ -156,53 +158,51 @@ function weakList(def, w, o = {}){
 function genMods(att, w, def, o = {}){
   const notes = [];
   let pct = 0;
-  for (const [k, v] of weakList(def, w, o)) if (v > 0){ pct += v; notes.push(`弱点·${k} +${v}%`); }
-  const t = tfx(att, 'dmg', def, w, o); if (t){ pct += t; notes.push(`特技 ${t > 0 ? '+' : ''}${t}%`); }
-  const b = att ? buffSum(att, 'dmg') : 0; if (b){ pct += b; notes.push(`增益 ${b > 0 ? '+' : ''}${b}%`); }
-  if (att && def && abilOn(att, 'mook') && def.key && tierOfEnemy(def.key) === '杂兵'){ pct += 60; notes.push('压制杂兵 +60%'); }   // v0.35 近卫
-  const rl = relicDmg(att, def, w, o); if (rl){ pct += rl; notes.push(`藏品 ${rl > 0 ? '+' : ''}${rl}%`); }
+  /* v0.37：原来的「伤害 +N%」都改成「攻击能力值 +N」；弱点 / 抗性移到武器威力（见 15 的 dmgCore） */
+  const sg = v => (v > 0 ? '+' : '') + v;
+  const t = tfx(att, 'dmg', def, w, o); if (t){ pct += t; notes.push(`特技 ${sg(t)}`); }
+  const b = att ? buffSum(att, 'dmg') : 0; if (b){ pct += b; notes.push(`增益 ${sg(b)}`); }
+  if (att && def && abilOn(att, 'mook') && def.key && tierOfEnemy(def.key) === '杂兵'){ pct += 100; notes.push('压制杂兵 +100'); }   // v0.35 近卫
+  const rl = relicDmg(att, def, w, o); if (rl){ pct += rl; notes.push(`藏品 ${sg(rl)}`); }
   const rm = RM();
   if (rm && att && att.side === 'ally'){
     const v = rm.atk * 2 + ((isSure(w) || w.fire === 'command') ? rm.art : 0) + (rm.overload ? 30 : 0);
-    if (v){ pct += v; notes.push(`肉鸽 +${v}%`); }
+    if (v){ pct += v; notes.push(`肉鸽 +${v}`); }
   }
   return {pct, notes};
 }
-const genApply = (att, w, def, dmg, o) => { const g = genMods(att, w, def, o); return g.pct ? Math.max(0, Math.round(dmg * (1 + g.pct/100))) : dmg; };
+const genApply = (att, w, def, dmg, o) => dmg;   // v0.37：加成都进了公式（reduceOnly / dmgCore 里算），这里不再预乘
+/* v0.37 伤害公式（作者 10-07 定）：伤害 =（武器威力 − 装甲）×（1 +（攻击能力值 − 防御值）/ 100），命中后最少 10。
+   - stage 2 的条目不再直接乘伤害，而是 def(c) 返回「防御值 +N」；
+   - stage 1 能量屏障、stage 3 λ 力场、stage 4 护盾在公式算完后处理（门槛 / 吸收，不是百分比）。 */
 const REDUCTIONS = [
   {id:'barrier', name:'能量屏障', stage:1, shield:true,
     applies:c => c.def.abilities.includes('barrier') && c.def.barrierLeft > 0 && c.dmg <= 2500,
     apply:c => { c.dmg = 0; c.nullified = true; if (!c.preview) c.def.barrierLeft--; return `≤2500 无效化（剩 ${c.preview ? c.def.barrierLeft : c.def.barrierLeft} 次）`; }},
   {id:'terrain', name:'地形防御', stage:2,
     applies:c => !c.def.flying && terrainOf(c.def).def > 0,
-    apply:c => { const v = terrainOf(c.def).def * c.defMul; c.dmg *= 1 - v/100; return `−${+v.toFixed(1)}%`; }},
+    def:c => terrainOf(c.def).def},
   {id:'frontArmor', name:'正面装甲', stage:2,
     applies:c => c.def.abilities.includes('frontArmor') && c.zone === 'front',
-    apply:c => { const v = 50 * c.defMul; c.dmg *= 1 - v/100; return `正面 −${+v.toFixed(1)}%`; }},
+    def:c => 50},
   {id:'gnShield', name:'GN 全盾', stage:2,
     applies:c => c.def.abilities.includes('gnShield') && c.zone === 'front' && !c.def.movedThisRound,
-    apply:c => { const v = 30 * c.defMul; c.dmg *= 1 - v/100; return `正面 −${+v.toFixed(1)}%`; }},
+    def:c => 30},
   {id:'physRed', name:'物理减免', stage:2,
     applies:c => c.w.dmgType === '物理' && buffSum(c.def,'physRed') > 0,
-    apply:c => { const v = buffSum(c.def,'physRed') * c.defMul; c.dmg *= 1 - v/100; return `−${+v.toFixed(1)}%`; }},
+    def:c => buffSum(c.def,'physRed')},
   {id:'guard', name:'防御姿态', stage:2,
     applies:c => c.reaction === 'defend',
-    apply:c => { const v = 50 * c.defMul; c.dmg *= 1 - v/100; return `−${+v.toFixed(1)}%`; }},
-  {id:'resist', name:'抗性', stage:2,
-    applies:c => weakList(c.def, c.w, c).some(([k,v]) => v < 0),
-    apply:c => { const l = weakList(c.def, c.w, c).filter(([k,v]) => v < 0), v = Math.min(95, -l.reduce((a,[k,x]) => a + x, 0)) * c.defMul; c.dmg *= 1 - v/100; return `${l.map(([k]) => k).join('、')} −${+v.toFixed(1)}%`; }},
+    def:c => 50},
   {id:'beamReflect', name:'光束反射', stage:2,
     applies:c => abilOn(c.def,'beamReflect') && c.w.dmgType === '光束',
-    apply:c => { const v = 50 * c.defMul, before = c.dmg; c.dmg *= 1 - v/100; if (c.w.fire === 'direct' || c.w.fire === 'melee') c.reflect = Math.round((before - c.dmg)/2); return `−${+v.toFixed(1)}%${c.reflect ? `（反射 ${c.reflect}）` : ''}`; }},
+    def:c => 50},
   {id:'softRed', name:'减伤（特技 / 增益）', stage:2,
     applies:c => softRed(c) > 0,
-    apply:c => { const v = Math.min(90, softRed(c)) * c.defMul; c.dmg *= 1 - v/100; return `−${+v.toFixed(1)}%`; }},
+    def:c => Math.min(90, softRed(c))},
   {id:'lambda', name:'λ 驱动器', stage:2,
     applies:c => abilOn(c.def,'lambda') && c.def.lambdaPhase !== phaseNo,
-    apply:c => { const v = 60 * c.defMul; c.dmg *= 1 - v/100; if (!c.preview) c.def.lambdaPhase = phaseNo; return `本阶段第一次 −${+v.toFixed(1)}%`; }},
-  {id:'armor', name:'装甲', stage:3,
-    applies:c => c.dmg > 0,
-    apply:c => { const base = effArmor(c.def), pr = c.zone && !hasTrait(c.def,'wSeries') ? ZONE[c.zone].pierce : 0, a = Math.round(base * c.defMul * (1 - pr/100)); c.dmg = Math.max(10, c.dmg - a); return `−${a}${a !== c.def.armor ? `（原 ${c.def.armor}${pr ? `，${ZONE[c.zone].name}无视 ${pr}%` : ''}）` : ''}`; }},
+    def:c => { if (!c.preview) c.def.lambdaPhase = phaseNo; return 60; }},
   {id:'lambdaShield', name:'λ 力场', stage:3, shield:true,
     applies:c => c.dmg > 0 && abilOn(c.def,'lambdaShield') && lsLeft(c.def) > 0,
     apply:c => { const a = Math.round(3000 * c.defMul); c.dmg = Math.max(0, c.dmg - a); if (!c.preview){ if (c.def.lsPhase !== phaseNo){ c.def.lsPhase = phaseNo; c.def.lsCount = 0; } c.def.lsCount++; refreshBadges(c.def); } return `−${a}（本阶段剩 ${lsLeft(c.def)} 次）`; }},

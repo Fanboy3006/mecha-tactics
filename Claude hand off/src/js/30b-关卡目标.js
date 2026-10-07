@@ -11,6 +11,46 @@ for (const k of ENEMY_TIER.头目) if (ENEMY_T[k]) ENEMY_T[k].weak = {...(ENEMY_
 for (const k of Object.keys(ENEMY_T)) ENEMY_T[k].key = k;   // v0.35 单位上记住模板键，方便按梯队判断
 const tierOfEnemy = k => ENEMY_BOSS.includes(k) || k === 'flagship' ? 'Boss' : Object.keys(ENEMY_TIER).find(t => ENEMY_TIER[t].includes(k)) || '杂兵';
 const TIER_LV = {杂兵:0, 精锐:1, 头目:2, Boss:2};
+/* ---------- v0.37 新伤害公式：防御 / 觉醒属性，旧武器威力换算 ----------
+   新公式：伤害 =（威力 − 装甲）×（1 +（攻击能力值 − 防御值）/ 100）。
+   防御：我方按职业、敌方按梯队给初始值，每级 +2，晋升 +25。觉醒：暂时全员 100（角色对话再按设定分配）。
+   源数据里的 power 还是旧公式（威力 + 属性 ×5）的数值，开局时按下面的参照点换算成新公式的威力，让参照情形下伤害不变：
+   - 我方武器：Lv10 的攻击方，打 Lv2 杂兵（杂兵平均装甲、防御 52）；
+   - 敌方武器：Lv5 的敌人，打 Lv10 我方平均（装甲 600、防御 103）；
+   - 特殊伤害 / 无视防御：装甲、防御都按 0。
+   角色对话以后按新公式重新写某个角色的武器时，把它的机体代号加进 NEW_POWER，它就不再换算。 */
+const DEF_BY_CLASS = {重装:110, 近卫:95, 特种:85, 辅助:80, 狙击:75, 尖兵:75};
+const DEF_BY_TIER = {杂兵:50, 精锐:65, 头目:80, Boss:95};
+const NEW_POWER = new Set([]);
+function convPow(P, statRef, multi, noDef, Aref, Dref){
+  const old = P + (multi ? .5 : 5) * statRef;
+  if (noDef) return Math.max(1, Math.round(old / (1 + statRef / 100)));
+  const coef = Math.max(.3, 1 + (statRef - Dref) / 100);
+  return Math.max(1, Math.round((old - Aref) / coef + Aref));
+}
+function convWeapons(ws, t, lvAdd, Aref, Dref){
+  for (const w of ws){
+    if (!(w.power > 0) || w.fire === 'heal' || w.fire === 'support' || w.fire === 'device' || w.special === 'gamble' || w.v37) continue;
+    const sr = (w.stat === '格斗' ? t.melee : t.shoot) + lvAdd, multi = w.special === 'multi' || w.special === 'funnel';
+    const f = (p, dt) => convPow(p, sr, multi, dt === '特殊' || w.ignoreDef, Aref, Dref);
+    w.power = f(w.power, w.dmgType);
+    for (const up of w.upgrades || []) if (up.power > 0) up.power = f(up.power, w.dmgType);
+    if (w.awaken && w.awaken.power > 0) w.awaken.power = f(w.awaken.power, w.awaken.dmgType || w.dmgType);
+    w.v37 = true;
+  }
+}
+{
+  const gA = Math.round(ENEMY_TIER.杂兵.reduce((t, k) => t + ENEMY_T[k].armor, 0) / ENEMY_TIER.杂兵.length), gD = DEF_BY_TIER.杂兵 + 2;   // 杂兵平均装甲
+  ALLY_T.forEach(t => {
+    t.defense = t.defense ?? DEF_BY_CLASS[t.tags.战斗分类] ?? 85; t.awaken = t.awaken ?? 100;
+    if (!NEW_POWER.has(t.mech)) convWeapons(t.weapons, t, 18, gA, gD);
+  });
+  for (const f of Object.values(FORMS)) if (f.weapons){ const t = ALLY_T.find(a => a.transform && FORMS[a.transform] === f) || {melee:150, shoot:150}; convWeapons(f.weapons, t, 18, gA, gD); }
+  for (const [k, t] of Object.entries(ENEMY_T)){
+    t.defense = t.defense ?? DEF_BY_TIER[tierOfEnemy(k)] ?? 50; t.awaken = t.awaken ?? 100;
+    convWeapons(t.weapons, t, 8, 600, 103);
+  }
+}
 /* 按梯队挑 n 个：一半概率从本关主题里有的挑 */
 /* v0.32.1 头目按层开放：第 1 层只有指挥官机、狂战士；第 2 层加浮游炮母机、自修复机；第 3 层起才有 λ 试作机 */
 const HEAD_BY_LAYER = [null, ['captain','berserker'], ['captain','berserker','funnel','regen'], null, null];

@@ -329,7 +329,7 @@ function execCommand(x, y){
     S.echoFlash = {set, t0:performance.now()};
     fx('beam', {a:[x*TS+TS/2, -40], b:[x*TS+TS/2, y*TS+TS/2], color:'#ffb38a', dur:420});
     for (const u of hitU){
-      const d = reduceOnly(CMD.unit, pw, u, genApply(CMD.unit, pw, u, k.dmg, {}), null, null, false);
+      const d = reduceOnly(CMD.unit, pw, u, k.dmg, null, null, false);
       u.hp = Math.max(0, u.hp - d); addFloat(u, String(d), '#ffb38a');
       log(`${fullName(u)} 受到 ${d} 伤害`, null, u.side);
       if (u.hp <= 0) destroy(u, null);

@@ -36,9 +36,10 @@ async function strike(att, w, def, reaction, {skipConsume=false, zone=null, coun
     let total = 0, nh = 0;
     for (let i=0;i<w.hits;i++){
       const zz = funnelZone(def, pick(FUNNEL_DIRS)), q = hitRate(att,w,def,reaction,undefined,{zone:zz, counter}).hit;
-      if (Math.random()*100 < q){
-        const cr = Math.random()*100 < critRate(w,att,def,{zone:zz, reaction}), d = reduceOnly(att, w, def, genApply(att, w, def, cr ? Math.round(per*critMul(att)) : per, {crit:cr, counter}), reaction, null, false, cr);
-        total += d; nh++; rolls.push(`第 ${i+1} 段（${ZONE[zz].name} ${q}%）命中 ${d}${cr ? ' 暴击' : ''}`);
+      const hitR = Math.random()*100 < q, god = !hitR && gamblerProc(att);
+      if (hitR || god){
+        const cr = god || Math.random()*100 < critRate(w,att,def,{zone:zz, reaction}), d = perHit(att, w, def, {reaction, preview:false, crit:cr, critX: god ? 4 : 0, counter});
+        total += d; nh++; rolls.push(`第 ${i+1} 段（${ZONE[zz].name} ${q}%）${god ? '未中 → 赌神：暴击 ×4' : '命中'} ${d}${cr && !god ? ' 暴击' : ''}`);
       } else rolls.push(`第 ${i+1} 段（${ZONE[zz].name} ${q}%）未中`);
     }
     def.hp = Math.max(0, def.hp - total);
@@ -56,9 +57,10 @@ async function strike(att, w, def, reaction, {skipConsume=false, zone=null, coun
     let p = w.hit, total = 0, nh = 0;
     for (let i=0;i<w.hits;i++){
       const q = hitRate(att,w,def,reaction,p,zo).hit;
-      if (Math.random()*100 < q){
-        const cr = Math.random()*100 < cr0, d = reduceOnly(att, w, def, genApply(att, w, def, cr ? Math.round(per*critMul(att)) : per, {zone:z, crit:cr, counter}), reaction, z, false, cr);
-        total += d; nh++; rolls.push(`第 ${i+1} 段（${q}%）命中 ${d}${cr ? ' 暴击' : ''}`); p -= w.step;
+      const hitR = Math.random()*100 < q, god = !hitR && gamblerProc(att);
+      if (hitR || god){
+        const cr = god || Math.random()*100 < cr0, d = perHit(att, w, def, {reaction, zone:z, preview:false, crit:cr, critX: god ? 4 : 0, counter});
+        total += d; nh++; rolls.push(`第 ${i+1} 段（${q}%）${god ? '未中 → 赌神：暴击 ×4' : '命中'} ${d}${cr && !god ? ' 暴击' : ''}`); p -= w.step;
       } else { rolls.push(`第 ${i+1} 段（${q}%）未中`); p += w.step; }
     }
     def.hp = Math.max(0, def.hp - total);
@@ -71,21 +73,23 @@ async function strike(att, w, def, reaction, {skipConsume=false, zone=null, coun
     if (def.hp <= 0) destroy(def, att); else turnDef();
     await sleep(520); return;
   }
-  if (Math.random()*100 >= hit){
+  const missed = Math.random()*100 >= hit, godHit = missed && gamblerProc(att);   // v0.37 赌神：未命中的攻击 50% 改为命中并暴击（×4）
+  if (missed && !godHit){
     fx('miss', {b:cpx(def), dur:350});
     addFloat(def, 'MISS', '#c9d3dd');
     log(`${head} 被回避`, null, att.side);
     after();
     Hooks.emit('strikeResolved', {att, def, w, hit:false, zone:z, counter});
   } else {
-    const isCrit = Math.random()*100 < cr0;
+    const isCrit = godHit || Math.random()*100 < cr0;
     const outcome = Math.random() < .5 ? 'fixed' : 'pct';
-    const c = damageCalc(att, w, def, {crit:isCrit, reaction, preview:false, outcome, zone:z, counter});
+    const c = damageCalc(att, w, def, {crit:isCrit, critX: godHit ? 4 : 0, reaction, preview:false, outcome, zone:z, counter});
+    if (godHit) c.steps.unshift('未命中 → 赌神：改为命中，暴击威力 ×4');
     def.hp = Math.max(0, def.hp - c.dmg);
     if (w.special === 'execute' && def.hp > 0 && def.hp <= def.maxHp * wv(att, w, 'exec') / 100){ def.hp = 0; c.steps.push(`斩首：剩余 HP 不超过 ${wv(att, w, 'exec')}%，直接击破`); }
     fx(c.nullified ? 'spark' : 'burst', {b:cpx(def), crit:isCrit, seed:Math.random(), dur: isCrit ? 480 : 380});
     addFloat(def, c.nullified ? '无效' : String(c.dmg), isCrit ? '#e9a23b' : '#ffffff');
-    log(`${head} ${isCrit ? '暴击！' : '命中'} 伤害 ${c.dmg}`, c.steps, att.side);
+    log(`${head} ${godHit ? '赌神！' : isCrit ? '暴击！' : '命中'} 伤害 ${c.dmg}`, c.steps, att.side);
     after();
     Hooks.emit('strikeResolved', {att, def, w, hit:true, crit:isCrit, dmg:c.dmg, zone:z, counter});
     if (def.hp <= 0){ killedTiles = tilesOf(def); destroy(def, att); }

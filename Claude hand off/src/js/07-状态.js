@@ -14,11 +14,11 @@ function makeUnit(t, side, x, y){
     tags:{...(t.tags||{})}, abilities:[...t.abilities], weapons:t.weapons.map(w => ({...w, usesLeft:w.uses, cdLeft:0}))};
 }
 function levelUp(u, heal=false){
-  u.lv++; u.maxHp += 200; if (heal) u.hp += 200; u.melee += 2; u.shoot += 2; u.skill += 2;
-  /* v0.24 晋升档位：我方到 Lv20、Lv30 时基础属性再提升一档（HP 和装甲 +25%，格斗 / 射击 / 技量 +25，闪避 +8；Lv30 移动 +1） */
+  u.lv++; u.maxHp += 200; if (heal) u.hp += 200; u.melee += 2; u.shoot += 2; u.awaken = (u.awaken ?? 100) + 2; u.defense = (u.defense || 0) + (u.side === 'neutral' ? 0 : 2);
+  /* v0.24 晋升档位：我方到 Lv20、Lv30 时基础属性再提升一档（HP 和装甲 +25%，格斗 / 射击 / 觉醒 / 防御 +25，闪避 +8；Lv30 移动 +1）。v0.37 去掉技量，加觉醒、防御 */
   if (u.side === 'ally' && (u.lv === 20 || u.lv === 30)){
     const add = Math.round(u.maxHp * .25); u.maxHp += add; if (heal) u.hp += add;
-    u.armor = Math.round(u.armor * 1.25); u.melee += 25; u.shoot += 25; u.skill += 25; u.eva += 8; u.aim += 10;
+    u.armor = Math.round(u.armor * 1.25); u.melee += 25; u.shoot += 25; u.awaken += 25; u.defense += 25; u.eva += 8; u.aim += 10;
     if (u.lv === 30) u.mov += 1;
   }
 }
