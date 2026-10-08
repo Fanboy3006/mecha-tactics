@@ -293,7 +293,7 @@ async function runChase(){
   const cp = stagesOf(RUN.layer, 'chase'); await runBattle('chase', cp.length ? cp[(RUN.seedBase + RUN.layer) % cp.length].code : null);
 }
 async function runFinal(){
-  await dlg(`<div class="eyebrow" style="color:var(--enemy)">终点</div><h2>迷宫之主</h2><p>穿过 3 层航区，迷宫最深处的指挥舰在等着你。</p><div class="acts"><button class="btn primary" data-v="ok">出击</button></div>`);
+  await passageDlg(`<div class="eyebrow" style="color:var(--enemy)">终点</div><h2>迷宫之主</h2><p>穿过 3 层航区，迷宫最深处的指挥舰在等着你。</p>`, '<button class="btn primary" data-v="ok">出击</button>');   // v0.40.8 出击前可以用招募券
   await runBattle('final', 'ISW-4-F-1');
 }
 async function cmdXP(x){

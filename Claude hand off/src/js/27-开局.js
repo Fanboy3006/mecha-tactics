@@ -88,6 +88,16 @@ async function useTicket(i){
   runLog(`招募 ${tplOf(v).pilot}（${TIER_NAME[tierOf(v)]}，−${recCost(v)} 希望）`);
   relicPendingPromo();
 }
+/* v0.40.8 通往下一层的关口（出口、层底守军、终点迷宫之主）先整备（作者 10-08）：
+   手上有招募券时，对话框里列出来，点了就用（招募 / 晋升），用完回到这个对话框；acts 是关口自己的按钮。 */
+async function passageDlg(head, acts){
+  for (;;){
+    const tk = RUN.tickets.length ? `<div class="fgroup"><i style="--fc:var(--accent)"></i>手上的招募券（希望 ${RUN.hope}）：出发前可以先用</div><div class="acts">${RUN.tickets.map((c, i) => `<button class="btn" data-v="t:${i}">${ticketName(c)}</button>`).join('')}</div>` : '';
+    const v = await dlg(`${head}${tk}<div class="acts">${acts}</div>`);
+    if (typeof v === 'string' && v.startsWith('t:')){ await useTicket(+v.slice(2)); runRender(); continue; }
+    return v;
+  }
+}
 /* 部队等级：作战和事件给经验，升级时获得希望（希望只从这里来） */
 const LV_NEED = [0, 0, 8, 18, 30, 44, 60, 78, 98, 120, 144, 170];
 const HOPE_PER_LV = 5;

@@ -45,9 +45,12 @@ async function resolveNode(k){
   }
   if (n.type === 'empty' || (n.cleared && !['exit','guard','shop'].includes(n.type))) return;
   switch (n.type){
-    case 'battle': case 'elite': case 'source': case 'guard': await runBattle(n.type, n.stage); return;
+    case 'guard':   // v0.40.8 层底守军（通往下一层的关口）：有招募券时先整备
+      if (RUN.tickets.length) await passageDlg(`<div class="eyebrow" style="color:var(--enemy)">层底守军</div><h2>出击前整备</h2><p class="small">打赢这一战就进入下一层。</p>`, '<button class="btn primary" data-v="go">出击</button>');
+      await runBattle(n.type, n.stage); return;
+    case 'battle': case 'elite': case 'source': await runBattle(n.type, n.stage); return;
     case 'exit': {
-      const v = await dlg(`<div class="eyebrow" style="color:var(--good)">出口</div><h2>进入第 ${RUN.layer + 1 === 4 ? '终点' : (RUN.layer + 1) + ' 层'}？</h2><p class="small">没有守军，直接前往下一层。本层还没探索的节点会留在身后。</p><div class="acts"><button class="btn primary" data-v="go">前进</button><button class="btn" data-v="no">再看看</button></div>`);
+      const v = await passageDlg(`<div class="eyebrow" style="color:var(--good)">出口</div><h2>进入第 ${RUN.layer + 1 === 4 ? '终点' : (RUN.layer + 1) + ' 层'}？</h2><p class="small">没有守军，直接前往下一层。本层还没探索的节点会留在身后。</p>`, '<button class="btn primary" data-v="go">前进</button><button class="btn" data-v="no">再看看</button>');
       if (v === 'go') await enterLayer(RUN.layer + 1);
       return;
     }

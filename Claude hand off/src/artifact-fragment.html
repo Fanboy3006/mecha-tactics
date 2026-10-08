@@ -6373,6 +6373,16 @@ async function useTicket(i){
   runLog(`招募 ${tplOf(v).pilot}（${TIER_NAME[tierOf(v)]}，−${recCost(v)} 希望）`);
   relicPendingPromo();
 }
+/* v0.40.8 通往下一层的关口（出口、层底守军、终点迷宫之主）先整备（作者 10-08）：
+   手上有招募券时，对话框里列出来，点了就用（招募 / 晋升），用完回到这个对话框；acts 是关口自己的按钮。 */
+async function passageDlg(head, acts){
+  for (;;){
+    const tk = RUN.tickets.length ? `<div class="fgroup"><i style="--fc:var(--accent)"></i>手上的招募券（希望 ${RUN.hope}）：出发前可以先用</div><div class="acts">${RUN.tickets.map((c, i) => `<button class="btn" data-v="t:${i}">${ticketName(c)}</button>`).join('')}</div>` : '';
+    const v = await dlg(`${head}${tk}<div class="acts">${acts}</div>`);
+    if (typeof v === 'string' && v.startsWith('t:')){ await useTicket(+v.slice(2)); runRender(); continue; }
+    return v;
+  }
+}
 /* 部队等级：作战和事件给经验，升级时获得希望（希望只从这里来） */
 const LV_NEED = [0, 0, 8, 18, 30, 44, 60, 78, 98, 120, 144, 170];
 const HOPE_PER_LV = 5;
@@ -6574,9 +6584,12 @@ async function resolveNode(k){
   }
   if (n.type === 'empty' || (n.cleared && !['exit','guard','shop'].includes(n.type))) return;
   switch (n.type){
-    case 'battle': case 'elite': case 'source': case 'guard': await runBattle(n.type, n.stage); return;
+    case 'guard':   // v0.40.8 层底守军（通往下一层的关口）：有招募券时先整备
+      if (RUN.tickets.length) await passageDlg(`<div class="eyebrow" style="color:var(--enemy)">层底守军</div><h2>出击前整备</h2><p class="small">打赢这一战就进入下一层。</p>`, '<button class="btn primary" data-v="go">出击</button>');
+      await runBattle(n.type, n.stage); return;
+    case 'battle': case 'elite': case 'source': await runBattle(n.type, n.stage); return;
     case 'exit': {
-      const v = await dlg(`<div class="eyebrow" style="color:var(--good)">出口</div><h2>进入第 ${RUN.layer + 1 === 4 ? '终点' : (RUN.layer + 1) + ' 层'}？</h2><p class="small">没有守军，直接前往下一层。本层还没探索的节点会留在身后。</p><div class="acts"><button class="btn primary" data-v="go">前进</button><button class="btn" data-v="no">再看看</button></div>`);
+      const v = await passageDlg(`<div class="eyebrow" style="color:var(--good)">出口</div><h2>进入第 ${RUN.layer + 1 === 4 ? '终点' : (RUN.layer + 1) + ' 层'}？</h2><p class="small">没有守军，直接前往下一层。本层还没探索的节点会留在身后。</p>`, '<button class="btn primary" data-v="go">前进</button><button class="btn" data-v="no">再看看</button>');
       if (v === 'go') await enterLayer(RUN.layer + 1);
       return;
     }
@@ -7128,7 +7141,7 @@ async function runChase(){
   const cp = stagesOf(RUN.layer, 'chase'); await runBattle('chase', cp.length ? cp[(RUN.seedBase + RUN.layer) % cp.length].code : null);
 }
 async function runFinal(){
-  await dlg(`<div class="eyebrow" style="color:var(--enemy)">终点</div><h2>迷宫之主</h2><p>穿过 3 层航区，迷宫最深处的指挥舰在等着你。</p><div class="acts"><button class="btn primary" data-v="ok">出击</button></div>`);
+  await passageDlg(`<div class="eyebrow" style="color:var(--enemy)">终点</div><h2>迷宫之主</h2><p>穿过 3 层航区，迷宫最深处的指挥舰在等着你。</p>`, '<button class="btn primary" data-v="ok">出击</button>');   // v0.40.8 出击前可以用招募券
   await runBattle('final', 'ISW-4-F-1');
 }
 async function cmdXP(x){
@@ -7171,7 +7184,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.40.7';
+const GAME_VERSION = 'v0.40.8';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
@@ -7599,7 +7612,7 @@ $('#btnSound').onclick = () => setSound(!SOUND.on);
 document.addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !/INPUT|TEXTAREA|SELECT/.test((e.target.tagName || ''))) setSound(!SOUND.on); });
 if (!AU) $('#btnSound').hidden = true; else setSound(SOUND.on);
 
-window.__game = {get HANGAR(){ return HANGAR; }, wStatus, startWait, readyTurnOf, cutCd, startCdOf, get BATTLE_ID(){ return BATTLE_ID; }, RELAYS, deployTiles, startDeploy, doDeploy, doRetreat, doRelay, canRetreat, canRelay, makeUnit, levelUp, reach, zocSet, moveWatched, bestCounter, legalFaces, get phaseNo(){ return phaseNo; }, damageCalc, dispPow, atkStat, wPow, get map(){ return map; }, RELICS, gainRelic(id){ if (RUN && RELICS[id]){ RUN.relics = RUN.relics || []; if (!RUN.relics.includes(id)) RUN.relics.push(id); } return RUN ? RUN.relics : null; }, AIM_BY_CLASS, guardReach, recCost, tierOf, FACTIONS, ticketOk, ticketName, get sound(){ return {on:SOUND.on, scene:SOUND.scene, cue:AU && AU.state().cue}; }, get RUN(){ return RUN; }, STAGES, buildStage, rlogRecord, rlogText, openRunLogs, enterLayer, checkEnd, moveDist, runClickNode, runBattle, moveTargets, partTargets, get level(){ return level; }, get units(){ return units; }, data:{ALLY_T, ENEMY_T, ABIL, COMMANDS, TRIALS, FIRE}, get roster(){ return roster; }, get LV(){ return LV; }, get turn(){ return turn; }, get over(){ return over; }, setSpeed(v){ SPEED = v; }, startLevel, toggleLock, execCommand, attackables, bestWeaponFor, select, weaponUsable, get S(){ return S; }, orderMeteor, resolveMeteors, get CMD(){ return CMD; }, setTurn(t){ turn = t; }, pushUnit, get walls(){ return walls; }, echoArea, finish, zoneOf, battle, onTile, onAction, endTurn, cheatLevel, choosePick, mapDirs, losClear, canHit, forecast, get editor(){ return {ED, store:edStore()}; }, get art(){ return MI; }, unitSprite, iconIdOf,
+window.__game = {get HANGAR(){ return HANGAR; }, passageDlg, addTicket, wStatus, startWait, readyTurnOf, cutCd, startCdOf, get BATTLE_ID(){ return BATTLE_ID; }, RELAYS, deployTiles, startDeploy, doDeploy, doRetreat, doRelay, canRetreat, canRelay, makeUnit, levelUp, reach, zocSet, moveWatched, bestCounter, legalFaces, get phaseNo(){ return phaseNo; }, damageCalc, dispPow, atkStat, wPow, get map(){ return map; }, RELICS, gainRelic(id){ if (RUN && RELICS[id]){ RUN.relics = RUN.relics || []; if (!RUN.relics.includes(id)) RUN.relics.push(id); } return RUN ? RUN.relics : null; }, AIM_BY_CLASS, guardReach, recCost, tierOf, FACTIONS, ticketOk, ticketName, get sound(){ return {on:SOUND.on, scene:SOUND.scene, cue:AU && AU.state().cue}; }, get RUN(){ return RUN; }, STAGES, buildStage, rlogRecord, rlogText, openRunLogs, enterLayer, checkEnd, moveDist, runClickNode, runBattle, moveTargets, partTargets, get level(){ return level; }, get units(){ return units; }, data:{ALLY_T, ENEMY_T, ABIL, COMMANDS, TRIALS, FIRE}, get roster(){ return roster; }, get LV(){ return LV; }, get turn(){ return turn; }, get over(){ return over; }, setSpeed(v){ SPEED = v; }, startLevel, toggleLock, execCommand, attackables, bestWeaponFor, select, weaponUsable, get S(){ return S; }, orderMeteor, resolveMeteors, get CMD(){ return CMD; }, setTurn(t){ turn = t; }, pushUnit, get walls(){ return walls; }, echoArea, finish, zoneOf, battle, onTile, onAction, endTurn, cheatLevel, choosePick, mapDirs, losClear, canHit, forecast, get editor(){ return {ED, store:edStore()}; }, get art(){ return MI; }, unitSprite, iconIdOf,
   /* 给工具用：全部单位模板（含未出场的），tools/roster.mjs 靠它检查图标覆盖率。roster 已被玩家编队占用，所以叫 templates */
   get templates(){ return {allies: ALLY_T, enemies: ENEMY_T, forms: FORMS, debris: DEBRIS_T}; },
   get levels(){ return LEVELS; }};
