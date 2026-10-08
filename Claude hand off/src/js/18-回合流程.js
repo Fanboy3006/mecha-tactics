@@ -438,14 +438,14 @@ function startLevel(id){
   setMapSize(LV.w, LV.h, Math.max(1, Math.min(1.7, (wrap.clientWidth - 4) / (LV.w*TS))));
   map = LV.rows.map(r => [...r].map(c => TILE_CH[c]));
   if (LV.rosterList){
-    roster = LV.rosterList.map(({mech, lv}) => { const u = makeUnit(ALLY_T.find(t => t.mech === mech), 'ally', 0, 0); for (let k=1;k<lv;k++) levelUp(u, true); return u; });
+    roster = LV.rosterList.map(({mech, lv}) => { const u = makeUnit(allyTplOf(mech), 'ally', 0, 0); for (let k=1;k<lv;k++) levelUp(u, true); return u; });
     units = [];
   } else if (LV.spots){
     roster = ALLY_T.map(t => { const u = makeUnit(t, 'ally', 0, 0); for (let k=1;k<(LV.rosterLv||1);k++) levelUp(u, true); return u; });
     units = [];
   } else {
     roster = LV.allies.map(a => {
-      const u = makeUnit(ALLY_T.find(t => t.mech === a.mech), 'ally', a.x, a.y);
+      const u = makeUnit(allyTplOf(a.mech), 'ally', a.x, a.y);
       u.facing = a.facing || 'right'; if (a.flying != null) u.flying = a.flying; if (a.forceTrait) u.forceTrait = true;
       for (let k=1;k<(a.lv||1);k++) levelUp(u, true);
       u.deployed = true;
