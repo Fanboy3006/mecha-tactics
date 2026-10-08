@@ -137,6 +137,25 @@ function drawFX(now){
 }
 function addFloat(u, text, color){ if (color === '#9fe0b8' && text[0] === '+') snd('heal');   // 回复类数字都走这里，顺便出回复音效
   floats.push({x:u.x*TS+u.w*TS/2, y:u.y*TS, text, color, t0:performance.now()}); }
+/* v0.38 朝向范围：当前朝向下，能用来反击 / 压制射击的武器打得到的格子 */
+let covCache = {k:'', cells:[]};
+function coverCells(u){
+  const k = `${u.uid}|${u.x},${u.y}|${u.facing}|${u.lv}|${turn}|${units.length}`;
+  if (covCache.k === k) return covCache.cells;
+  const ws = u.weapons.filter(w => u.lv >= (w.unlock || 1) && ATTACK_FIRES.includes(w.fire) && !isSure(w) && !wStatus(u, w, {counter:true}));
+  const out = [];
+  for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++){
+    if (tilesOf(u).some(([a, b]) => a === x && b === y)) continue;
+    const dummy = {x, y, w:1, h:1, flying:false, side:'neutral', abilities:[]};
+    if (ws.some(w => canHit(u, w, dummy, u.x, u.y, u.facing))) out.push({x, y});
+  }
+  covCache = {k, cells:out};
+  return out;
+}
+function drawCover(u, color){
+  const cs = coverCells(u); if (!cs.length) return;
+  ctx.fillStyle = color; for (const t of cs) ctx.fillRect(t.x*TS+1, t.y*TS+1, TS-1, TS-1);
+}
 function fillTiles(list, color){ ctx.fillStyle = color; for (const t of list) ctx.fillRect(t.x*TS+1, t.y*TS+1, TS-1, TS-1); }
 function draw(now){
   ctx.clearRect(0,0,MW*TS,MH*TS);
@@ -186,6 +205,8 @@ function draw(now){
       ctx.stroke();
     }
   }
+  if (S.sel && ['menu','weapon','pick'].includes(S.mode)) drawCover(S.sel, abilOn(S.sel, 'overwatch') ? 'rgba(255,211,107,.22)' : 'rgba(233,162,59,.14)');
+  else if (S.mode === 'idle' && S.inspect && S.inspect.hp > 0 && S.inspect.side !== 'neutral') drawCover(S.inspect, S.inspect.side === 'enemy' ? 'rgba(224,90,79,.13)' : 'rgba(233,162,59,.14)');
   if (S.mode === 'moving' || S.mode === 'moving2'){
     fillTiles(S.reach, COL.move);
     ctx.strokeStyle = 'rgba(224,90,79,.85)'; ctx.lineWidth = 1.5;   // v0.36 控制区：走到这里就得停

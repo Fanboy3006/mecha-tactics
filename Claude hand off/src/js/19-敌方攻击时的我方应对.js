@@ -17,7 +17,7 @@ function askGuard(att, w, def, g, counter = false){
 function askReaction(att, w, def){
   return new Promise(resolve => {
     const fNone = forecast(att, w, def, null), fDef = forecast(att, w, def, 'defend'), fEva = forecast(att, w, def, 'evade');
-    const cws = noCounterVs(att, w) ? [] : def.weapons.filter(cw => !wStatus(def,cw,{counter:true}) && canHit(def,cw,att));
+    const cws = noCounterVs(att, w) ? [] : def.weapons.filter(cw => !wStatus(def,cw,{counter:true}) && canHit(def,cw,att,def.x,def.y,def.facing));
     const cBtns = cws.length ? cws.map((cw,i) => {
       const f = forecast(def, cw, att, null, {defFacing: dirToward(att, def), counter:true});
       return `<button class="w" data-c="${i}"><div class="wn"><span>${cw.name}</span><span class="why ok">命中 ${f.hit}%</span></div>

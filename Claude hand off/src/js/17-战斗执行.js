@@ -23,12 +23,12 @@ async function strike(att, w, def, reaction, {skipConsume=false, zone=null, coun
     if (!def.hitLog || def.hitLog.turn !== turn) def.hitLog = {turn, by:new Set()};
     def.hitLog.by.add(att.uid);
   };
-  if (!isSure(w)) att.facing = dirToward(att, def);
+  if (!isSure(w) && !counter) att.facing = pickFace(att, w, def);   // v0.38 主动攻击转向并锁定；反击 / 压制射击不转身
   const zo = zone ? {zone, counter} : {counter};
   const {hit, zone:z} = hitRate(att,w,def,reaction,undefined,zo);
   const cr0 = critRate(w,att,def,{...zo, reaction});
   const head = `${fullName(att)}【${w.name}】→ ${fullName(def)}（${z ? ZONE[z].name + ' · ' : ''}命中 ${hit}%）`;
-  const turnDef = () => { if (!isSure(w) && def.hp > 0) def.facing = dirToward(def, att); };
+  const turnDef = () => { if (!isSure(w) && def.hp > 0 && def.abilities.includes('frontArmor')) def.facing = dirToward(def, att); };   // v0.38 被打的一方不再自动转身（朝向是自己定的防守决策）；只有正面装甲机（教学 2 的铁壁）还会转身
   let killedTiles = null;
   await fxAttack(att, w, def);
   if (w.special === 'funnel'){
@@ -119,7 +119,7 @@ async function battle(att, w, def, reaction, cw, {guard=false} = {}){
   if (reaction === 'evade') log(`${fullName(def)} 选择回避`, null, def.side);
   await strike(att, w, def, reaction, guard ? {zone:'front'} : {});
   if (def.hp > 0 && att.hp > 0 && reaction === 'counter' && cw){
-    if (!wStatus(def,cw,{counter:true}) && canHit(def,cw,att)){
+    if (!wStatus(def,cw,{counter:true}) && canHit(def,cw,att,def.x,def.y,def.facing)){
       // v0.25 进攻援护：我方攻击后被反击时，相邻的进攻援护机体可以代为承受
       const g = att.side === 'ally' ? units.find(m => m !== att && m.side === 'ally' && m.hp > 0 && abilOn(m,'guardAtk') && m.guardLeft > 0 && guardReach(m, att)) : null;
       if (g && await askGuard(def, cw, att, g, true)){

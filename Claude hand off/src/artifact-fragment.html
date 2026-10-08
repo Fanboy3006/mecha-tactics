@@ -3084,6 +3084,7 @@ const ABIL = {
   jamAura:{name:'电子干扰', desc:'光环：3 格内的敌对单位命中 −15。'},
   commandAura:{name:'指挥链路', desc:'光环：3 格内的其他同伴命中 +15、受到的伤害 −10%。'},
   berserk:{name:'狂暴', desc:'HP 低于 50% 时伤害 +30%。'},
+  overwatch:{name:'压制射击', desc:'（狙击）敌方阶段，第一个走进当前朝向攻击范围的敌人挨一发（每个敌方阶段 1 次，目标不能反击，打完它继续走）。'},
   zocFree:{name:'渗透', desc:'（尖兵）无视敌方控制区：穿过敌人身边的格子不用停下。'},
   summon:{name:'召唤物', desc:'没有控制区：我方可以从它身边直接走过去。'},
   mook:{name:'压制杂兵', desc:'（近卫）打杂兵时攻击能力值 +100、命中 +20：一刀一个。'},
@@ -3510,7 +3511,7 @@ ALLY_T.forEach(t => {
   /* v0.25 分类通用机制：近卫 DASH、狙击援护攻击、重装援护防御；卡嘉莉的援护防御在我方阶段也能用 */
   const cls = t.tags.战斗分类, add = k => { if (!t.abilities.includes(k)) t.abilities.push(k); };
   if (cls === '近卫'){ add('dash'); add('mook'); }   // v0.35 近卫：压制杂兵
-  if (cls === '狙击') add('supportAtk');
+  if (cls === '狙击'){ add('supportAtk'); add('overwatch'); }   // v0.38 压制射击
   if (cls === '尖兵') add('zocFree');   // v0.36 ZOC：尖兵无视控制区
   if (cls === '重装') add('guard');
   if (t.mech === 'S2') add('guardAtk');
@@ -4133,7 +4134,20 @@ function reach(u, cap = u.mov, opts = {}){
   }
   const out = [];
   for (const [k,d] of best){ const x = k%N, y = (k/N)|0, st = par.get(k); if (canStand(u,x,y)) out.push({x, y, d, zoc: (x !== u.x || y !== u.y) && inZoc(u, x, y, zs), face: st ? (st[0] ? (st[0] > 0 ? 'right' : 'left') : (st[1] > 0 ? 'down' : 'up')) : null}); }
+  out.par = par; out.from = [u.x, u.y];
   return out;
+}
+/* v0.38 从 reach 的结果还原一条路径（不含起点），每步带朝向；压制射击按这条路一格一格检查 */
+function pathTo(tiles, x, y){
+  const out = [], par = tiles.par, [sx, sy] = tiles.from;
+  if (!par) return [[x, y, null]];
+  let cx = x, cy = y, guard = 0;
+  while ((cx !== sx || cy !== sy) && guard++ < 200){
+    const st = par.get(cy*N+cx); if (!st) break;
+    out.push([cx, cy, st[0] ? (st[0] > 0 ? 'right' : 'left') : (st[1] > 0 ? 'down' : 'up')]);
+    cx -= st[0]; cy -= st[1];
+  }
+  return out.reverse();
 }
 function moveUnit(u,x,y){ if (u.x!==x || u.y!==y){ u.moved = true; u.movedThisRound = true; } u.x = x; u.y = y; }
 
@@ -4191,10 +4205,36 @@ function wStatus(u, w, {moved=false, counter=false} = {}){
 function wv(u, w, key){ let v = w[key]; for (const up of w.upgrades) if (u.lv >= up.lv && up[key] != null) v = up[key]; return v; }
 function effRange(u, w){ let r = w.range; for (const up of w.upgrades) if (u.lv >= up.lv && up.range) r = up.range; if (RM() && RM().fog && w.fire === 'direct') r = [r[0], Math.max(r[0], r[1] - 2)]; return r; }
 function maxReach(u){ let m = 0; for (const w of u.weapons){ if (u.lv < w.unlock || w.fire === 'passive') continue; m = Math.max(m, effRange(u,w)[1]); } return m; }
-function canHit(u, w, t, ax=u.x, ay=u.y){
+/* v0.38 朝向范围（作者 10-07 定）：武器的攻击范围跟着朝向走。
+   - 默认形状：近战 = 前方 + 左右两侧（朝向的那一排及以前），远程 = 只有前方（前进方向 ≥ 1 格）；距离仍按射程；
+   - 武器可以写 pat:[[前, 侧], …] 自定义形状（朝右时的坐标：前 = 向右几格，侧 = 向下几格，负数向上），这时射程不再起作用；
+   - 主动攻击：可以自由转向，打出去时锁定在能打到目标的朝向（canHit 不传 face = 任意朝向都行）；
+   - 敌方阶段的反击、压制射击：只能用当前朝向（传 face）。 */
+const FACES = ['up','right','down','left'];
+function facOK(u, w, t, ax, ay, face){
+  const [fx, fy] = FACE[face], lx = -fy, ly = fx;   // 侧 = 朝向顺时针转 90°
+  const rg = effRange(u, w), fmin = w.fire === 'melee' ? 0 : 1;
+  for (const [bx, by] of tilesOf(u, ax, ay)) for (const [tx, ty] of tilesOf(t)){
+    const dx = tx - bx, dy = ty - by, f = dx*fx + dy*fy, l = dx*lx + dy*ly;
+    if (w.pat){ if (w.pat.some(([a, b]) => a === f && b === l)) return true; continue; }
+    const d = Math.abs(dx) + Math.abs(dy);
+    if (d >= rg[0] && d <= rg[1] && f >= fmin) return true;
+  }
+  return false;
+}
+const legalFaces = (u, w, t, ax = u.x, ay = u.y) => FACES.filter(f => facOK(u, w, t, ax, ay, f));
+/* 攻击时转到哪个朝向：当前朝向能打就不转，其次正对目标，再其次任意一个能打的 */
+function pickFace(u, w, t){
+  const ok = legalFaces(u, w, t);
+  if (!ok.length || ok.includes(u.facing)) return u.facing;
+  const d = dirToward(u, t);
+  return ok.includes(d) ? d : ok[0];
+}
+function canHit(u, w, t, ax=u.x, ay=u.y, face=null){
   if (!ATTACK_FIRES.includes(w.fire)) return false;
   const rg = effRange(u, w), d = distU(u, t, ax, ay);
-  if (d < rg[0] || d > rg[1]) return false;
+  if (!w.pat && (d < rg[0] || d > rg[1])) return false;
+  if (!isSure(w) && (face ? !facOK(u, w, t, ax, ay, face) : !FACES.some(f => facOK(u, w, t, ax, ay, f)))) return false;
   if (d > 3 && t.side !== u.side && hasStealth(t)) return false;
   if (w.fire === 'direct' && !losClear(u, ax, ay, t)) return false;
   return true;
@@ -4394,7 +4434,7 @@ const dmgTxt = f => f.multi ? `${f.hits} 段 × ${f.dmg}（期望约 ${Math.roun
 function bestCounter(def, att){
   let best = null, bs = -1;
   for (const w of def.weapons){
-    if (wStatus(def,w,{counter:true}) || !canHit(def,w,att)) continue;
+    if (wStatus(def,w,{counter:true}) || !canHit(def,w,att,def.x,def.y,def.facing)) continue;   // v0.38 反击只能用当前朝向
     const s = forecast(def,w,att,null,{counter:true}).exp;
     if (s > bs){ bs = s; best = w; }
   }
@@ -4508,12 +4548,12 @@ async function strike(att, w, def, reaction, {skipConsume=false, zone=null, coun
     if (!def.hitLog || def.hitLog.turn !== turn) def.hitLog = {turn, by:new Set()};
     def.hitLog.by.add(att.uid);
   };
-  if (!isSure(w)) att.facing = dirToward(att, def);
+  if (!isSure(w) && !counter) att.facing = pickFace(att, w, def);   // v0.38 主动攻击转向并锁定；反击 / 压制射击不转身
   const zo = zone ? {zone, counter} : {counter};
   const {hit, zone:z} = hitRate(att,w,def,reaction,undefined,zo);
   const cr0 = critRate(w,att,def,{...zo, reaction});
   const head = `${fullName(att)}【${w.name}】→ ${fullName(def)}（${z ? ZONE[z].name + ' · ' : ''}命中 ${hit}%）`;
-  const turnDef = () => { if (!isSure(w) && def.hp > 0) def.facing = dirToward(def, att); };
+  const turnDef = () => { if (!isSure(w) && def.hp > 0 && def.abilities.includes('frontArmor')) def.facing = dirToward(def, att); };   // v0.38 被打的一方不再自动转身（朝向是自己定的防守决策）；只有正面装甲机（教学 2 的铁壁）还会转身
   let killedTiles = null;
   await fxAttack(att, w, def);
   if (w.special === 'funnel'){
@@ -4604,7 +4644,7 @@ async function battle(att, w, def, reaction, cw, {guard=false} = {}){
   if (reaction === 'evade') log(`${fullName(def)} 选择回避`, null, def.side);
   await strike(att, w, def, reaction, guard ? {zone:'front'} : {});
   if (def.hp > 0 && att.hp > 0 && reaction === 'counter' && cw){
-    if (!wStatus(def,cw,{counter:true}) && canHit(def,cw,att)){
+    if (!wStatus(def,cw,{counter:true}) && canHit(def,cw,att,def.x,def.y,def.facing)){
       // v0.25 进攻援护：我方攻击后被反击时，相邻的进攻援护机体可以代为承受
       const g = att.side === 'ally' ? units.find(m => m !== att && m.side === 'ally' && m.hp > 0 && abilOn(m,'guardAtk') && m.guardLeft > 0 && guardReach(m, att)) : null;
       if (g && await askGuard(def, cw, att, g, true)){
@@ -4867,8 +4907,9 @@ async function aiAct(e){
   focusOn(e); S.inspect = e; refresh();
   await sleep(240);
   if (best){
+    if (!(await moveWatched(e, tiles, best.t))) { e.acted = true; return; }   // v0.38 路上可能挨压制射击
     if (best.t.face) e.facing = best.t.face;
-    moveUnit(e, best.t.x, best.t.y); refresh();
+    refresh();
     await sleep(300);
     const g = units.find(m => m !== best.p && m.side === best.p.side && m.hp > 0 && m.abilities.includes('guard') && m.guardLeft > 0 && guardReach(m, best.p));
     if (g && await askGuard(e, best.w, best.p, g)){
@@ -4887,10 +4928,50 @@ async function aiAct(e){
       const d = distU(e, target, t.x, t.y);
       if (d < bd || (d === bd && t.d < bt.d)){ bd = d; bt = t; }
     }
-    if (bt){ moveUnit(e, bt.x, bt.y); e.facing = dirToward(e, target); refresh(); await sleep(220); }
+    if (bt){ if (!(await moveWatched(e, tiles, bt))) { e.acted = true; return; } e.facing = dirToward(e, target); refresh(); await sleep(220); }
   }
   e.disarmed = false;
   e.acted = true;
+}
+/* ---------- v0.38 压制射击（狙击，作者 10-07 定） ----------
+   敌方阶段，敌人移动时一格一格检查：第一个「从范围外走进」狙击当前朝向攻击范围的敌人，挨这台狙击一发（每台狙击每个敌方阶段 1 次）。
+   - 目标固定是第一个进来的，不能选；用对它期望伤害最高的、能用来反击的武器；
+   - 挨打的一方不能反击，打完继续走（被击破就停）；狙击不转身。 */
+function owWeapon(s, e){
+  let best = null;
+  for (const w of s.weapons){
+    if (wStatus(s, w, {counter:true}) || !SUPPORT_FIRES.includes(w.fire) || /lock|gamble/.test(w.special || '') || !canHit(s, w, e, s.x, s.y, s.facing)) continue;
+    const f = forecast(s, w, e, null, {counter:true});
+    if (!best || f.exp > best.f.exp) best = {w, f};
+  }
+  return best;
+}
+const watchers = e => units.filter(s => s.side !== e.side && s.side !== 'neutral' && s.hp > 0 && abilOn(s, 'overwatch') && s.owPhase !== phaseNo && !s.stunned && !s.disarmed);
+async function moveWatched(e, tiles, t){
+  const ws = watchers(e);
+  if (!ws.length || (t.x === e.x && t.y === e.y)){ moveUnit(e, t.x, t.y); return true; }
+  const was = new Map(ws.map(s => [s, !!owWeapon(s, e)]));
+  const x0 = e.x, y0 = e.y;
+  for (const [x, y, f] of pathTo(tiles, t.x, t.y)){
+    e.x = x; e.y = y; if (f) e.facing = f;
+    for (const s of ws){
+      if (s.owPhase === phaseNo || s.hp <= 0) continue;
+      const pick = owWeapon(s, e), inNow = !!pick;
+      if (inNow && !was.get(s)){
+        s.owPhase = phaseNo;
+        const ex = e.x, ey = e.y; e.x = x0; e.y = y0; moveUnit(e, ex, ey);   // 记成已移动
+        refresh(); focusOn(e);
+        log(`${fullName(s)}【压制射击】${fullName(e)} 进入射界`, null, s.side);
+        addFloat(s, '压制射击', '#ffd36b');
+        await sleep(200);
+        await strike(s, pick.w, e, null, {counter:true});
+        if (e.hp <= 0 || !units.includes(e)) return false;
+      }
+      was.set(s, inNow);
+    }
+  }
+  const fx = e.x, fy = e.y; e.x = x0; e.y = y0; moveUnit(e, fx, fy);
+  return true;
 }
 function checkEnd(){
   if (over) return;
@@ -5273,7 +5354,7 @@ function askGuard(att, w, def, g, counter = false){
 function askReaction(att, w, def){
   return new Promise(resolve => {
     const fNone = forecast(att, w, def, null), fDef = forecast(att, w, def, 'defend'), fEva = forecast(att, w, def, 'evade');
-    const cws = noCounterVs(att, w) ? [] : def.weapons.filter(cw => !wStatus(def,cw,{counter:true}) && canHit(def,cw,att));
+    const cws = noCounterVs(att, w) ? [] : def.weapons.filter(cw => !wStatus(def,cw,{counter:true}) && canHit(def,cw,att,def.x,def.y,def.facing));
     const cBtns = cws.length ? cws.map((cw,i) => {
       const f = forecast(def, cw, att, null, {defFacing: dirToward(att, def), counter:true});
       return `<button class="w" data-c="${i}"><div class="wn"><span>${cw.name}</span><span class="why ok">命中 ${f.hit}%</span></div>
@@ -5434,6 +5515,25 @@ function drawFX(now){
 }
 function addFloat(u, text, color){ if (color === '#9fe0b8' && text[0] === '+') snd('heal');   // 回复类数字都走这里，顺便出回复音效
   floats.push({x:u.x*TS+u.w*TS/2, y:u.y*TS, text, color, t0:performance.now()}); }
+/* v0.38 朝向范围：当前朝向下，能用来反击 / 压制射击的武器打得到的格子 */
+let covCache = {k:'', cells:[]};
+function coverCells(u){
+  const k = `${u.uid}|${u.x},${u.y}|${u.facing}|${u.lv}|${turn}|${units.length}`;
+  if (covCache.k === k) return covCache.cells;
+  const ws = u.weapons.filter(w => u.lv >= (w.unlock || 1) && ATTACK_FIRES.includes(w.fire) && !isSure(w) && !wStatus(u, w, {counter:true}));
+  const out = [];
+  for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++){
+    if (tilesOf(u).some(([a, b]) => a === x && b === y)) continue;
+    const dummy = {x, y, w:1, h:1, flying:false, side:'neutral', abilities:[]};
+    if (ws.some(w => canHit(u, w, dummy, u.x, u.y, u.facing))) out.push({x, y});
+  }
+  covCache = {k, cells:out};
+  return out;
+}
+function drawCover(u, color){
+  const cs = coverCells(u); if (!cs.length) return;
+  ctx.fillStyle = color; for (const t of cs) ctx.fillRect(t.x*TS+1, t.y*TS+1, TS-1, TS-1);
+}
 function fillTiles(list, color){ ctx.fillStyle = color; for (const t of list) ctx.fillRect(t.x*TS+1, t.y*TS+1, TS-1, TS-1); }
 function draw(now){
   ctx.clearRect(0,0,MW*TS,MH*TS);
@@ -5483,6 +5583,8 @@ function draw(now){
       ctx.stroke();
     }
   }
+  if (S.sel && ['menu','weapon','pick'].includes(S.mode)) drawCover(S.sel, abilOn(S.sel, 'overwatch') ? 'rgba(255,211,107,.22)' : 'rgba(233,162,59,.14)');
+  else if (S.mode === 'idle' && S.inspect && S.inspect.hp > 0 && S.inspect.side !== 'neutral') drawCover(S.inspect, S.inspect.side === 'enemy' ? 'rgba(224,90,79,.13)' : 'rgba(233,162,59,.14)');
   if (S.mode === 'moving' || S.mode === 'moving2'){
     fillTiles(S.reach, COL.move);
     ctx.strokeStyle = 'rgba(224,90,79,.85)'; ctx.lineWidth = 1.5;   // v0.36 控制区：走到这里就得停
@@ -6096,7 +6198,7 @@ function actionHTML(){
       const can = u.weapons.some(w => weaponUsable(u,w).ok);
       return `<h3>指令 · ${fullName(u)}</h3><p class="hint">${hasTrait(u,'autoCast') ? 'Feena 不能主动使用武器，选择待机即可。' : u.moved ? '已移动：标注「不能移动后使用」的武器不可用。' : '未移动：可使用全部已解锁武器。'}</p>
         <div class="acts">${hasTrait(u,'autoCast') ? '' : `<button class="btn primary" data-a="attack" ${can ? '' : 'disabled'}>攻击</button>`}<button class="btn" data-a="wait">待机</button>${S.teleported || S.noUndo ? '' : '<button class="btn" data-a="undo">取消移动</button>'}${u.transform && !u.transformed ? '<button class="btn" data-a="transform">脱装 · 纳德雷</button>' : ''}</div>${S.teleported ? '<p class="small">已传送，不能取消。</p>' : ''}${S.noUndo && !S.teleported ? `<p class="small">${S.extraUsed ? 'DASH / 额外攻击：只能攻击或待机。' : '已经变身，不能取消移动。'}</p>` : ''}${u.canFly ? `<p class="small">${u.flying ? '飞行' : '地面'}状态。起飞 / 落地要在移动前决定。</p>` : ''}<p class="small">移动后需要先选择攻击或待机，才能结束回合。</p>
-        <div class="facerow"><span class="small">朝向（W A S D 或点方向键；待机时保持，攻击会自动转向目标）</span><div class="facepad">${['up','left','right','down'].map(f => `<button data-face="${f}" class="${u.facing === f ? 'sel' : ''}" aria-label="朝${FACE_NAME[f]}">${FACE_ARROW[f]}</button>`).join('')}</div></div>
+        <div class="facerow"><span class="small">朝向（W A S D 或点方向键）：橙色格子是这个朝向下能反击的范围${abilOn(u, 'overwatch') ? '（也是压制射击的射界）' : ''}，敌方阶段只能反击这里面的敌人。攻击时会自动转到能打到目标的方向并锁定</span><div class="facepad">${['up','left','right','down'].map(f => `<button data-face="${f}" class="${u.facing === f ? 'sel' : ''}" aria-label="朝${FACE_NAME[f]}">${FACE_ARROW[f]}</button>`).join('')}</div></div>
         <p class="small kbd">⌨ WASD：改变朝向　空格：${hasTrait(u,'autoCast') ? '待机' : S.atkList && S.atkList.length ? `攻击（${S.atkList.length} 个目标，红框标出）` : '待机（没有可攻击的目标）'}</p>
         ${can ? '' : '<p class="small">没有可用的武器或射程内没有目标。</p>'}${hasTrait(u,'autoCast') && autoWeapon(u) ? `<p class="small">待机后自动释放【${autoWeapon(u).name}】。${autoWeapon(u).fire === 'support' ? '绿色区域是作用范围。' : '紫色区域是余响的范围。'}</p>` : echoWeapon(u) ? '<p class="small">紫色区域是本次行动结束后「残月的余响」的范围。</p>' : ''}${regenWeapon(u) ? '<p class="small">绿框是本次行动结束后「月华再生」的回复范围。</p>' : ''}`;
     }
@@ -7830,7 +7932,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.37';
+const GAME_VERSION = 'v0.38';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
@@ -8243,7 +8345,7 @@ $('#btnSound').onclick = () => setSound(!SOUND.on);
 document.addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !/INPUT|TEXTAREA|SELECT/.test((e.target.tagName || ''))) setSound(!SOUND.on); });
 if (!AU) $('#btnSound').hidden = true; else setSound(SOUND.on);
 
-window.__game = {makeUnit, levelUp, reach, zocSet, damageCalc, dispPow, atkStat, wPow, get map(){ return map; }, RELICS, gainRelic(id){ if (RUN && RELICS[id]){ RUN.relics = RUN.relics || []; if (!RUN.relics.includes(id)) RUN.relics.push(id); } return RUN ? RUN.relics : null; }, AIM_BY_CLASS, guardReach, recCost, tierOf, FACTIONS, ticketOk, ticketName, get sound(){ return {on:SOUND.on, scene:SOUND.scene, cue:AU && AU.state().cue}; }, get RUN(){ return RUN; }, STAGES, buildStage, rlogRecord, rlogText, openRunLogs, enterLayer, checkEnd, moveDist, runClickNode, runBattle, moveTargets, partTargets, get level(){ return level; }, get units(){ return units; }, data:{ALLY_T, ENEMY_T, ABIL, COMMANDS, TRIALS, FIRE}, get roster(){ return roster; }, get LV(){ return LV; }, get turn(){ return turn; }, get over(){ return over; }, setSpeed(v){ SPEED = v; }, startLevel, toggleLock, execCommand, attackables, bestWeaponFor, select, weaponUsable, get S(){ return S; }, orderMeteor, resolveMeteors, get CMD(){ return CMD; }, setTurn(t){ turn = t; }, pushUnit, get walls(){ return walls; }, echoArea, finish, zoneOf, battle, onTile, onAction, endTurn, cheatLevel, choosePick, mapDirs, losClear, canHit, forecast, get editor(){ return {ED, store:edStore()}; }, get art(){ return MI; }, unitSprite, iconIdOf,
+window.__game = {makeUnit, levelUp, reach, zocSet, moveWatched, bestCounter, legalFaces, get phaseNo(){ return phaseNo; }, damageCalc, dispPow, atkStat, wPow, get map(){ return map; }, RELICS, gainRelic(id){ if (RUN && RELICS[id]){ RUN.relics = RUN.relics || []; if (!RUN.relics.includes(id)) RUN.relics.push(id); } return RUN ? RUN.relics : null; }, AIM_BY_CLASS, guardReach, recCost, tierOf, FACTIONS, ticketOk, ticketName, get sound(){ return {on:SOUND.on, scene:SOUND.scene, cue:AU && AU.state().cue}; }, get RUN(){ return RUN; }, STAGES, buildStage, rlogRecord, rlogText, openRunLogs, enterLayer, checkEnd, moveDist, runClickNode, runBattle, moveTargets, partTargets, get level(){ return level; }, get units(){ return units; }, data:{ALLY_T, ENEMY_T, ABIL, COMMANDS, TRIALS, FIRE}, get roster(){ return roster; }, get LV(){ return LV; }, get turn(){ return turn; }, get over(){ return over; }, setSpeed(v){ SPEED = v; }, startLevel, toggleLock, execCommand, attackables, bestWeaponFor, select, weaponUsable, get S(){ return S; }, orderMeteor, resolveMeteors, get CMD(){ return CMD; }, setTurn(t){ turn = t; }, pushUnit, get walls(){ return walls; }, echoArea, finish, zoneOf, battle, onTile, onAction, endTurn, cheatLevel, choosePick, mapDirs, losClear, canHit, forecast, get editor(){ return {ED, store:edStore()}; }, get art(){ return MI; }, unitSprite, iconIdOf,
   /* 给工具用：全部单位模板（含未出场的），tools/roster.mjs 靠它检查图标覆盖率。roster 已被玩家编队占用，所以叫 templates */
   get templates(){ return {allies: ALLY_T, enemies: ENEMY_T, forms: FORMS, debris: DEBRIS_T}; },
   get levels(){ return LEVELS; }};

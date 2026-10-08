@@ -160,7 +160,7 @@ const dmgTxt = f => f.multi ? `${f.hits} 段 × ${f.dmg}（期望约 ${Math.roun
 function bestCounter(def, att){
   let best = null, bs = -1;
   for (const w of def.weapons){
-    if (wStatus(def,w,{counter:true}) || !canHit(def,w,att)) continue;
+    if (wStatus(def,w,{counter:true}) || !canHit(def,w,att,def.x,def.y,def.facing)) continue;   // v0.38 反击只能用当前朝向
     const s = forecast(def,w,att,null,{counter:true}).exp;
     if (s > bs){ bs = s; best = w; }
   }

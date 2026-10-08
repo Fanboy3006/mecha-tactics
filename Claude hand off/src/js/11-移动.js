@@ -56,7 +56,20 @@ function reach(u, cap = u.mov, opts = {}){
   }
   const out = [];
   for (const [k,d] of best){ const x = k%N, y = (k/N)|0, st = par.get(k); if (canStand(u,x,y)) out.push({x, y, d, zoc: (x !== u.x || y !== u.y) && inZoc(u, x, y, zs), face: st ? (st[0] ? (st[0] > 0 ? 'right' : 'left') : (st[1] > 0 ? 'down' : 'up')) : null}); }
+  out.par = par; out.from = [u.x, u.y];
   return out;
+}
+/* v0.38 从 reach 的结果还原一条路径（不含起点），每步带朝向；压制射击按这条路一格一格检查 */
+function pathTo(tiles, x, y){
+  const out = [], par = tiles.par, [sx, sy] = tiles.from;
+  if (!par) return [[x, y, null]];
+  let cx = x, cy = y, guard = 0;
+  while ((cx !== sx || cy !== sy) && guard++ < 200){
+    const st = par.get(cy*N+cx); if (!st) break;
+    out.push([cx, cy, st[0] ? (st[0] > 0 ? 'right' : 'left') : (st[1] > 0 ? 'down' : 'up')]);
+    cx -= st[0]; cy -= st[1];
+  }
+  return out.reverse();
 }
 function moveUnit(u,x,y){ if (u.x!==x || u.y!==y){ u.moved = true; u.movedThisRound = true; } u.x = x; u.y = y; }
 

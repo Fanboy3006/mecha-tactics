@@ -84,8 +84,9 @@ async function aiAct(e){
   focusOn(e); S.inspect = e; refresh();
   await sleep(240);
   if (best){
+    if (!(await moveWatched(e, tiles, best.t))) { e.acted = true; return; }   // v0.38 路上可能挨压制射击
     if (best.t.face) e.facing = best.t.face;
-    moveUnit(e, best.t.x, best.t.y); refresh();
+    refresh();
     await sleep(300);
     const g = units.find(m => m !== best.p && m.side === best.p.side && m.hp > 0 && m.abilities.includes('guard') && m.guardLeft > 0 && guardReach(m, best.p));
     if (g && await askGuard(e, best.w, best.p, g)){
@@ -104,10 +105,50 @@ async function aiAct(e){
       const d = distU(e, target, t.x, t.y);
       if (d < bd || (d === bd && t.d < bt.d)){ bd = d; bt = t; }
     }
-    if (bt){ moveUnit(e, bt.x, bt.y); e.facing = dirToward(e, target); refresh(); await sleep(220); }
+    if (bt){ if (!(await moveWatched(e, tiles, bt))) { e.acted = true; return; } e.facing = dirToward(e, target); refresh(); await sleep(220); }
   }
   e.disarmed = false;
   e.acted = true;
+}
+/* ---------- v0.38 压制射击（狙击，作者 10-07 定） ----------
+   敌方阶段，敌人移动时一格一格检查：第一个「从范围外走进」狙击当前朝向攻击范围的敌人，挨这台狙击一发（每台狙击每个敌方阶段 1 次）。
+   - 目标固定是第一个进来的，不能选；用对它期望伤害最高的、能用来反击的武器；
+   - 挨打的一方不能反击，打完继续走（被击破就停）；狙击不转身。 */
+function owWeapon(s, e){
+  let best = null;
+  for (const w of s.weapons){
+    if (wStatus(s, w, {counter:true}) || !SUPPORT_FIRES.includes(w.fire) || /lock|gamble/.test(w.special || '') || !canHit(s, w, e, s.x, s.y, s.facing)) continue;
+    const f = forecast(s, w, e, null, {counter:true});
+    if (!best || f.exp > best.f.exp) best = {w, f};
+  }
+  return best;
+}
+const watchers = e => units.filter(s => s.side !== e.side && s.side !== 'neutral' && s.hp > 0 && abilOn(s, 'overwatch') && s.owPhase !== phaseNo && !s.stunned && !s.disarmed);
+async function moveWatched(e, tiles, t){
+  const ws = watchers(e);
+  if (!ws.length || (t.x === e.x && t.y === e.y)){ moveUnit(e, t.x, t.y); return true; }
+  const was = new Map(ws.map(s => [s, !!owWeapon(s, e)]));
+  const x0 = e.x, y0 = e.y;
+  for (const [x, y, f] of pathTo(tiles, t.x, t.y)){
+    e.x = x; e.y = y; if (f) e.facing = f;
+    for (const s of ws){
+      if (s.owPhase === phaseNo || s.hp <= 0) continue;
+      const pick = owWeapon(s, e), inNow = !!pick;
+      if (inNow && !was.get(s)){
+        s.owPhase = phaseNo;
+        const ex = e.x, ey = e.y; e.x = x0; e.y = y0; moveUnit(e, ex, ey);   // 记成已移动
+        refresh(); focusOn(e);
+        log(`${fullName(s)}【压制射击】${fullName(e)} 进入射界`, null, s.side);
+        addFloat(s, '压制射击', '#ffd36b');
+        await sleep(200);
+        await strike(s, pick.w, e, null, {counter:true});
+        if (e.hp <= 0 || !units.includes(e)) return false;
+      }
+      was.set(s, inNow);
+    }
+  }
+  const fx = e.x, fy = e.y; e.x = x0; e.y = y0; moveUnit(e, fx, fy);
+  return true;
 }
 function checkEnd(){
   if (over) return;

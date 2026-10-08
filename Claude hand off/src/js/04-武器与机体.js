@@ -252,7 +252,7 @@ ALLY_T.forEach(t => {
   /* v0.25 分类通用机制：近卫 DASH、狙击援护攻击、重装援护防御；卡嘉莉的援护防御在我方阶段也能用 */
   const cls = t.tags.战斗分类, add = k => { if (!t.abilities.includes(k)) t.abilities.push(k); };
   if (cls === '近卫'){ add('dash'); add('mook'); }   // v0.35 近卫：压制杂兵
-  if (cls === '狙击') add('supportAtk');
+  if (cls === '狙击'){ add('supportAtk'); add('overwatch'); }   // v0.38 压制射击
   if (cls === '尖兵') add('zocFree');   // v0.36 ZOC：尖兵无视控制区
   if (cls === '重装') add('guard');
   if (t.mech === 'S2') add('guardAtk');
