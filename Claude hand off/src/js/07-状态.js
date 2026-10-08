@@ -2,6 +2,7 @@
 let level = 'tut1', LV = null, waveIdx = -1, deadline = 0;
 let walls = new Map();
 let CMD = null;   // {unit, skill, readyTurn, pending:[{cells, land}]}  // key -> 到期回合（该回合的我方阶段开始时消失）
+let BATTLE_ID = 0;   // v0.39.3 每场战斗开始 +1；开场冷却按「这场里第几回合上场」算
 let map = [], units = [], roster = [], turn = 1, battleNo = 1, seed = 0, over = false, uidc = 0, terrainCanvas = null;
 const S = {mode:'idle', sel:null, origin:null, reach:[], weapon:null, target:null, inspect:null, hover:null, atkTiles:[], threat:false, threatSet:null, dirs:[], dir:null, names:false, grid:false};
 const floats = [];
@@ -11,7 +12,7 @@ ENEMY_SUPPORT.forEach(k => { if (ENEMY_T[k] && !ENEMY_T[k].abilities.includes('s
 const AIM_BY_CLASS = {狙击:180, 尖兵:170, 近卫:165, 特种:165, 指挥:160, 重装:150};   // 我方按战斗分类的初始命中，敌人默认 160
 function makeUnit(t, side, x, y){
   return {...t, aim: t.aim ?? (side === 'ally' ? (AIM_BY_CLASS[(t.tags || {}).战斗分类] ?? 160) : 160), shieldHp:t.shield || 0, uid:++uidc, side, x, y, lv:1, maxHp:t.hp, hp:t.hp, moved:false, movedThisRound:false, moveEva:0, acted:false, barrierLeft:3, guardLeft:2, buffs:[], debuffs:[], backlash:0, toggledTurn:0, facing: side === 'ally' ? 'up' : 'down',
-    tags:{...(t.tags||{})}, abilities:[...t.abilities], weapons:t.weapons.map(w => ({...w, usesLeft:w.uses, cdLeft:0}))};
+    tags:{...(t.tags||{})}, abilities:[...t.abilities], weapons:t.weapons.map(w => ({...w, usesLeft:w.uses, cdLeft:0})), enterB:BATTLE_ID, enterT:turn};
 }
 function levelUp(u, heal=false){
   u.lv++; u.maxHp += 200; if (heal) u.hp += 200; u.melee += 2; u.shoot += 2; u.awaken = (u.awaken ?? 100) + 2; u.defense = (u.defense || 0) + (u.side === 'neutral' ? 0 : 2);

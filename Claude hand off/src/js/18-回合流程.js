@@ -211,7 +211,7 @@ function defeat(reason){
 function startBattle(sd){
   walls = new Map(); CMD = null;
   level = 'skirmish'; LV = LEVELS.skirmish; waveIdx = -1; deadline = 0; SPEED = 1; $('#levelSel').value = 'skirmish'; $('#tipCard').hidden = true; setMapSize(40, 40);
-  seed = sd; over = false; turn = 1;
+  seed = sd; over = false; turn = 1; BATTLE_ID++;
   const g = genMap(seed); map = g.m;
   placeUnits(g.r);
   buildTerrain();
@@ -434,7 +434,7 @@ function startLevel(id){
   if (id === 'roguelike'){ runOpen(); return; }
   runHide();
   level = id; LV = LEVELS[id]; $('#levelSel').value = LV.run ? 'roguelike' : id; SPEED = LV.speed || 1;
-  over = false; turn = 1; seed = 0;
+  over = false; turn = 1; seed = 0; BATTLE_ID++;
   setMapSize(LV.w, LV.h, Math.max(1, Math.min(1.7, (wrap.clientWidth - 4) / (LV.w*TS))));
   map = LV.rows.map(r => [...r].map(c => TILE_CH[c]));
   if (LV.rosterList){

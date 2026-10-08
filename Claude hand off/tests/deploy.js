@@ -44,7 +44,7 @@ const fs = require('fs');
     const tiles = g.deployTiles(nxt);
     out.tiles = tiles.length;
     g.startDeploy(nxt); const t = tiles[0];
-    out.deployed = g.doDeploy(t.x, t.y) && us.includes(nxt) && nxt.deployTurn === g.turn;
+    out.deployed = g.doDeploy(t.x, t.y) && us.includes(nxt) && nxt.deployTurn === g.turn && nxt.enterT === g.turn && nxt.enterB === g.BATTLE_ID;
     out.noMove = g.S.mode === 'menu' && g.S.noUndo;
     g.select(nxt); out.reachSelf = g.S.reach.length === 1 && g.S.reach[0].x === nxt.x;
     out.retNoRedeploy = !document.querySelector(`[data-hangar="${other.uid}"]`) || document.querySelector(`[data-hangar="${other.uid}"]`).disabled;

@@ -63,12 +63,15 @@ function readModule(rel, label) {
 const audioSrcFiles = ['audio/score.js', 'audio/mech-audio.js'];
 for (const f of audioSrcFiles) if (!existsSync(join(ROOT, f))) { console.error(`缺少 ${f}`); process.exit(1); }
 
-const audioBlock = [
+/* 作者 2026-10-08：DSH 的音乐不用，暂时全部静音——音频模块不打包进页面（游戏里 MechAudio 不存在时自动隐藏声音按钮）。
+   要恢复就把 AUDIO_ON 改成 true；audio/ 下的源文件都还在。 */
+const AUDIO_ON = false;
+const audioBlock = AUDIO_ON ? [
   AUDIO_BEGIN,
   readModule('audio/score.js', '乐谱数据（唯一真源，改音乐只改这个文件）'),
   readModule('audio/mech-audio.js', '音频播放层 MechAudio（Web Audio 现场合成）'),
   AUDIO_END,
-].join('\n');
+].join('\n') : [AUDIO_BEGIN, '<!-- 音频暂停（作者 2026-10-08 全部静音），恢复见 tools/build-src.mjs 的 AUDIO_ON -->', AUDIO_END].join('\n');
 
 /* 把音频块插到 ART 块后面（ART 块紧邻游戏主脚本之前） */
 function injectAudio(text) {

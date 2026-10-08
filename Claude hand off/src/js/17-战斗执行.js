@@ -155,11 +155,11 @@ async function mapAttack(u, w, dir){
 
 function autoWeapon(u){
   if (!hasTrait(u,'autoCast')) return echoWeapon(u);
-  const ws = u.weapons.filter(w => u.lv >= w.unlock && !(w.cdLeft > 0));
+  const ws = u.weapons.filter(w => u.lv >= w.unlock && !cdBlocked(u, w));
   return ws[ws.length - 1] || null;
 }
 /* 余响类：取已解锁、冷却好了的序号最大的一把（Lv30 满月·月蚀冷却中时退回残月的余响） */
-function echoWeapon(u){ return u.weapons.filter(w => w.special === 'echo' && u.lv >= w.unlock && !(w.cdLeft > 0)).pop() || null; }
+function echoWeapon(u){ return u.weapons.filter(w => w.special === 'echo' && u.lv >= w.unlock && !cdBlocked(u, w)).pop() || null; }
 function echoArea(u){
   const w = echoWeapon(u); if (!w) return null;
   const set = new Set(), helpers = [];

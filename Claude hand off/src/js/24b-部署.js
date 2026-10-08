@@ -43,7 +43,7 @@ function startDeploy(u){
 function doDeploy(x, y){
   const u = S.depUnit; if (!u || !S.depTiles.some(t => t.x === x && t.y === y)) return false;
   HANGAR = HANGAR.filter(h => h !== u);
-  u.x = x; u.y = y; u.facing = LV.allyFacing || 'right'; u.deployTurn = turn; u.acted = false; u.moved = false; u.movedThisRound = false;
+  u.x = x; u.y = y; u.facing = LV.allyFacing || 'right'; u.deployTurn = turn; u.enterB = BATTLE_ID; u.enterT = turn; u.acted = false; u.moved = false; u.movedThisRound = false;
   units.push(u);
   log(`${fullName(u)} 从机库出击（场上 ${fieldAllies().length} / ${fieldCap()}）`, null, 'ally');
   select(u);

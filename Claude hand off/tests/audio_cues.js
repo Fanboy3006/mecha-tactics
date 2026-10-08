@@ -7,6 +7,7 @@ const fs = require('fs');
   const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => d.accept());
   await p.route('**/*', r => r.abort());
   await p.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>[hidden]{display:none!important}</style></head><body>${fs.readFileSync(__dirname + '/../src/artifact-fragment.html','utf8')}</body></html>`);
+  if (!(await p.evaluate(() => typeof MechAudio !== 'undefined'))){ const hid = await p.evaluate(() => document.querySelector('#btnSound').hidden); console.log(`${hid ? '✓' : '✗'} 音频暂停（作者 10-08 全部静音）：没有打包音频，声音按钮已隐藏`); console.log('ERRS', JSON.stringify(errs)); await b.close(); process.exit(hid && !errs.length ? 0 : 1); }
   let bad = 0;
   const expect = async (label, want) => { const s = await p.evaluate(() => window.__game.sound); const ok = s.cue === want; if (!ok) bad++; console.log(`${ok ? '✓' : '✗'} ${label}：${s.cue}${ok ? '' : `（应为 ${want}）`}`); };
   await p.mouse.click(5, 5);

@@ -1,11 +1,28 @@
 /* ---------- 武器可用性 ---------- */
+/* ---------- v0.39.3 开场冷却（作者 10-08 定，代替「气力解锁武装」） ----------
+   - 从这台机体**上场**那一回合开始算（开战就在场 = 第 1 回合；机库派出 / 增援波次 = 出场那回合）；
+   - 武器写 startCd:N 就用 N；没写的：大招（Lv20 / Lv30 解锁的武器）默认 3，其他 0；
+   - startCd 3 = 上场那回合起 3 个回合不能用（第 1 回合上场 → 第 4 回合可用）。敌我都适用；
+   - 减冷却统一走 cutCd(u, n)：普通冷却和开场冷却一起减（以后的击破减冷却、技能、藏品都调它）。 */
+const START_CD_ULT = 3;
+const startCdOf = w => w.startCd != null ? w.startCd : (w.unlock >= 20 ? START_CD_ULT : 0);
+const readyTurnOf = (u, w) => { const sc = startCdOf(w); if (!sc) return 0; const et = u.enterB === BATTLE_ID ? (u.enterT || 1) : 1; return et + sc - (u.cdCutB === BATTLE_ID ? u.cdCut : 0); };
+const startWait = (u, w) => Math.max(0, readyTurnOf(u, w) - turn);
+const cdBlocked = (u, w) => w.cdLeft > 0 || startWait(u, w) > 0;
+function cutCd(u, n = 1){
+  u.weapons.forEach(w => { if (w.cdLeft > 0) w.cdLeft = Math.max(0, w.cdLeft - n); });
+  if (u.cdCutB !== BATTLE_ID){ u.cdCutB = BATTLE_ID; u.cdCut = 0; }
+  u.cdCut += n;
+}
 function wStatus(u, w, {moved=false, counter=false} = {}){
   if (u.lv < w.unlock) return `Lv${w.unlock} 解锁`;
-  if (hasTrait(u,'autoCast') && !counter) return '行动结束后自动释放';
-  if (w.fire === 'passive') return '被动 · 行动结束后自动释放';
+  const sw = startWait(u, w) > 0 ? `第 ${readyTurnOf(u, w)} 回合起` : '';
+  if (hasTrait(u,'autoCast') && !counter) return `${sw}行动结束后自动释放`;
+  if (w.fire === 'passive') return `被动 · ${sw}行动结束后自动释放`;
   if (counter && (w.fire === 'support' || w.fire === 'heal' || w.fire === 'device')) return '不能用于反击';
   if (w.usesLeft != null && w.usesLeft <= 0) return '次数用尽';
   if (w.cdLeft > 0) return `冷却中（${w.cdLeft}）`;
+  if (startWait(u, w) > 0) return `开场冷却 · 第 ${readyTurnOf(u, w)} 回合可用`;
   if (counter && w.fire === 'map') return '不能用于反击';
   if (!counter && moved && !w.afterMove) return '移动后不可用';
   return null;
