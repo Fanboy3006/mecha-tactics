@@ -3,7 +3,7 @@
 const TRIALS = {
   B1:{e:['grunt','grunt','artillery','fortress'], hint:'用「传送」越过敌阵直接贴到炮击机身边；Lv20 的传送斩适合对付高 HP 的重装要塞；Lv30 解锁「影界·万刃归一」，传送进敌阵中心再发动。'},
   B2:{e:['hound','hound','drone','drone','fighter'], feat:'forest', hint:'少走几步，把剩余移动力转成闪避（游刃有余）；Lv20 影凤凰是特殊伤害，一次贯穿一排。'},
-  M1:{e:['grunt','grunt','raider','raider'], mates:['M2','M3'], hint:'Feena 不能主动攻击，待机后自动施放。Lv20 残月的余响（2999）会沿月球王国队友的射程延伸；Lv30 威力 7999、非精锐友军也能延伸，并解锁满月·月蚀。'},
+  M1:{e:['grunt','grunt','raider','raider'], mates:['M2','M3'], hint:'Feena 不能主动攻击，待机后自动施放。Lv20 残月的余响一上场就能用，会沿月球王国队友的射程延伸；Lv30 威力提升、非精锐友军也能延伸，并解锁满月·月蚀（特殊伤害，射击 + 觉醒）。'},
   M2:{e:['raider','raider','berserker','grunt'], mates:['M3'], hint:'原地不动时装甲 +30%；敌人打 Iris 时用援护挡下来。Lv20 螺旋式打桩机无视减免。'},
   M4:{e:['grunt','grunt','hound','raider'], mates:['M1','M2'], hint:'站着不动时直射命中 +15（居合）；被贴身时用小太刀反击伤害 +30%。她是月球王国的人，能沿射程延伸 Feena 的残月的余响。Lv20 弦月·一闪射程 4–10，命中后挂破防。'},
   M3:{e:['grunt','artillery','hound'], mates:['M2','B1'], hurt:true, hint:'队友开局只剩一半 HP。修理时附带物理减伤；Lv20 月华再生每次行动后群体回复。'},
@@ -17,7 +17,7 @@ const TRIALS = {
   S4:{e:['grunt','grunt','grunt','tank'], mates:['S6'], cluster:true, hint:'敌人挤在一起。先让希尔妲打一下，志保再打同一个目标，「集火」伤害 +20%；Lv20 被动「热能过载」：打 4 格以外的目标伤害 +20%。'},
   S5:{e:['raider','raider','hound','hound','swarm','swarm'], feat:'forest', hint:'兽形态走森林不减速。被打得越多，下一次攻击越痛（强化人）。Lv20 毁灭模式会无差别轰炸周围 3 格，注意别靠近友军。'},
   S6:{e:['grunt','captain','grunt','beetle'], mates:['S7','S8'], hint:'先让两台 M1 贴住目标，希尔妲再打：每有 1 台友军相邻，伤害 +15%（喷射气流）。Lv20 被动「喷射气流·连携」：2 格内友军伤害 +10%。'},
-  S7:{e:['grunt','grunt','fighter','sniper','jammer'], mates:['S8','S3'], hint:'两台 M1 彼此在 3 格内时命中和闪避都上升，别分开走。Lv20 被动「压制射击」：3 格内敌机命中 −10。'},
+  S7:{e:['grunt','grunt','fighter','sniper','jammer'], mates:['S8','S3'], hint:'两台 M1 彼此在 3 格内时命中和闪避都上升，别分开走。Lv20 被动「压制火力」：3 格内敌机命中 −10。'},
   S8:{e:['grunt','grunt','fighter','sniper','jammer'], mates:['S7','S3'], hint:'M1 二人组一起行动。Lv20 被动「战术数据链」：4 格内友军命中 +10、暴击 +5。'},
   W1:{e:['grunt','grunt','grunt','swarm','swarm'], hint:'ZERO 系统让暴击倍率变成 ×1.5。Lv20 双联破坏步枪是 9 格直线地图炮（会误伤友军），Lv30 光束宽 3 格，并解锁只打敌人的「零式·旋转破坏步枪」。'},
   W2:{e:['sniper','sniper','artillery','stealth','turret'], feat:'ridge', hint:'超级干扰器：3 格外的敌人选不中迪奥，被迪奥砍也不能反击。Lv20 斩首能直接收掉残血敌人。'},

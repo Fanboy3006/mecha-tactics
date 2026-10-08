@@ -31,7 +31,7 @@ const fs = require('fs');
     const dg = g.damageCalc(b1, w, grunt, {zone:'front', reaction:'defend'}).dmg;
     out.defend = dg === Math.max(10, Math.round(Math.max(0, W - Ar) * (1 + (atk + 100 - Df - 50) / 100)));
     // 属性：防御、觉醒，没有技量
-    out.stats = b1.defense > 0 && b1.awaken === 100 && b1.skill === undefined && grunt.defense > 0;
+    out.stats = b1.defense > 0 && b1.awaken === 140 && b1.skill === undefined && grunt.defense > 0;
     // 两项属性相加
     const w2 = {...w, stat:'格斗+觉醒', statMul:2};
     out.dual = g.atkStat(b1, w2) === (b1.melee + b1.awaken) * 2;

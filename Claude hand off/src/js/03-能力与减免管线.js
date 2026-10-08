@@ -67,7 +67,7 @@ const ABIL = {
   lunaPower:{name:'全功率炮装', lv:20, desc:'（Lv20）光束攻击伤害 +20%；Lv30 起 +35%。'},
   shihoOver:{name:'热能过载', lv:20, desc:'（Lv20）攻击 4 格以外的目标时伤害 +20%；Lv30 起 +35%。'},
   jetLink:{name:'喷射气流·连携', lv:20, desc:'（Lv20）光环：2 格内其他友军伤害 +10%；Lv30 起 +15%。'},
-  suppress:{name:'压制射击', lv:20, desc:'（Lv20）光环：3 格内的敌机命中 −10；Lv30 起 −15。'},
+  suppress:{name:'压制火力', lv:20, desc:'（Lv20）光环：3 格内的敌机命中 −10；Lv30 起 −15。'},
   dataLink:{name:'战术数据链', lv:20, desc:'（Lv20）光环：4 格内其他友军命中 +10、暴击 +5；Lv30 起命中 +15、暴击 +10。'},
   pinDown:{name:'编队牵制', lv:20, desc:'（Lv20）光环：3 格内的敌机闪避 −10；Lv30 起 −15。'},
   darkSword:{name:'暗剑杀之心', lv:20, desc:'（Lv20）近战攻击伤害 +20%、暴击 +10；Lv30 起伤害 +35%、暴击 +15。'},
