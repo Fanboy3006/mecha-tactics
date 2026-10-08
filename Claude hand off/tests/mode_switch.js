@@ -12,7 +12,7 @@ const fs = require('fs');
   await p.click('#titleRun'); await p.waitForTimeout(300);
   check('选肉鸽后进入肉鸽开局', await p.evaluate(() => document.querySelector('#levelSel').value === 'roguelike') && await p.isVisible('#endDlg [data-v="近卫"]'));
   const groups = await p.evaluate(() => [...document.querySelectorAll('#levelSel optgroup')].map(g => g.label));
-  check('下拉菜单分三大类', groups[0].includes('肉鸽') && groups[1].includes('剧情模式（待施工）') && groups.slice(2, -1).every(g => g.startsWith('机体展示')) && groups[groups.length-1] === '工具', groups.join(' / ') + JSON.stringify([groups[0].includes('肉鸽'), groups[1], groups.slice(2,-1).every(g => g.startsWith('机体展示')), groups[groups.length-1]]));
+  check('下拉菜单分三大类', groups[0].includes('肉鸽') && groups[1].includes('剧情模式（待施工）') && groups[2].startsWith('规则试玩场') && groups.slice(3, -1).every(g => g.startsWith('机体展示')) && groups[groups.length-1] === '工具', groups.join(' / ') + JSON.stringify([groups[0].includes('肉鸽'), groups[1], groups.slice(2,-1).every(g => g.startsWith('机体展示')), groups[groups.length-1]]));
   // 开局
   await p.click('[data-v="近卫"]'); await p.waitForTimeout(100);
   await p.click('#endDlg [data-v="B1"]'); await p.waitForTimeout(100);

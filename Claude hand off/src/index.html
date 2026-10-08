@@ -2755,8 +2755,8 @@ Object.assign(LEVELS, RULE_STAGES);
 {
   const og = document.createElement('optgroup'); og.label = '规则试玩场（大众脸 · 每关一条规则）';
   for (const [k, L] of Object.entries(RULE_STAGES)){ const o = document.createElement('option'); o.value = k; o.textContent = L.name; og.appendChild(o); }
-  const sel = document.querySelector('#levelSel'), anchor = sel.querySelector('optgroup');
-  sel.insertBefore(og, anchor ? anchor.nextSibling : null);
+  const sel = document.querySelector('#levelSel'), anchor = sel.querySelector('optgroup[label="工具"]');
+  sel.insertBefore(og, anchor);   // 放在「剧情模式」之后、「机体展示」之前（机体展示由 06 插在「工具」前面，06 在本文件之后运行）
 }
 /* ---------- 角色试炼：每个角色一关，由下面这张配置表生成 ---------- */
 // e：敌人（Lv20）；mates：同行的队友；hurt：队友开局只剩一半 HP；feat：地形特征；hint：这一关想让你试的东西
@@ -5384,7 +5384,7 @@ function onTile(x,y){
       break;
     case 'moving': {
       const t = S.reach.find(t => t.x === x && t.y === y);
-      if (t){ S.moveCost = t.d; S.sel.lastMove = t.d; S.origin = {x:S.sel.x, y:S.sel.y, facing:S.sel.facing, flying:S.sel.flying, toggledTurn:S.sel.toggledTurn}; const me = S.sel; allyMove(me, t).then(ok => { if (ok){ S.mode = 'menu'; refresh(); } }); }
+      if (t){ S.moveCost = t.d; S.sel.lastMove = t.d; S.origin = {x:S.sel.x, y:S.sel.y, facing:S.sel.facing, flying:S.sel.flying, toggledTurn:S.sel.toggledTurn}; const me = S.sel; if (!watchers(me).length){ if (t.face) me.facing = t.face; moveUnit(me, x, y); S.mode = 'menu'; refresh(); } else allyMove(me, t).then(ok => { if (ok){ S.mode = 'menu'; refresh(); } }); }
       else if (u && u.side === 'ally' && !u.acted) select(u);
       else if (u){ S.inspect = u; refresh(); }
       else cancel();
@@ -5412,8 +5412,9 @@ function onTile(x,y){
     case 'moving2': {
       if (S.dash && u === S.sel){ dashArrive(); break; }
       const t = S.reach.find(t => t.x === x && t.y === y);
-      if (t && S.dash){ allyMove(S.sel, t).then(ok => { if (ok) dashArrive(); }); }
-      else if (t){ S.moveCost += t.d; const me = S.sel; allyMove(me, t).then(ok => { if (ok) finish(me); }); }
+      const me = S.sel, sync = !watchers(me).length;   // 没有敌方狙击在看：照旧同步移动（测试和快捷键依赖这个）
+      if (t && S.dash){ if (sync){ if (t.face) me.facing = t.face; moveUnit(me, x, y); dashArrive(); } else allyMove(me, t).then(ok => { if (ok) dashArrive(); }); }
+      else if (t){ S.moveCost += t.d; if (sync){ if (t.face) me.facing = t.face; moveUnit(me, x, y); finish(me); } else allyMove(me, t).then(ok => { if (ok) finish(me); }); }
       break;
     }
     case 'pick':
@@ -6974,7 +6975,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.40.1';
+const GAME_VERSION = 'v0.40.2';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){

@@ -106,6 +106,6 @@ Object.assign(LEVELS, RULE_STAGES);
 {
   const og = document.createElement('optgroup'); og.label = '规则试玩场（大众脸 · 每关一条规则）';
   for (const [k, L] of Object.entries(RULE_STAGES)){ const o = document.createElement('option'); o.value = k; o.textContent = L.name; og.appendChild(o); }
-  const sel = document.querySelector('#levelSel'), anchor = sel.querySelector('optgroup');
-  sel.insertBefore(og, anchor ? anchor.nextSibling : null);
+  const sel = document.querySelector('#levelSel'), anchor = sel.querySelector('optgroup[label="工具"]');
+  sel.insertBefore(og, anchor);   // 放在「剧情模式」之后、「机体展示」之前（机体展示由 06 插在「工具」前面，06 在本文件之后运行）
 }

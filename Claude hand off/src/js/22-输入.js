@@ -51,7 +51,7 @@ function onTile(x,y){
       break;
     case 'moving': {
       const t = S.reach.find(t => t.x === x && t.y === y);
-      if (t){ S.moveCost = t.d; S.sel.lastMove = t.d; S.origin = {x:S.sel.x, y:S.sel.y, facing:S.sel.facing, flying:S.sel.flying, toggledTurn:S.sel.toggledTurn}; const me = S.sel; allyMove(me, t).then(ok => { if (ok){ S.mode = 'menu'; refresh(); } }); }
+      if (t){ S.moveCost = t.d; S.sel.lastMove = t.d; S.origin = {x:S.sel.x, y:S.sel.y, facing:S.sel.facing, flying:S.sel.flying, toggledTurn:S.sel.toggledTurn}; const me = S.sel; if (!watchers(me).length){ if (t.face) me.facing = t.face; moveUnit(me, x, y); S.mode = 'menu'; refresh(); } else allyMove(me, t).then(ok => { if (ok){ S.mode = 'menu'; refresh(); } }); }
       else if (u && u.side === 'ally' && !u.acted) select(u);
       else if (u){ S.inspect = u; refresh(); }
       else cancel();
@@ -79,8 +79,9 @@ function onTile(x,y){
     case 'moving2': {
       if (S.dash && u === S.sel){ dashArrive(); break; }
       const t = S.reach.find(t => t.x === x && t.y === y);
-      if (t && S.dash){ allyMove(S.sel, t).then(ok => { if (ok) dashArrive(); }); }
-      else if (t){ S.moveCost += t.d; const me = S.sel; allyMove(me, t).then(ok => { if (ok) finish(me); }); }
+      const me = S.sel, sync = !watchers(me).length;   // 没有敌方狙击在看：照旧同步移动（测试和快捷键依赖这个）
+      if (t && S.dash){ if (sync){ if (t.face) me.facing = t.face; moveUnit(me, x, y); dashArrive(); } else allyMove(me, t).then(ok => { if (ok) dashArrive(); }); }
+      else if (t){ S.moveCost += t.d; if (sync){ if (t.face) me.facing = t.face; moveUnit(me, x, y); finish(me); } else allyMove(me, t).then(ok => { if (ok) finish(me); }); }
       break;
     }
     case 'pick':

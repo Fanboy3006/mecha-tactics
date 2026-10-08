@@ -13,3 +13,6 @@ node_modules/
 图片库/
 # 旧的交接包副本
 mecha-tactics-handoff/
+
+# 试玩页多文件发布包（tools/build-artifact.mjs 生成）
+Claude hand off/dist/
