@@ -2,7 +2,7 @@
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.40.2';
+const GAME_VERSION = 'v0.40.3';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
@@ -113,20 +113,25 @@ function goMode(v){ $('#levelSel').value = v; startLevel(v); }
 async function titleScreen(){
   const v = await dlg(`<div class="eyebrow" style="color:var(--accent)">机甲战棋 ${GAME_VERSION}</div><h2>选择模式</h2>
     <div class="acts" style="flex-direction:column;align-items:stretch;gap:8px">
-      <button class="btn primary" data-v="roguelike" id="titleRun">★ 肉鸽模式 · 混沌迷宫（推荐）</button>
+      <button class="btn primary" data-v="challenge">战术挑战 · 每关一道题</button>
       <button class="btn" data-v="ruletest">规则试玩场 · 大众脸角色，每关只考一条规则</button>
+      <button class="btn" data-v="roguelike" id="titleRun">肉鸽模式 · 混沌迷宫（关卡改造中）</button>
       <button class="btn" data-v="tut1">教学关 · 第一次玩从这里开始</button>
       <button class="btn" data-v="story">剧情模式（待施工）</button>
     </div><p class="small">之后随时可以在顶栏「关卡」菜单里切换模式。</p>`);
-  if (v === 'ruletest'){
-    const s = await dlg(`<h2>规则试玩场</h2><p class="small">我方是只有基础属性的大众脸（每个职业一台，没有个人特技），每关只考一条规则，开场提示写着这关看什么。</p>
+  /* 关卡列表子菜单：规则试玩场（05b）、战术挑战（05c） */
+  const listMenu = async (title, note, stages) => {
+    const ks = Object.keys(stages);
+    const s = await dlg(`<h2>${title}</h2><p class="small">${note}</p>
       <div class="acts" style="flex-direction:column;align-items:stretch;gap:8px">
-        ${Object.entries(RULE_STAGES).map(([k, L]) => `<button class="btn" data-v="${k}">${L.name}</button>`).join('')}
+        ${ks.length ? ks.map(k => `<button class="btn" data-v="${k}">${stages[k].name}</button>`).join('') : '<p class="small">关卡对话正在做第一批，做好后会出现在这里。</p>'}
         <button class="btn" data-v="back">← 返回</button>
       </div>`);
     if (s === 'back') return titleScreen();
     return goMode(s);
-  }
+  };
+  if (v === 'ruletest') return listMenu('规则试玩场', '我方是只有基础属性的大众脸（每个职业一台，没有个人特技），每关只考一条规则，开场提示写着这关看什么。', RULE_STAGES);
+  if (v === 'challenge') return listMenu('战术挑战', '手工关卡，每关一道题，开场提示写着这关考什么。', CHALLENGE_STAGES);
   if (v === 'story'){
     const s = await dlg(`<h2>剧情模式 · 待施工</h2><p class="small">剧本还没写。可以先玩这些原型关卡：</p>
       <div class="acts" style="flex-direction:column;align-items:stretch;gap:8px">

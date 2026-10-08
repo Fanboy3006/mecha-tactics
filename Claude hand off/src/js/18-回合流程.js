@@ -237,7 +237,7 @@ function spawnWave(i, quiet){
   const wv = LV.waves[i];
   for (const e of wv.enemies){
     const t = ENEMY_T[e.t], [x,y] = freeSpotNear(t, e.x, e.y);
-    const u = makeUnit(t, 'enemy', x, y); u.facing = e.facing || 'down'; u.wave = i;
+    const u = makeUnit(t, 'enemy', x, y); u.facing = e.facing || 'down'; u.wave = i; if (e.guardZone) u.guardZone = e.guardZone;
     if (e.target) u.target = true;   // v0.32 斩首目标
     refreshBadges(u);
     for (let k=1; k<(e.lv || wv.lv || 1); k++) levelUp(u); u.hp = u.maxHp;
@@ -453,7 +453,8 @@ function startLevel(id){
     });
     units = [...roster];
   }
-  units.push(...(LV.enemies || []).map(e => { const u = makeUnit(ENEMY_T[e.t], 'enemy', e.x, e.y); u.facing = e.facing || 'left'; for (let k=1;k<(e.lv||LV.enemyLv||1);k++) levelUp(u); u.hp = u.maxHp; return u; }));
+  units.push(...(LV.enemies || []).map(e => { const u = makeUnit(ENEMY_T[e.t], 'enemy', e.x, e.y); u.facing = e.facing || 'left'; if (e.guardZone) u.guardZone = e.guardZone;   // v0.40.3 手工关卡可以写守卫型
+    for (let k=1;k<(e.lv||LV.enemyLv||1);k++) levelUp(u); u.hp = u.maxHp; return u; }));
   waveIdx = -1; deadline = 0;
   if (LV.waves) spawnWave(0, true);
   LV.tips.forEach(t => { t.shown = false; });
