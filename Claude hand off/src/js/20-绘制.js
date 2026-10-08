@@ -157,6 +157,23 @@ function drawCover(u, color){
   const cs = coverCells(u); if (!cs.length) return;
   ctx.fillStyle = color; for (const t of cs) ctx.fillRect(t.x*TS+1, t.y*TS+1, TS-1, TS-1);
 }
+/* v0.40 前线中继：三脚架 + 天线 + 顶灯，外面一圈慢慢扩散的信号环（原来是青色菱形，看不出是什么） */
+function drawRelay(r, now){
+  const cx = r.x*TS + TS/2, by = r.y*TS + TS - 2, top = r.y*TS + 3, k = ((now || 0) % 1600) / 1600;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(127,230,255,' + (0.7 * (1 - k)).toFixed(3) + ')'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(cx, top + 2, 3 + k * TS * 0.7, 0, Math.PI * 2); ctx.stroke();
+  ctx.lineCap = 'round'; ctx.strokeStyle = '#0b1016'; ctx.lineWidth = 4;
+  const legs = [[cx - TS*0.32, by], [cx + TS*0.32, by], [cx, by - 2]];
+  for (const [x, y] of legs){ ctx.beginPath(); ctx.moveTo(cx, top + 6); ctx.lineTo(x, y); ctx.stroke(); }
+  ctx.beginPath(); ctx.moveTo(cx, top + 2); ctx.lineTo(cx, by - 3); ctx.stroke();
+  ctx.strokeStyle = '#9fb4c6'; ctx.lineWidth = 2;
+  for (const [x, y] of legs){ ctx.beginPath(); ctx.moveTo(cx, top + 6); ctx.lineTo(x, y); ctx.stroke(); }
+  ctx.strokeStyle = '#d7e3ee'; ctx.beginPath(); ctx.moveTo(cx, top + 2); ctx.lineTo(cx, by - 3); ctx.stroke();
+  ctx.fillStyle = '#7fe6ff'; ctx.strokeStyle = '#0b1016'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(cx, top + 2, 2.6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
 function fillTiles(list, color){ ctx.fillStyle = color; for (const t of list) ctx.fillRect(t.x*TS+1, t.y*TS+1, TS-1, TS-1); }
 function draw(now){
   ctx.clearRect(0,0,MW*TS,MH*TS);
@@ -209,7 +226,7 @@ function draw(now){
   if (hangarOn()){
     if (S.mode === 'deploy') fillTiles(S.depTiles, 'rgba(127,230,255,.35)');
     else if (S.mode === 'idle' && HANGAR.length){ ctx.strokeStyle = 'rgba(127,230,255,.45)'; ctx.lineWidth = 1; for (const k of baseDeploySet()){ const x = k % N, y = (k / N) | 0; ctx.strokeRect(x*TS+2.5, y*TS+2.5, TS-5, TS-5); } }
-    for (const r of RELAYS.values()){ const cx = r.x*TS + TS/2, cy = r.y*TS + TS/2; ctx.fillStyle = '#7fe6ff'; ctx.beginPath(); ctx.moveTo(cx, cy-6); ctx.lineTo(cx+6, cy); ctx.lineTo(cx, cy+6); ctx.lineTo(cx-6, cy); ctx.closePath(); ctx.globalAlpha = .8; ctx.fill(); ctx.globalAlpha = 1; }
+    for (const r of RELAYS.values()) drawRelay(r, now);
   }
   if (S.sel && ['menu','weapon','pick'].includes(S.mode)) drawCover(S.sel, abilOn(S.sel, 'overwatch') ? 'rgba(255,211,107,.22)' : 'rgba(233,162,59,.14)');
   else if (S.mode === 'idle' && S.inspect && S.inspect.hp > 0 && S.inspect.side !== 'neutral') drawCover(S.inspect, S.inspect.side === 'enemy' ? 'rgba(224,90,79,.13)' : 'rgba(233,162,59,.14)');
@@ -336,7 +353,7 @@ const MI = (typeof MechIcons !== 'undefined') ? MechIcons : null;
 
 function iconIdOf(u){
   if (!MI) return null;
-  if (u.side === 'neutral') return 'debris';
+  if (u.side === 'neutral') return u.chest ? 'chest' : 'debris';   // v0.40 补给箱有自己的图标
   // 变身形态：图标写在 FORMS 的 icon 字段上，不在这里硬编码
   if (u.transformed && u.transform){
     const f = FORMS[u.transform];

@@ -1009,6 +1009,24 @@
     M.ell(0.720, 0.360, 0.052, 0.044, {fill: shade(C.dark, 0.10)});
   };
 
+  /* 补给箱 — 方正的军用箱（中立，可以打开）。v0.40 Claude 补：原来借用陨石残骸的图标，玩家分不清。
+   * 读法要和陨石残骸完全相反：陨石是不规则、灰褐、没有亮色；补给箱是**方正**、**琥珀色**、
+   * 正面一个**亮绿十字**（补给），22px 下也能一眼认出「这是能捡的东西」。颜色写死，不跟阵营调色板。 */
+  BUILD.chest = (M) => {
+    const BODY = '#b8873a', BODY_HI = '#e6b45e', BODY_LO = '#5e4219', EDGE = '#2a1d0b', MARK = '#8dff9e';
+    // 箱体（稍微透视：顶面 + 正面）
+    M.poly([[0.16, 0.30], [0.84, 0.30], [0.90, 0.40], [0.10, 0.40]],
+      {grad: GY(shade(BODY_HI, 0.15), BODY_HI), stroke: EDGE, lw: 0.030});
+    M.rr(0.10, 0.40, 0.80, 0.50, 0.04, {grad: GY(BODY, BODY_LO), stroke: EDGE, lw: 0.034});
+    // 两道金属箍
+    for (const x of [0.20, 0.72]) M.rr(x, 0.40, 0.08, 0.50, 0.01, {fill: shade(STEEL_LO, 0.25), stroke: EDGE, lw: 0.016});
+    // 正面补给十字
+    M.rr(0.43, 0.50, 0.14, 0.32, 0.03, {fill: MARK, stroke: shade(MARK, -0.55), lw: 0.018});
+    M.rr(0.34, 0.59, 0.32, 0.14, 0.03, {fill: MARK, stroke: shade(MARK, -0.55), lw: 0.018});
+    // 顶面把手
+    M.seg([0.40, 0.33], [0.60, 0.33], 0.040, {fill: shade(STEEL_HI, -0.05)});
+  };
+
   /* ==========================================================================
    *  底板（我方方块 / 敌方圆形，保持原有形状语义）
    * --------------------------------------------------------------------------
@@ -1260,7 +1278,7 @@
     CB1:'CB1', CB2:'CB2', CB3:'CB3', CB4:'CB4',
     量产机:'grunt', 猎犬:'hound', 无人机:'drone', 铁壁:'ironwall', 突击兵:'raider',
     固定炮台:'turret', 盾卫:'shield', 追击炮车:'pursuer', 战斗机:'fighter',
-    炮击机:'artillery', 重装要塞:'fortress', 指挥舰:'flagship', 陨石残骸:'debris',
+    炮击机:'artillery', 重装要塞:'fortress', 指挥舰:'flagship', 陨石残骸:'debris', 补给箱:'chest',
   };
 
   const NAMES = {
@@ -1270,7 +1288,7 @@
     CB4:'提耶利亚 · CB4（德天使）', CB4N:'提耶利亚 · 纳德雷形态',
     grunt:'量产机', hound:'猎犬', drone:'无人机', ironwall:'铁壁', raider:'突击兵',
     turret:'固定炮台', shield:'盾卫', pursuer:'追击炮车', fighter:'战斗机',
-    artillery:'炮击机', fortress:'重装要塞', flagship:'指挥舰', debris:'陨石残骸',
+    artillery:'炮击机', fortress:'重装要塞', flagship:'指挥舰', debris:'陨石残骸', chest:'补给箱',
   };
 
   const ROLE_OF = {

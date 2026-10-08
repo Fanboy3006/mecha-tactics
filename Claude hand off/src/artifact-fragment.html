@@ -1341,6 +1341,24 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
     M.ell(0.720, 0.360, 0.052, 0.044, {fill: shade(C.dark, 0.10)});
   };
 
+  /* 补给箱 — 方正的军用箱（中立，可以打开）。v0.40 Claude 补：原来借用陨石残骸的图标，玩家分不清。
+   * 读法要和陨石残骸完全相反：陨石是不规则、灰褐、没有亮色；补给箱是**方正**、**琥珀色**、
+   * 正面一个**亮绿十字**（补给），22px 下也能一眼认出「这是能捡的东西」。颜色写死，不跟阵营调色板。 */
+  BUILD.chest = (M) => {
+    const BODY = '#b8873a', BODY_HI = '#e6b45e', BODY_LO = '#5e4219', EDGE = '#2a1d0b', MARK = '#8dff9e';
+    // 箱体（稍微透视：顶面 + 正面）
+    M.poly([[0.16, 0.30], [0.84, 0.30], [0.90, 0.40], [0.10, 0.40]],
+      {grad: GY(shade(BODY_HI, 0.15), BODY_HI), stroke: EDGE, lw: 0.030});
+    M.rr(0.10, 0.40, 0.80, 0.50, 0.04, {grad: GY(BODY, BODY_LO), stroke: EDGE, lw: 0.034});
+    // 两道金属箍
+    for (const x of [0.20, 0.72]) M.rr(x, 0.40, 0.08, 0.50, 0.01, {fill: shade(STEEL_LO, 0.25), stroke: EDGE, lw: 0.016});
+    // 正面补给十字
+    M.rr(0.43, 0.50, 0.14, 0.32, 0.03, {fill: MARK, stroke: shade(MARK, -0.55), lw: 0.018});
+    M.rr(0.34, 0.59, 0.32, 0.14, 0.03, {fill: MARK, stroke: shade(MARK, -0.55), lw: 0.018});
+    // 顶面把手
+    M.seg([0.40, 0.33], [0.60, 0.33], 0.040, {fill: shade(STEEL_HI, -0.05)});
+  };
+
   /* ==========================================================================
    *  底板（我方方块 / 敌方圆形，保持原有形状语义）
    * --------------------------------------------------------------------------
@@ -1592,7 +1610,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
     CB1:'CB1', CB2:'CB2', CB3:'CB3', CB4:'CB4',
     量产机:'grunt', 猎犬:'hound', 无人机:'drone', 铁壁:'ironwall', 突击兵:'raider',
     固定炮台:'turret', 盾卫:'shield', 追击炮车:'pursuer', 战斗机:'fighter',
-    炮击机:'artillery', 重装要塞:'fortress', 指挥舰:'flagship', 陨石残骸:'debris',
+    炮击机:'artillery', 重装要塞:'fortress', 指挥舰:'flagship', 陨石残骸:'debris', 补给箱:'chest',
   };
 
   const NAMES = {
@@ -1602,7 +1620,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
     CB4:'提耶利亚 · CB4（德天使）', CB4N:'提耶利亚 · 纳德雷形态',
     grunt:'量产机', hound:'猎犬', drone:'无人机', ironwall:'铁壁', raider:'突击兵',
     turret:'固定炮台', shield:'盾卫', pursuer:'追击炮车', fighter:'战斗机',
-    artillery:'炮击机', fortress:'重装要塞', flagship:'指挥舰', debris:'陨石残骸',
+    artillery:'炮击机', fortress:'重装要塞', flagship:'指挥舰', debris:'陨石残骸', chest:'补给箱',
   };
 
   const ROLE_OF = {
@@ -4411,6 +4429,23 @@ function drawCover(u, color){
   const cs = coverCells(u); if (!cs.length) return;
   ctx.fillStyle = color; for (const t of cs) ctx.fillRect(t.x*TS+1, t.y*TS+1, TS-1, TS-1);
 }
+/* v0.40 前线中继：三脚架 + 天线 + 顶灯，外面一圈慢慢扩散的信号环（原来是青色菱形，看不出是什么） */
+function drawRelay(r, now){
+  const cx = r.x*TS + TS/2, by = r.y*TS + TS - 2, top = r.y*TS + 3, k = ((now || 0) % 1600) / 1600;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(127,230,255,' + (0.7 * (1 - k)).toFixed(3) + ')'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(cx, top + 2, 3 + k * TS * 0.7, 0, Math.PI * 2); ctx.stroke();
+  ctx.lineCap = 'round'; ctx.strokeStyle = '#0b1016'; ctx.lineWidth = 4;
+  const legs = [[cx - TS*0.32, by], [cx + TS*0.32, by], [cx, by - 2]];
+  for (const [x, y] of legs){ ctx.beginPath(); ctx.moveTo(cx, top + 6); ctx.lineTo(x, y); ctx.stroke(); }
+  ctx.beginPath(); ctx.moveTo(cx, top + 2); ctx.lineTo(cx, by - 3); ctx.stroke();
+  ctx.strokeStyle = '#9fb4c6'; ctx.lineWidth = 2;
+  for (const [x, y] of legs){ ctx.beginPath(); ctx.moveTo(cx, top + 6); ctx.lineTo(x, y); ctx.stroke(); }
+  ctx.strokeStyle = '#d7e3ee'; ctx.beginPath(); ctx.moveTo(cx, top + 2); ctx.lineTo(cx, by - 3); ctx.stroke();
+  ctx.fillStyle = '#7fe6ff'; ctx.strokeStyle = '#0b1016'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(cx, top + 2, 2.6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
 function fillTiles(list, color){ ctx.fillStyle = color; for (const t of list) ctx.fillRect(t.x*TS+1, t.y*TS+1, TS-1, TS-1); }
 function draw(now){
   ctx.clearRect(0,0,MW*TS,MH*TS);
@@ -4463,7 +4498,7 @@ function draw(now){
   if (hangarOn()){
     if (S.mode === 'deploy') fillTiles(S.depTiles, 'rgba(127,230,255,.35)');
     else if (S.mode === 'idle' && HANGAR.length){ ctx.strokeStyle = 'rgba(127,230,255,.45)'; ctx.lineWidth = 1; for (const k of baseDeploySet()){ const x = k % N, y = (k / N) | 0; ctx.strokeRect(x*TS+2.5, y*TS+2.5, TS-5, TS-5); } }
-    for (const r of RELAYS.values()){ const cx = r.x*TS + TS/2, cy = r.y*TS + TS/2; ctx.fillStyle = '#7fe6ff'; ctx.beginPath(); ctx.moveTo(cx, cy-6); ctx.lineTo(cx+6, cy); ctx.lineTo(cx, cy+6); ctx.lineTo(cx-6, cy); ctx.closePath(); ctx.globalAlpha = .8; ctx.fill(); ctx.globalAlpha = 1; }
+    for (const r of RELAYS.values()) drawRelay(r, now);
   }
   if (S.sel && ['menu','weapon','pick'].includes(S.mode)) drawCover(S.sel, abilOn(S.sel, 'overwatch') ? 'rgba(255,211,107,.22)' : 'rgba(233,162,59,.14)');
   else if (S.mode === 'idle' && S.inspect && S.inspect.hp > 0 && S.inspect.side !== 'neutral') drawCover(S.inspect, S.inspect.side === 'enemy' ? 'rgba(224,90,79,.13)' : 'rgba(233,162,59,.14)');
@@ -4590,7 +4625,7 @@ const MI = (typeof MechIcons !== 'undefined') ? MechIcons : null;
 
 function iconIdOf(u){
   if (!MI) return null;
-  if (u.side === 'neutral') return 'debris';
+  if (u.side === 'neutral') return u.chest ? 'chest' : 'debris';   // v0.40 补给箱有自己的图标
   // 变身形态：图标写在 FORMS 的 icon 字段上，不在这里硬编码
   if (u.transformed && u.transform){
     const f = FORMS[u.transform];
@@ -6925,7 +6960,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.40';
+const GAME_VERSION = 'v0.40.1';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
