@@ -74,6 +74,7 @@ const STAGE_OVERRIDES = {
     waves:[{at:2, enemies:[{t:'bomber', x:23, y:9, facing:'left', lv:1}, {t:'bomber', x:21, y:12, facing:'left', lv:1}, {t:'artillery', x:23, y:8, facing:'left', lv:1}, {t:'venom', x:23, y:14, facing:'left', lv:3}]},
            {at:4, enemies:[{t:'berserker', x:25, y:12, facing:'left', lv:1}, {t:'berserker', x:25, y:14, facing:'left', lv:1}, {t:'tank', x:23, y:0, facing:'left', lv:1}]}]},
 };
+Object.assign(STAGE_OVERRIDES, BOSS_STAGES);   // 关底 Boss（30c，关卡对话）
 for (const [k, o] of Object.entries(LEVEL_EDITS)) if (k.startsWith('ISW-')) STAGE_OVERRIDES[k] = {...(STAGE_OVERRIDES[k] || {}), ...o};
 const NAME_A = ['破碎','扭曲','沉没','回响','锈蚀','坠落','双生','裂隙','倒悬','静默','燃烧','冰封','错位','遗忘','镜像','漂流'];
 const NAME_B = ['回廊','广场','船坞','花园','站台','矿坑','神殿','街区','格纳库','长桥','港湾','穹顶','荒原','塔楼','隧洞','庭院'];
@@ -148,11 +149,12 @@ function buildStage(st, extra = 0){
     return out;
   };
   const enemies = [];
-  if (st.enemies) for (const e of st.enemies){ enemies.push({t:e.t, x:e.x, y:e.y, facing:e.facing || 'left', lv:e.lv || lv}); occ.push({x:e.x, y:e.y, w:ENEMY_T[e.t].w, h:ENEMY_T[e.t].h}); }
+  const pass = e => ({...(e.target ? {target:true} : {}), ...(e.guardZone ? {guardZone:e.guardZone} : {})});   // 手工关：斩首目标、守卫型
+  if (st.enemies) for (const e of st.enemies){ enemies.push({t:e.t, x:e.x, y:e.y, facing:e.facing || 'left', lv:e.lv || lv + (e.lvAdd || 0), ...pass(e)}); occ.push({x:e.x, y:e.y, w:ENEMY_T[e.t].w, h:ENEMY_T[e.t].h}); }
   enemies.push(...place(keys, false));
   for (let i = 0; i < targets && i < enemies.length; i++) enemies[enemies.length - keys.length + i].target = true;   // 斩首目标 = 最先配的那几个头目
   const waves = [{at:null, enemies}];
-  if (st.waves) st.waves.forEach((wv, i) => { occ.length = 0; waves.push({at:wv.at || 3 + i*2, enemies:wv.enemies.map(e => ({t:e.t, x:e.x, y:e.y, facing:e.facing || 'left', lv:e.lv || lv}))}); });
+  if (st.waves) st.waves.forEach((wv, i) => { occ.length = 0; waves.push({at:wv.at || 3 + i*2, enemies:wv.enemies.map(e => ({t:e.t, x:e.x, y:e.y, facing:e.facing || 'left', lv:e.lv || lv + (e.lvAdd || 0), ...pass(e)}))}); });
   else later.forEach((list, i) => { occ.length = 0; waves.push({at:3 + i*2, enemies:place(list, true)}); });
   for (const e of waves.flatMap(w => w.enemies)){ const t = ENEMY_T[e.t]; for (let j=0;j<t.h;j++) for (let i=0;i<t.w;i++) if (g[e.y+j] && (['c','x','v'].includes(g[e.y+j][e.x+i]) || (!t.flying && g[e.y+j][e.x+i] === 'w'))) g[e.y+j][e.x+i] = '.'; }
   const my = Math.floor(H/2);

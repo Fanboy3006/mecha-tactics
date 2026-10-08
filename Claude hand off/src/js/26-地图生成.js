@@ -56,7 +56,7 @@ function genLayer(layer, seed){
     for (const k of cells) nodes[k] = {k, c:k % GCOLS, r:(k / GCOLS) | 0, type:T.get(k), cleared:k === start};
     nodes[start].type = 'empty';
     for (const kind of ['battle','elite','guard','source']){
-      const pool = shuffle(stagesOf(layer, kind).map(x => x.code)); let i = 0;
+      const all = stagesOf(layer, kind), bs = all.filter(bossReady), pool = shuffle((kind === 'guard' && bs.length ? bs : all.filter(x => !x.boss)).map(x => x.code)); let i = 0;   // 出口守军：Boss 模板到位后只抽关底 Boss 战（30c）
       for (const k of cells) if (nodes[k].type === kind && pool.length) nodes[k].stage = pool[i++ % pool.length];
     }
     const tunnels = cells.filter(k => T.get(k) === 'tunnel');
