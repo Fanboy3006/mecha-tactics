@@ -5,6 +5,17 @@ function select(u){
   fireTip('select:' + u.mech);
   refresh();
 }
+/* v0.39.4 我方移动也要过敌方压制射击（作者 10-08）：有敌方狙击在看时一格一格走（和敌方移动同一套 moveWatched）；
+   挨了一发就不能取消移动；被打爆就结束。返回 false = 这台没了 */
+async function allyMove(u, t){
+  if (!watchers(u).length){ if (t.face) u.facing = t.face; moveUnit(u, t.x, t.y); return true; }
+  const mode = S.mode; S.mode = 'busy'; u.owHit = false;
+  const alive = await moveWatched(u, S.reach, t);
+  if (!alive || u.hp <= 0 || !units.includes(u)){ clearSel(); refresh(); checkEnd(); return false; }
+  if (t.face) u.facing = t.face;
+  if (u.owHit){ S.noUndo = true; S.owHit = true; }
+  S.mode = mode; return true;
+}
 function cancel(){
   if (S.sel && S.origin){ S.sel.x = S.origin.x; S.sel.y = S.origin.y; S.sel.facing = S.origin.facing; S.sel.moved = false; S.sel.movedThisRound = false; }
   clearSel(); refresh();
@@ -40,7 +51,7 @@ function onTile(x,y){
       break;
     case 'moving': {
       const t = S.reach.find(t => t.x === x && t.y === y);
-      if (t){ S.moveCost = t.d; S.sel.lastMove = t.d; S.origin = {x:S.sel.x, y:S.sel.y, facing:S.sel.facing, flying:S.sel.flying, toggledTurn:S.sel.toggledTurn}; if (t.face) S.sel.facing = t.face; moveUnit(S.sel, x, y); S.mode = 'menu'; refresh(); }
+      if (t){ S.moveCost = t.d; S.sel.lastMove = t.d; S.origin = {x:S.sel.x, y:S.sel.y, facing:S.sel.facing, flying:S.sel.flying, toggledTurn:S.sel.toggledTurn}; const me = S.sel; allyMove(me, t).then(ok => { if (ok){ S.mode = 'menu'; refresh(); } }); }
       else if (u && u.side === 'ally' && !u.acted) select(u);
       else if (u){ S.inspect = u; refresh(); }
       else cancel();
@@ -68,8 +79,8 @@ function onTile(x,y){
     case 'moving2': {
       if (S.dash && u === S.sel){ dashArrive(); break; }
       const t = S.reach.find(t => t.x === x && t.y === y);
-      if (t && S.dash){ if (t.face) S.sel.facing = t.face; moveUnit(S.sel, x, y); dashArrive(); }
-      else if (t){ S.moveCost += t.d; if (t.face) S.sel.facing = t.face; moveUnit(S.sel, x, y); finish(S.sel); }
+      if (t && S.dash){ allyMove(S.sel, t).then(ok => { if (ok) dashArrive(); }); }
+      else if (t){ S.moveCost += t.d; const me = S.sel; allyMove(me, t).then(ok => { if (ok) finish(me); }); }
       break;
     }
     case 'pick':

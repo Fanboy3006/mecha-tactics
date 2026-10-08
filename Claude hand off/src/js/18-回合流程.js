@@ -15,7 +15,7 @@ function setPhase(side){
   updateLimit();
   $('#battleNo').textContent = level === 'skirmish' ? battleNo : '—';
 }
-const clearSel = () => Object.assign(S, {mode:'idle', sel:null, origin:null, reach:[], weapon:null, target:null, dirs:[], dir:null, teleported:false, portalTiles:[], noUndo:false, locks:[], pickSel:null, dash:false});
+const clearSel = () => Object.assign(S, {mode:'idle', sel:null, origin:null, reach:[], weapon:null, target:null, dirs:[], dir:null, teleported:false, portalTiles:[], noUndo:false, owHit:false, locks:[], pickSel:null, dash:false});
 function startPlayerPhase(){
   units.filter(u => u.side === 'ally').forEach(u => { u.moved = u.acted = false; });
   clearSel();
@@ -135,7 +135,7 @@ async function moveWatched(e, tiles, t){
       if (s.owPhase === phaseNo || s.hp <= 0) continue;
       const pick = owWeapon(s, e), inNow = !!pick;
       if (inNow && !was.get(s)){
-        s.owPhase = phaseNo;
+        s.owPhase = phaseNo; e.owHit = true;
         const ex = e.x, ey = e.y; e.x = x0; e.y = y0; moveUnit(e, ex, ey);   // 记成已移动
         refresh(); focusOn(e);
         log(`${fullName(s)}【压制射击】${fullName(e)} 进入射界`, null, s.side);

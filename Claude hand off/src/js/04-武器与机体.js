@@ -289,6 +289,7 @@ const COMMANDS = {
     desc:'指定一个 3×3 区域，2 回合后的我方阶段开始时陨石落下：对区域内敌我所有单位造成 7999 物理伤害（必中，不暴击，会经过减免），区域内的空格生成 HP 1000 的陨石残骸。冷却 3 回合。'},
 };
 const ENEMY_SUPPORT = ['sniper', 'funnel'];   // v0.25：会援护攻击的敌方机型
+const ENEMY_OVERWATCH = ['sniper'];   // v0.39.4 作者 10-08：敌方狙击也有压制射击
 const ENEMY_T = {
   flagship:{pilot:'敌将', mech:'指挥舰', short:'旗舰', weak:{近战:30, 曲射:-30}, noEvade:true, hp:40000, armor:1200, eva:0, mov:3, melee:100, shoot:150, flying:true, w:3, h:3, abilities:['barrier'], weapons:[
     wp({name:'主炮', power:3000, fire:'direct', range:[2,8], cd:1, dmgType:'光束'}),

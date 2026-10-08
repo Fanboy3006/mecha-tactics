@@ -138,10 +138,10 @@ function drawFX(now){
 function addFloat(u, text, color){ if (color === '#9fe0b8' && text[0] === '+') snd('heal');   // 回复类数字都走这里，顺便出回复音效
   floats.push({x:u.x*TS+u.w*TS/2, y:u.y*TS, text, color, t0:performance.now()}); }
 /* v0.38 朝向范围：当前朝向下，能用来反击 / 压制射击的武器打得到的格子 */
-let covCache = {k:'', cells:[]};
+const covCache = new Map();   // v0.39.4 改成多份缓存：移动时要同时画几台敌方狙击的射界
 function coverCells(u){
   const k = `${u.uid}|${u.x},${u.y}|${u.facing}|${u.lv}|${turn}|${units.length}`;
-  if (covCache.k === k) return covCache.cells;
+  if (covCache.has(k)) return covCache.get(k);
   const ws = u.weapons.filter(w => u.lv >= (w.unlock || 1) && ATTACK_FIRES.includes(w.fire) && !isSure(w) && !wStatus(u, w, {counter:true}));
   const out = [];
   for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++){
@@ -149,7 +149,8 @@ function coverCells(u){
     const dummy = {x, y, w:1, h:1, flying:false, side:'neutral', abilities:[]};
     if (ws.some(w => canHit(u, w, dummy, u.x, u.y, u.facing))) out.push({x, y});
   }
-  covCache = {k, cells:out};
+  if (covCache.size > 60) covCache.clear();
+  covCache.set(k, out);
   return out;
 }
 function drawCover(u, color){
@@ -216,6 +217,7 @@ function draw(now){
     fillTiles(S.reach, COL.move);
     ctx.strokeStyle = 'rgba(224,90,79,.85)'; ctx.lineWidth = 1.5;   // v0.36 控制区：走到这里就得停
     for (const t of S.reach) if (t.zoc) ctx.strokeRect(t.x*TS+3.5, t.y*TS+3.5, TS-7, TS-7);
+    if (S.sel) for (const s of watchers(S.sel)) drawCover(s, 'rgba(255,110,60,.26)');   // v0.39.4 敌方压制射击的射界：走进去会挨一发
   }
   if (S.mode === 'target' || S.mode === 'confirm' || S.mode === 'lock') fillTiles(S.atkTiles, COL.atk);
   if (S.mode === 'mapdir' || S.mode === 'mapconfirm'){
