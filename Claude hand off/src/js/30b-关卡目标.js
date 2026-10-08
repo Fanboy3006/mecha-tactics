@@ -19,7 +19,7 @@ const TIER_LV = {杂兵:0, 精锐:1, 头目:2, Boss:2};
    - 敌方武器：Lv5 的敌人，打 Lv10 我方平均（装甲 600、防御 103）；
    - 特殊伤害 / 无视防御：装甲、防御都按 0。
    角色对话以后按新公式重新写某个角色的武器时，把它的机体代号加进 NEW_POWER，它就不再换算。 */
-const DEF_BY_CLASS = {重装:110, 近卫:95, 特种:85, 辅助:80, 狙击:75, 尖兵:75};
+const DEF_BY_CLASS = {重装:110, 近卫:95, 特种:85, 指挥:80, 狙击:75, 尖兵:75};
 const DEF_BY_TIER = {杂兵:50, 精锐:65, 头目:80, Boss:95};
 const NEW_POWER = new Set([]);
 function convPow(P, statRef, multi, noDef, Aref, Dref){

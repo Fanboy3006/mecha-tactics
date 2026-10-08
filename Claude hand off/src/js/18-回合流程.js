@@ -154,19 +154,19 @@ function checkEnd(){
   if (over) return;
   if (LV && LV.victory.type === 'reach'){
     const req = LV.victory.units.map(m => roster.find(u => u.mech === m));
-    if (req.some(u => !u || u.hp <= 0 || !units.includes(u))) return defeat();
+    if (req.some(u => !u || u.hp <= 0 || (!units.includes(u) && !HANGAR.includes(u)))) return defeat();
     if (req.every(inZone)) return victory();
     return;
   }
   const allies = units.filter(u => u.side === 'ally'), foes = units.filter(u => u.side === 'enemy');
-  if (!allies.length) return defeat();
+  if (!allies.length && !HANGAR.some(u => u.hp > 0 && deployTiles(u).length)) return defeat();   // v0.39 机库里还有人、还能派出就没输
   /* v0.32 关卡目标 */
   if (LV && LV.victory.type === 'survive') return;   // 坚守：撑够回合数才算赢（见 30b），敌人打光也会继续增援
   if (LV && LV.victory.type === 'targets'){ if (!units.some(u => u.target && u.side === 'enemy' && u.hp > 0)) victory(); return; }
   if (LV && LV.victory.type === 'reachAny'){ if (allies.some(u => u.hp > 0 && inZone(u))) victory(); return; }
   if (!foes.length && LV && LV.waves && waveIdx < LV.waves.length - 1){ spawnWave(waveIdx + 1); refresh(); return; }
   if (!foes.length) victory();
-  else if (!allies.length) defeat();
+  else if (!allies.length && !HANGAR.some(u => u.hp > 0 && deployTiles(u).length)) defeat();
 }
 function victory(){
   over = true; S.mode = 'over'; audioJingle('victory');
@@ -304,10 +304,10 @@ function showFormation(done){
       return `<div class="fgroup"><i style="--fc:${FACTION_COL[g] || '#4f95e0'}"></i>${g}</div><div class="fgrid">${list.map(u => card(u, 'dep')).join('')}</div>`;
     }).join('');
     $('#endDlg').innerHTML = `<div class="eyebrow" style="color:var(--accent)">战前编队</div><h2>${fixed ? '选择指挥官' : `选择出击机体（${sel.size} / ${cap}）`}</h2>
-      <p class="small">${fixed ? '这一关的出场机体是固定的。' : `这一关最多出击 ${cap} 台。点击机体切换是否出击。`}${LV.noCmd ? '' : '指挥官不会出场作战，而是在战场外下达指挥（最多一位，可以不设）。'}</p>
+      <p class="small">${fixed ? '这一关的出场机体是固定的。' : `${LV.hangar ? `选首发（场上同时最多 ${cap} 台）；没选的队员都带进战斗、放在机库，战斗中可以在部署格派出。` : `这一关最多出击 ${cap} 台。`}点击机体切换是否出击。`}${LV.noCmd ? '' : '指挥官不会出场作战，而是在战场外下达指挥（最多一位，可以不设）。'}</p>
       ${deploy}
       ${LO ? `<div class="fgroup"><i style="--fc:var(--accent)"></i>出击武装：每台最多 2 个，其中 Lv20 大招最多 1 个（反击也只能用带上的武装）</div>
-        ${roster.filter(u => sel.has(u.mech)).map(u => { const cur = loOf(u); return `<div class="rv-row"><span class="nm" style="flex:0 0 120px">${u.short} ${u.pilot}</span><span style="display:flex;flex-wrap:wrap;gap:4px">${loChoices(u).map(w => `<button class="rv-btn ${cur.includes(w.name) ? 'on' : ''}" data-lo="${u.mech}|${w.name}" title="${FIRE[w.fire]}${w.desc ? ' · ' + w.desc.replace(/"/g, '') : ''}">${isUlt(w) ? '★ ' : ''}${w.name}</button>`).join('')}</span></div>`; }).join('') || '<p class="small">先选出击机体。</p>'}
+        ${roster.filter(u => sel.has(u.mech) || (LV.hangar && pool.includes(u) && cmd !== u.mech)).map(u => { const cur = loOf(u); return `<div class="rv-row"><span class="nm" style="flex:0 0 120px">${u.short} ${u.pilot}${LV.hangar ? (sel.has(u.mech) ? ' · 首发' : ' · 机库') : ''}</span><span style="display:flex;flex-wrap:wrap;gap:4px">${loChoices(u).map(w => `<button class="rv-btn ${cur.includes(w.name) ? 'on' : ''}" data-lo="${u.mech}|${w.name}" title="${FIRE[w.fire]}${w.desc ? ' · ' + w.desc.replace(/"/g, '') : ''}">${isUlt(w) ? '★ ' : ''}${w.name}</button>`).join('')}</span></div>`; }).join('') || '<p class="small">先选出击机体。</p>'}
         ${LV.loadout.note ? `<p class="small">${LV.loadout.note}</p>` : ''}` : ''}
       ${LV.noCmd ? '' : `<div class="fgroup"><i style="--fc:var(--accent)"></i>指挥官（可选）</div>
       <div class="fgrid"><button class="fm cmd ${cmd ? '' : 'on'}" style="--fc:#888" data-cmd=""><b>不设指挥官</b><small>全部机体作战</small></button>${cmdCands.map(u => card(u, 'cmd')).join('')}</div>
@@ -334,12 +334,13 @@ function showFormation(done){
       if (!fixed) roster.forEach(u => { u.deployed = false; });
       const cu = cmd ? roster.find(u => u.mech === cmd) : null;
       const picked = roster.filter(u => sel.has(u.mech) && u !== cu && !u.commandOnly);
+      const reserve = LV.hangar ? roster.filter(u => !sel.has(u.mech) && u !== cu && !u.commandOnly && u.hp !== 0) : [];   // v0.39 其余队员进机库
       if (LO){
-        picked.forEach(u => { const cur = loOf(u).length ? loOf(u) : loDefault(u); if (cur.length) u.weapons = u.weapons.filter(w => cur.includes(w.name)); u.loadout = cur.slice(); });
+        [...picked, ...reserve].forEach(u => { const cur = loOf(u).length ? loOf(u) : loDefault(u); if (cur.length) u.weapons = u.weapons.filter(w => cur.includes(w.name)); u.loadout = cur.slice(); });
         if (LV.loadout.save) LV.loadout.save(LO);
       }
       CMD = null;
-      done(picked);
+      done(picked, reserve);
       if (cu) setCommander(cu);
       refresh();
     };
@@ -427,7 +428,7 @@ function startLevel(id){
   if ($('#editView')) $('#editView').hidden = true;
   audioScene('battle');
   $('#endModal').hidden = true;      // 关掉上一个模式留下的对话框（例如肉鸽开局选分队）
-  CMD = null;
+  CMD = null; resetDeploy();
   walls = new Map();
   if (id === 'skirmish'){ newCampaign(); return; }
   if (id === 'roguelike'){ runOpen(); return; }
@@ -462,8 +463,8 @@ function startLevel(id){
   log(`${LV.code && !LV.run ? '[' + LV.code + '] ' : ''}${LV.name} 开始 · 胜利条件：${LV.goalText}`, null, 'sys');
   if (LV.waves) log(`第 1 波：${LV.waves[0].label}，回合上限：第 ${deadline} 回合结束前`, null, 'sys');
   S.inspect = null; S.threatSet = null;
-  const go = () => { SOUND.scene = 'battle'; startPlayerPhase(); focusOn(units.find(u => u.side === 'ally'), false); if (LV.afterStart) LV.afterStart(); };
-  if (LV.formation) showFormation(picked => { if (LV.spots) placeAllies(picked, LV.spots, {facing:LV.allyFacing || 'up'}); go(); });
+  const go = (reserve = []) => { SOUND.scene = 'battle'; startPlayerPhase(); focusOn(units.find(u => u.side === 'ally'), false); const r = LV.afterStart ? LV.afterStart() : null; Promise.resolve(r).then(() => { if (reserve.length){ stowHangar(reserve); refresh(); } }); };
+  if (LV.formation) showFormation((picked, reserve = []) => { if (LV.spots) placeAllies([...picked, ...(LV.hangar ? reserve : [])], LV.spots, {facing:LV.allyFacing || 'up'}); go(LV.hangar ? reserve : []); });
   else { if (LV.presetCmd) setCommander(roster.find(u => u.mech === LV.presetCmd)); go(); }
 }
 const inZone = u => tilesOf(u).every(([x,y]) => x >= LV.zone.x0 && x <= LV.zone.x1 && y >= LV.zone.y0 && y <= LV.zone.y1);

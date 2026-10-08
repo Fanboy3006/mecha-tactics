@@ -397,7 +397,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
 
   // 战斗分类的强调色（图标上用来区分定位的小面积点缀）
   const ROLE_COL = {
-    近卫:'#ff9a86', 尖兵:'#ffd766', 辅助:'#cfa8ff', 重装:'#8fd0ff',
+    近卫:'#ff9a86', 尖兵:'#ffd766', 辅助:'#cfa8ff', 指挥:'#cfa8ff', 重装:'#8fd0ff',
     狙击:'#ffa8dd', 特种:'#7fe6ff',
     // v0.17：医疗分类已并入辅助（反馈第 15 条）
   };
@@ -1606,7 +1606,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
   };
 
   const ROLE_OF = {
-    B1:'近卫', B2:'尖兵', M1:'辅助', M2:'重装', M3:'辅助',
+    B1:'近卫', B2:'尖兵', M1:'指挥', M2:'重装', M3:'指挥',
     CB1:'近卫', CB2:'狙击', CB3:'特种', CB4:'特种', CB4N:'特种',
   };
 
@@ -3084,6 +3084,7 @@ const ABIL = {
   jamAura:{name:'电子干扰', desc:'光环：3 格内的敌对单位命中 −15。'},
   commandAura:{name:'指挥链路', desc:'光环：3 格内的其他同伴命中 +15、受到的伤害 −10%。'},
   berserk:{name:'狂暴', desc:'HP 低于 50% 时伤害 +30%。'},
+  relay:{name:'前线中继', desc:'（尖兵）移动后可以在脚下插一个前线中继，周围 2 格成为部署格，机库里的机体可以直接在前线出击。每台尖兵 1 个，再插就挪过去；插完本回合结束；尖兵被击破，中继消失。'},
   overwatch:{name:'压制射击', desc:'（狙击）敌方阶段，第一个走进当前朝向攻击范围的敌人挨一发（每个敌方阶段 1 次，目标不能反击，打完它继续走）。'},
   zocFree:{name:'渗透', desc:'（尖兵）无视敌方控制区：穿过敌人身边的格子不用停下。'},
   summon:{name:'召唤物', desc:'没有控制区：我方可以从它身边直接走过去。'},
@@ -3271,7 +3272,7 @@ const ALLY_T = [
     wp({name:'影凤凰', power:5000, fire:'map', range:[1,4], unlock:20, afterMove:false, dmgType:'特殊',
         desc:'选 8 个方向之一，冲到第 5 格（必须是合法落点），攻击沿途 4 格内所有单位，包括友军。必中，不能被反击。'}),
   ]},
-  {pilot:'Feena', mech:'M1', short:'M1', trait:'autoCast', command:'meteor', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'辅助'}, hp:5000, armor:0, eva:30, mov:5, melee:90, shoot:130, flying:false, w:1, h:1, abilities:[], weapons:[
+  {pilot:'Feena', mech:'M1', short:'M1', trait:'autoCast', command:'meteor', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'指挥'}, hp:5000, armor:0, eva:30, mov:5, melee:90, shoot:130, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'月光祝福', fire:'support', range:[0,4], afterMove:true, dmgType:'—',
         desc:'以自身为中心菱形 4 格内的友军（不含自己）闪避 +15、命中 +15，持续到下一个我方阶段开始，可叠加。'}),
     wp({name:'残月的余响', fire:'passive', special:'echo', power:2999, stat:'射击', range:[0,4], unlock:20,
@@ -3283,7 +3284,7 @@ const ALLY_T = [
     wp({name:'螺旋式打桩机', power:800, stat:'格斗', fire:'melee', hit:85, special:'multi', hits:10, step:10, ignoreDef:true, unlock:20,
         desc:'连续判定 10 段。首段命中 85，每段命中后 −10、未中后 +10。每段伤害 = 800 + 格斗×5÷10，无视一切伤害减免。'}),
   ]},
-  {pilot:'Iris', mech:'M3', short:'M3', trait:'fieldAid', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'辅助'}, hp:4000, armor:300, eva:20, mov:5, melee:80, shoot:120, flying:true, w:1, h:1, abilities:[], weapons:[
+  {pilot:'Iris', mech:'M3', short:'M3', trait:'fieldAid', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'指挥'}, hp:4000, armor:300, eva:20, mov:5, melee:80, shoot:120, flying:true, w:1, h:1, abilities:[], weapons:[
     wp({name:'修理装置', fire:'heal', power:3000, range:[1,1], dmgType:'—',
         desc:'相邻的一台友军回复 3000 × 射击÷100 的 HP，不能对自己使用。'}),
     wp({name:'防身机枪', power:1200, fire:'direct', range:[1,2]}),
@@ -3366,7 +3367,7 @@ const ALLY_T = [
     wp({name:'光束步枪', power:1400, fire:'direct', range:[1,5], dmgType:'光束'}),
     wp({name:'光束军刀', power:1500, stat:'格斗', fire:'melee', dmgType:'光束'}),
   ]},
-  {pilot:'茱莉', mech:'S8', short:'S8', mechName:'M1 异端', trait:'trio', tags:{势力:'克莱因派', 远近分类:'远程', 战斗分类:'辅助'}, hp:3800, armor:300, eva:25, mov:6, melee:100, shoot:130, flying:false, w:1, h:1, abilities:[], weapons:[
+  {pilot:'茱莉', mech:'S8', short:'S8', mechName:'M1 异端', trait:'trio', tags:{势力:'克莱因派', 远近分类:'远程', 战斗分类:'指挥'}, hp:3800, armor:300, eva:25, mov:6, melee:100, shoot:130, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'光束步枪', power:1400, fire:'direct', range:[1,5], dmgType:'光束'}),
     wp({name:'光束军刀', power:1300, stat:'格斗', fire:'melee', dmgType:'光束'}),
   ]},
@@ -3393,7 +3394,7 @@ const ALLY_T = [
     wp({name:'全弹发射', power:4000, fire:'map', shape:'burst', rad:3, iff:true, afterMove:false, uses:1, unlock:20,
         upgrades:[{lv:30, rad:4, note:'Lv30：半径 4'}], desc:'以自身为中心，3 格内的所有敌机受到攻击（敌我识别）。每场 1 次。'}),
   ]},
-  {pilot:'卡托尔', mech:'W4', short:'W4', mechName:'沙漠', trait:'spaceHeart', tags:{势力:'预防者', 远近分类:'近战', 战斗分类:'辅助'}, hp:6000, armor:900, eva:20, mov:5, melee:140, shoot:120, flying:false, w:1, h:1, abilities:[], weapons:[
+  {pilot:'卡托尔', mech:'W4', short:'W4', mechName:'沙漠', trait:'spaceHeart', tags:{势力:'预防者', 远近分类:'近战', 战斗分类:'指挥'}, hp:6000, armor:900, eva:20, mov:5, melee:140, shoot:120, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'热能双刀', power:2500, stat:'格斗', fire:'melee'}),
     wp({name:'光束机枪', power:1300, fire:'direct', range:[1,3], dmgType:'光束'}),
     wp({name:'十字粉碎', power:3000, stat:'格斗', fire:'melee', critMod:10, cd:2}),
@@ -3444,7 +3445,7 @@ const ALLY_T = [
     wp({name:'回旋拳', power:1800, fire:'direct', range:[1,3]}),
     wp({name:'计都罗睺剑', power:3000, stat:'格斗', fire:'melee'}),
   ]},
-  {pilot:'库斯哈', mech:'A5', short:'A5', mechName:'龙虎王', trait:'juice', tags:{势力:'ATX', 远近分类:'远程', 战斗分类:'辅助'}, hp:6000, armor:800, eva:20, mov:5, melee:140, shoot:150, flying:false, w:1, h:1, abilities:[], weapons:[
+  {pilot:'库斯哈', mech:'A5', short:'A5', mechName:'龙虎王', trait:'juice', tags:{势力:'ATX', 远近分类:'远程', 战斗分类:'指挥'}, hp:6000, armor:800, eva:20, mov:5, melee:140, shoot:150, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'念动治愈', fire:'heal', power:2800, range:[1,2], dmgType:'—', desc:'2 格内的一台友军回复 2800 × 射击÷100 的 HP。'}),
     wp({name:'龙王破山剑', power:2800, stat:'格斗', fire:'melee'}),
     wp({name:'龙雷闪', power:1800, fire:'indirect', range:[2,6], dmgType:'特殊', desc:'念动力攻击，特殊伤害。'}),
@@ -3467,7 +3468,7 @@ const ALLY_T = [
     wp({name:'超长距离狙击', power:4000, fire:'direct', range:[5,14], hit:120, critMod:10, afterMove:false, cd:2, unlock:20,
         upgrades:[{lv:30, again:true, note:'Lv30：击破目标后可以再攻击一次（不能移动）'}]}),
   ]},
-  {pilot:'真织', mech:'U2', short:'U2', mechName:'M9·指挥', trait:'squadLead', tags:{势力:'秘银', 远近分类:'远程', 战斗分类:'辅助'}, hp:4800, armor:500, eva:25, mov:6, melee:120, shoot:145, flying:false, w:1, h:1, abilities:[], weapons:[
+  {pilot:'真织', mech:'U2', short:'U2', mechName:'M9·指挥', trait:'squadLead', tags:{势力:'秘银', 远近分类:'远程', 战斗分类:'指挥'}, hp:4800, armor:500, eva:25, mov:6, melee:120, shoot:145, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'突击步枪', power:1400, fire:'direct', range:[1,4]}),
     wp({name:'导弹发射器', power:1800, fire:'indirect', range:[2,6], uses:4, special:'splash', desc:'溅射：与目标相邻的其他敌机受到本次伤害的 50%。'}),
     wp({name:'单分子刀', power:1400, stat:'格斗', fire:'melee'}),
@@ -3512,7 +3513,7 @@ ALLY_T.forEach(t => {
   const cls = t.tags.战斗分类, add = k => { if (!t.abilities.includes(k)) t.abilities.push(k); };
   if (cls === '近卫'){ add('dash'); add('mook'); }   // v0.35 近卫：压制杂兵
   if (cls === '狙击'){ add('supportAtk'); add('overwatch'); }   // v0.38 压制射击
-  if (cls === '尖兵') add('zocFree');   // v0.36 ZOC：尖兵无视控制区
+  if (cls === '尖兵'){ add('zocFree'); add('relay'); }   // v0.36 ZOC：尖兵无视控制区；v0.39 前线中继
   if (cls === '重装') add('guard');
   if (t.mech === 'S2') add('guardAtk');
   /* v0.30 友军加强（作者试玩）：近卫威力 +20%、初始近战射程至少 2；不能移动后使用的武器（地图炮除外）威力 +25%；刹那、雷萨、Nagi 单独调整 */
@@ -3964,7 +3965,7 @@ const floats = [];
 const fullName = u => u.side === 'ally' ? `${u.pilot}·${u.mech}` : u.mech;
 
 ENEMY_SUPPORT.forEach(k => { if (ENEMY_T[k] && !ENEMY_T[k].abilities.includes('supportAtk')) ENEMY_T[k].abilities.push('supportAtk'); });
-const AIM_BY_CLASS = {狙击:180, 尖兵:170, 近卫:165, 特种:165, 辅助:160, 重装:150};   // 我方按战斗分类的初始命中，敌人默认 160
+const AIM_BY_CLASS = {狙击:180, 尖兵:170, 近卫:165, 特种:165, 指挥:160, 重装:150};   // 我方按战斗分类的初始命中，敌人默认 160
 function makeUnit(t, side, x, y){
   return {...t, aim: t.aim ?? (side === 'ally' ? (AIM_BY_CLASS[(t.tags || {}).战斗分类] ?? 160) : 160), shieldHp:t.shield || 0, uid:++uidc, side, x, y, lv:1, maxHp:t.hp, hp:t.hp, moved:false, movedThisRound:false, moveEva:0, acted:false, barrierLeft:3, guardLeft:2, buffs:[], debuffs:[], backlash:0, toggledTurn:0, facing: side === 'ally' ? 'up' : 'down',
     tags:{...(t.tags||{})}, abilities:[...t.abilities], weapons:t.weapons.map(w => ({...w, usesLeft:w.uses, cdLeft:0}))};
@@ -4977,19 +4978,19 @@ function checkEnd(){
   if (over) return;
   if (LV && LV.victory.type === 'reach'){
     const req = LV.victory.units.map(m => roster.find(u => u.mech === m));
-    if (req.some(u => !u || u.hp <= 0 || !units.includes(u))) return defeat();
+    if (req.some(u => !u || u.hp <= 0 || (!units.includes(u) && !HANGAR.includes(u)))) return defeat();
     if (req.every(inZone)) return victory();
     return;
   }
   const allies = units.filter(u => u.side === 'ally'), foes = units.filter(u => u.side === 'enemy');
-  if (!allies.length) return defeat();
+  if (!allies.length && !HANGAR.some(u => u.hp > 0 && deployTiles(u).length)) return defeat();   // v0.39 机库里还有人、还能派出就没输
   /* v0.32 关卡目标 */
   if (LV && LV.victory.type === 'survive') return;   // 坚守：撑够回合数才算赢（见 30b），敌人打光也会继续增援
   if (LV && LV.victory.type === 'targets'){ if (!units.some(u => u.target && u.side === 'enemy' && u.hp > 0)) victory(); return; }
   if (LV && LV.victory.type === 'reachAny'){ if (allies.some(u => u.hp > 0 && inZone(u))) victory(); return; }
   if (!foes.length && LV && LV.waves && waveIdx < LV.waves.length - 1){ spawnWave(waveIdx + 1); refresh(); return; }
   if (!foes.length) victory();
-  else if (!allies.length) defeat();
+  else if (!allies.length && !HANGAR.some(u => u.hp > 0 && deployTiles(u).length)) defeat();
 }
 function victory(){
   over = true; S.mode = 'over'; audioJingle('victory');
@@ -5127,10 +5128,10 @@ function showFormation(done){
       return `<div class="fgroup"><i style="--fc:${FACTION_COL[g] || '#4f95e0'}"></i>${g}</div><div class="fgrid">${list.map(u => card(u, 'dep')).join('')}</div>`;
     }).join('');
     $('#endDlg').innerHTML = `<div class="eyebrow" style="color:var(--accent)">战前编队</div><h2>${fixed ? '选择指挥官' : `选择出击机体（${sel.size} / ${cap}）`}</h2>
-      <p class="small">${fixed ? '这一关的出场机体是固定的。' : `这一关最多出击 ${cap} 台。点击机体切换是否出击。`}${LV.noCmd ? '' : '指挥官不会出场作战，而是在战场外下达指挥（最多一位，可以不设）。'}</p>
+      <p class="small">${fixed ? '这一关的出场机体是固定的。' : `${LV.hangar ? `选首发（场上同时最多 ${cap} 台）；没选的队员都带进战斗、放在机库，战斗中可以在部署格派出。` : `这一关最多出击 ${cap} 台。`}点击机体切换是否出击。`}${LV.noCmd ? '' : '指挥官不会出场作战，而是在战场外下达指挥（最多一位，可以不设）。'}</p>
       ${deploy}
       ${LO ? `<div class="fgroup"><i style="--fc:var(--accent)"></i>出击武装：每台最多 2 个，其中 Lv20 大招最多 1 个（反击也只能用带上的武装）</div>
-        ${roster.filter(u => sel.has(u.mech)).map(u => { const cur = loOf(u); return `<div class="rv-row"><span class="nm" style="flex:0 0 120px">${u.short} ${u.pilot}</span><span style="display:flex;flex-wrap:wrap;gap:4px">${loChoices(u).map(w => `<button class="rv-btn ${cur.includes(w.name) ? 'on' : ''}" data-lo="${u.mech}|${w.name}" title="${FIRE[w.fire]}${w.desc ? ' · ' + w.desc.replace(/"/g, '') : ''}">${isUlt(w) ? '★ ' : ''}${w.name}</button>`).join('')}</span></div>`; }).join('') || '<p class="small">先选出击机体。</p>'}
+        ${roster.filter(u => sel.has(u.mech) || (LV.hangar && pool.includes(u) && cmd !== u.mech)).map(u => { const cur = loOf(u); return `<div class="rv-row"><span class="nm" style="flex:0 0 120px">${u.short} ${u.pilot}${LV.hangar ? (sel.has(u.mech) ? ' · 首发' : ' · 机库') : ''}</span><span style="display:flex;flex-wrap:wrap;gap:4px">${loChoices(u).map(w => `<button class="rv-btn ${cur.includes(w.name) ? 'on' : ''}" data-lo="${u.mech}|${w.name}" title="${FIRE[w.fire]}${w.desc ? ' · ' + w.desc.replace(/"/g, '') : ''}">${isUlt(w) ? '★ ' : ''}${w.name}</button>`).join('')}</span></div>`; }).join('') || '<p class="small">先选出击机体。</p>'}
         ${LV.loadout.note ? `<p class="small">${LV.loadout.note}</p>` : ''}` : ''}
       ${LV.noCmd ? '' : `<div class="fgroup"><i style="--fc:var(--accent)"></i>指挥官（可选）</div>
       <div class="fgrid"><button class="fm cmd ${cmd ? '' : 'on'}" style="--fc:#888" data-cmd=""><b>不设指挥官</b><small>全部机体作战</small></button>${cmdCands.map(u => card(u, 'cmd')).join('')}</div>
@@ -5157,12 +5158,13 @@ function showFormation(done){
       if (!fixed) roster.forEach(u => { u.deployed = false; });
       const cu = cmd ? roster.find(u => u.mech === cmd) : null;
       const picked = roster.filter(u => sel.has(u.mech) && u !== cu && !u.commandOnly);
+      const reserve = LV.hangar ? roster.filter(u => !sel.has(u.mech) && u !== cu && !u.commandOnly && u.hp !== 0) : [];   // v0.39 其余队员进机库
       if (LO){
-        picked.forEach(u => { const cur = loOf(u).length ? loOf(u) : loDefault(u); if (cur.length) u.weapons = u.weapons.filter(w => cur.includes(w.name)); u.loadout = cur.slice(); });
+        [...picked, ...reserve].forEach(u => { const cur = loOf(u).length ? loOf(u) : loDefault(u); if (cur.length) u.weapons = u.weapons.filter(w => cur.includes(w.name)); u.loadout = cur.slice(); });
         if (LV.loadout.save) LV.loadout.save(LO);
       }
       CMD = null;
-      done(picked);
+      done(picked, reserve);
       if (cu) setCommander(cu);
       refresh();
     };
@@ -5250,7 +5252,7 @@ function startLevel(id){
   if ($('#editView')) $('#editView').hidden = true;
   audioScene('battle');
   $('#endModal').hidden = true;      // 关掉上一个模式留下的对话框（例如肉鸽开局选分队）
-  CMD = null;
+  CMD = null; resetDeploy();
   walls = new Map();
   if (id === 'skirmish'){ newCampaign(); return; }
   if (id === 'roguelike'){ runOpen(); return; }
@@ -5285,8 +5287,8 @@ function startLevel(id){
   log(`${LV.code && !LV.run ? '[' + LV.code + '] ' : ''}${LV.name} 开始 · 胜利条件：${LV.goalText}`, null, 'sys');
   if (LV.waves) log(`第 1 波：${LV.waves[0].label}，回合上限：第 ${deadline} 回合结束前`, null, 'sys');
   S.inspect = null; S.threatSet = null;
-  const go = () => { SOUND.scene = 'battle'; startPlayerPhase(); focusOn(units.find(u => u.side === 'ally'), false); if (LV.afterStart) LV.afterStart(); };
-  if (LV.formation) showFormation(picked => { if (LV.spots) placeAllies(picked, LV.spots, {facing:LV.allyFacing || 'up'}); go(); });
+  const go = (reserve = []) => { SOUND.scene = 'battle'; startPlayerPhase(); focusOn(units.find(u => u.side === 'ally'), false); const r = LV.afterStart ? LV.afterStart() : null; Promise.resolve(r).then(() => { if (reserve.length){ stowHangar(reserve); refresh(); } }); };
+  if (LV.formation) showFormation((picked, reserve = []) => { if (LV.spots) placeAllies([...picked, ...(LV.hangar ? reserve : [])], LV.spots, {facing:LV.allyFacing || 'up'}); go(LV.hangar ? reserve : []); });
   else { if (LV.presetCmd) setCommander(roster.find(u => u.mech === LV.presetCmd)); go(); }
 }
 const inZone = u => tilesOf(u).every(([x,y]) => x >= LV.zone.x0 && x <= LV.zone.x1 && y >= LV.zone.y0 && y <= LV.zone.y1);
@@ -5583,6 +5585,11 @@ function draw(now){
       ctx.stroke();
     }
   }
+  if (hangarOn()){
+    if (S.mode === 'deploy') fillTiles(S.depTiles, 'rgba(127,230,255,.35)');
+    else if (S.mode === 'idle' && HANGAR.length){ ctx.strokeStyle = 'rgba(127,230,255,.45)'; ctx.lineWidth = 1; for (const k of baseDeploySet()){ const x = k % N, y = (k / N) | 0; ctx.strokeRect(x*TS+2.5, y*TS+2.5, TS-5, TS-5); } }
+    for (const r of RELAYS.values()){ const cx = r.x*TS + TS/2, cy = r.y*TS + TS/2; ctx.fillStyle = '#7fe6ff'; ctx.beginPath(); ctx.moveTo(cx, cy-6); ctx.lineTo(cx+6, cy); ctx.lineTo(cx, cy+6); ctx.lineTo(cx-6, cy); ctx.closePath(); ctx.globalAlpha = .8; ctx.fill(); ctx.globalAlpha = 1; }
+  }
   if (S.sel && ['menu','weapon','pick'].includes(S.mode)) drawCover(S.sel, abilOn(S.sel, 'overwatch') ? 'rgba(255,211,107,.22)' : 'rgba(233,162,59,.14)');
   else if (S.mode === 'idle' && S.inspect && S.inspect.hp > 0 && S.inspect.side !== 'neutral') drawCover(S.inspect, S.inspect.side === 'enemy' ? 'rgba(224,90,79,.13)' : 'rgba(233,162,59,.14)');
   if (S.mode === 'moving' || S.mode === 'moving2'){
@@ -5717,7 +5724,7 @@ function iconIdOf(u){
 }
 /* 还没画专属图标的机体：先借用同「战斗分类」的原型剪影（配色仍按自己的势力）。
    这和 art/README 9.4「地图只负责认出定位」的约定一致。tools/roster.mjs 照样会把它们列为缺图标。 */
-const STOCK_BY_ROLE = {近卫:'B1', 尖兵:'B2', 辅助:'M1', 重装:'M2', 狙击:'CB2', 特种:'CB3'};
+const STOCK_BY_ROLE = {近卫:'B1', 尖兵:'B2', 指挥:'M1', 重装:'M2', 狙击:'CB2', 特种:'CB3'};
 function stockIcon(u){
   if (u.side === 'ally') return STOCK_BY_ROLE[roleOf(u)] || 'B1';
   const fp = Math.max(u.w || 1, u.h || 1);
@@ -6158,7 +6165,7 @@ function weakHTML(u){
 }
 function unitCardHTML(u){
   if (u && u.side === 'neutral') return `<h3>单位情报</h3><div class="u-head"><h2>陨石残骸</h2></div>${bar('HP',u.hp,u.maxHp)}<p class="small">挡住所有单位的移动和直射（不挡打向空中目标的直射）。双方都可以攻击它，HP 归零后消失。</p>`;
-  if (!u) return `<h3>单位情报</h3><p class="hint">点击地图上的任意单位查看数据。机体脚下的地面环表示敌我（我方方形、敌方圆形），机体剪影按「战斗分类」区分，胸口核心的颜色就是分类色（近卫橙红、尖兵黄、辅助紫、重装蓝、狙击粉、特种青）。地面环边上的黄色三角是朝向，右上角白色小三角表示飞行，半透明表示隐身。</p>`;
+  if (!u) return `<h3>单位情报</h3><p class="hint">点击地图上的任意单位查看数据。机体脚下的地面环表示敌我（我方方形、敌方圆形），机体剪影按「战斗分类」区分，胸口核心的颜色就是分类色（近卫橙红、尖兵黄、指挥紫、重装蓝、狙击粉、特种青）。地面环边上的黄色三角是朝向，右上角白色小三角表示飞行，半透明表示隐身。</p>`;
   const ter = terrainOf(u);
   const st = [['移动',u.mov],['装甲', effArmor(u) !== u.armor ? `${effArmor(u)}（+30%）` : u.armor],['命中', u.aim ?? 160],['回避', u.noEvade ? '—' : `${100 + 2 * (Math.max(0, u.eva - (u.dodgePen || 0)) + (u.moveEva || 0))}${u.moveEva ? `（+${2 * u.moveEva}）` : ''}${u.dodgePen ? `（疲劳 −${2 * u.dodgePen}）` : ''}`],['朝向',FACE_ARROW[u.facing]],['体积',`${u.w}×${u.h}`],['格斗',u.melee],['射击',u.shoot],['防御',u.defense || 0],['觉醒',u.awaken ?? 100],['等级',u.lv]]
     .map(([k,v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
@@ -6186,8 +6193,12 @@ function actionHTML(){
       const left = units.filter(x => x.side === 'ally' && !x.acted).length;
       return `<h3>指令</h3><p class="hint">点击我方机体开始行动。蓝色格是可移动范围，点击机体自身所在格表示原地行动。</p>
         <p class="small">本回合还可行动：${left} 台。全部行动完或随时可以点「结束回合」。</p>
+        ${hangarHTML()}
         <p class="small kbd">⌨ ${left ? `Tab：切换光标${S.cursor ? `（当前：${fullName(S.cursor)}）` : ''}　空格：${S.cursor && !S.cursor.acted ? '选中光标所在机体' : '选中下一台未行动的机体'}` : '空格：结束回合（会先确认）'}</p>`;
     }
+    case 'deploy':
+      return `<h3>派出 · ${fullName(S.depUnit)}</h3><p class="hint">青色格是能放的部署格（出击点、前线中继周围；不能在敌方控制区里）。点一格派出，派出后当回合不能移动，可以攻击、可以选朝向。</p>
+        <div class="acts"><button class="btn" data-a="deploy-cancel">取消</button></div>`;
     case 'moving':
       return `<h3>指令 · ${fullName(u)}</h3><p class="hint">⌨ 空格：原地行动。选择移动目的地（移动力 ${u.mov}${u.flying ? '，飞行中每格消耗 1' : ''}）。点自身格可原地行动。</p>
         <div class="acts">${moveExtras(u)}<button class="btn" data-a="cancel">取消</button></div>`;
@@ -6197,7 +6208,7 @@ function actionHTML(){
     case 'menu': {
       const can = u.weapons.some(w => weaponUsable(u,w).ok);
       return `<h3>指令 · ${fullName(u)}</h3><p class="hint">${hasTrait(u,'autoCast') ? 'Feena 不能主动使用武器，选择待机即可。' : u.moved ? '已移动：标注「不能移动后使用」的武器不可用。' : '未移动：可使用全部已解锁武器。'}</p>
-        <div class="acts">${hasTrait(u,'autoCast') ? '' : `<button class="btn primary" data-a="attack" ${can ? '' : 'disabled'}>攻击</button>`}<button class="btn" data-a="wait">待机</button>${S.teleported || S.noUndo ? '' : '<button class="btn" data-a="undo">取消移动</button>'}${u.transform && !u.transformed ? '<button class="btn" data-a="transform">脱装 · 纳德雷</button>' : ''}</div>${S.teleported ? '<p class="small">已传送，不能取消。</p>' : ''}${S.noUndo && !S.teleported ? `<p class="small">${S.extraUsed ? 'DASH / 额外攻击：只能攻击或待机。' : '已经变身，不能取消移动。'}</p>` : ''}${u.canFly ? `<p class="small">${u.flying ? '飞行' : '地面'}状态。起飞 / 落地要在移动前决定。</p>` : ''}<p class="small">移动后需要先选择攻击或待机，才能结束回合。</p>
+        <div class="acts">${hasTrait(u,'autoCast') ? '' : `<button class="btn primary" data-a="attack" ${can ? '' : 'disabled'}>攻击</button>`}<button class="btn" data-a="wait">待机</button>${canRelay(u) ? '<button class="btn" data-a="relay" title="在脚下插前线中继：周围 2 格成为部署格，插完本回合结束">插前线中继</button>' : ''}${canRetreat(u) ? '<button class="btn" data-a="retreat" title="在指挥机体 4 格内：撤回机库">撤回机库</button>' : ''}${S.teleported || S.noUndo ? '' : '<button class="btn" data-a="undo">取消移动</button>'}${u.transform && !u.transformed ? '<button class="btn" data-a="transform">脱装 · 纳德雷</button>' : ''}</div>${S.teleported ? '<p class="small">已传送，不能取消。</p>' : ''}${S.noUndo && !S.teleported ? `<p class="small">${S.extraUsed ? 'DASH / 额外攻击：只能攻击或待机。' : '已经变身，不能取消移动。'}</p>` : ''}${u.canFly ? `<p class="small">${u.flying ? '飞行' : '地面'}状态。起飞 / 落地要在移动前决定。</p>` : ''}<p class="small">移动后需要先选择攻击或待机，才能结束回合。</p>
         <div class="facerow"><span class="small">朝向（W A S D 或点方向键）：橙色格子是这个朝向下能反击的范围${abilOn(u, 'overwatch') ? '（也是压制射击的射界）' : ''}，敌方阶段只能反击这里面的敌人。攻击时会自动转到能打到目标的方向并锁定</span><div class="facepad">${['up','left','right','down'].map(f => `<button data-face="${f}" class="${u.facing === f ? 'sel' : ''}" aria-label="朝${FACE_NAME[f]}">${FACE_ARROW[f]}</button>`).join('')}</div></div>
         <p class="small kbd">⌨ WASD：改变朝向　空格：${hasTrait(u,'autoCast') ? '待机' : S.atkList && S.atkList.length ? `攻击（${S.atkList.length} 个目标，红框标出）` : '待机（没有可攻击的目标）'}</p>
         ${can ? '' : '<p class="small">没有可用的武器或射程内没有目标。</p>'}${hasTrait(u,'autoCast') && autoWeapon(u) ? `<p class="small">待机后自动释放【${autoWeapon(u).name}】。${autoWeapon(u).fire === 'support' ? '绿色区域是作用范围。' : '紫色区域是余响的范围。'}</p>` : echoWeapon(u) ? '<p class="small">紫色区域是本次行动结束后「残月的余响」的范围。</p>' : ''}${regenWeapon(u) ? '<p class="small">绿框是本次行动结束后「月华再生」的回复范围。</p>' : ''}`;
@@ -6398,7 +6409,7 @@ function log(text, steps, cls){
 /* ---------- 输入 ---------- */
 function select(u){
   S.moveCost = 0; S.lastPick = u; S.cursor = null; S.selFly = u.flying; S.selFacing = u.facing;
-  Object.assign(S, {sel:u, inspect:u, origin:null, reach:reach(u), mode:'moving', weapon:null, target:null, dirs:[], dir:null, teleported:false, portalTiles:[]});
+  Object.assign(S, {sel:u, inspect:u, origin:null, reach: u.deployTurn === turn ? [{x:u.x, y:u.y, d:0, face:null}] : reach(u), mode:'moving', weapon:null, target:null, dirs:[], dir:null, teleported:false, portalTiles:[]});
   fireTip('select:' + u.mech);
   refresh();
 }
@@ -6430,6 +6441,7 @@ function onTile(x,y){
   if (over || S.mode === 'enemy' || S.mode === 'busy') return;
   if (S.mode === 'command'){ if (execCommand(x, y)){ S.mode = 'idle'; } refresh(); return; }
   const u = occupant(x,y);
+  if (S.mode === 'deploy'){ if (!doDeploy(x, y)){ S.mode = 'idle'; S.depUnit = null; refresh(); } return; }
   switch (S.mode){
     case 'idle':
       if (u && u.side === 'ally' && !u.acted) select(u); else { S.inspect = u || null; refresh(); }
@@ -6516,6 +6528,9 @@ async function onAction(a){
     refresh();
   }
   else if (a === 'wait') await finish(u);
+  else if (a === 'relay') await doRelay(u);
+  else if (a === 'retreat') await doRetreat(u);
+  else if (a === 'deploy-cancel'){ S.mode = 'idle'; S.depUnit = null; refresh(); }
   else if (a === 'undo'){ u.x = S.origin.x; u.y = S.origin.y; u.facing = S.origin.facing; u.movedThisRound = false; S.moveCost = 0; if (S.origin.flying != null) u.flying = S.origin.flying; u.moved = false; S.origin = null; S.reach = reach(u); S.mode = 'moving'; refresh(); }
   else if (a === 'back-menu'){ S.mode = 'menu'; refresh(); }
   else if (a === 'back-weapon'){ S.mode = 'weapon'; S.target = null; S.dir = null; S.dirs = []; refresh(); }
@@ -6627,6 +6642,7 @@ $('#actionCard').addEventListener('click', e => {
     refresh();
   }
   if (b.dataset.face && S.sel){ S.sel.facing = b.dataset.face; refresh(); }
+  if (b.dataset.hangar != null){ const h = HANGAR.find(x => x.uid === +b.dataset.hangar); if (h) startDeploy(h); }
   if (b.dataset.pick != null){ const t = units.find(x => x.uid === +b.dataset.pick); if (t) choosePick(t); }
   if (b.dataset.lock != null){ const t = units.find(x => x.uid === +b.dataset.lock); if (t) toggleLock(t); }
   if (b.dataset.hack != null){ const t = units.find(x => x.uid === +b.dataset.hack); if (t) hackAct(t); }
@@ -6795,7 +6811,7 @@ const TIER = {
 const TIER_NAME = {S:'精锐', A:'骨干', B:'普通'};
 const PRICE = {S:{rec:5, p20:3, p30:4}, A:{rec:3, p20:2, p30:3}, B:{rec:0, p20:1, p30:2}};
 const CAP_CHARS = [];          // （已取消）原来晋升 Lv20 时出击上限 +1 的角色；以后改由藏品提供
-const CLASSES = ['近卫','尖兵','辅助','重装','狙击','特种'];
+const CLASSES = ['近卫','尖兵','指挥','重装','狙击','特种'];   // v0.39 辅助 → 指挥
 /* v0.26 势力招募券：券上写的是战斗分类就按分类、写的是势力就按势力；每场胜利 60% 职业券、40% 势力券 */
 const FACTIONS = [...new Set(ALLY_T.map(t => t.tags.势力))];
 const ticketOk = (k, m) => CLASSES.includes(k) ? tplOf(m).tags.战斗分类 === k : tplOf(m).tags.势力 === k;
@@ -6848,10 +6864,10 @@ const RELICS = {
   s2:R('侦察兵的直觉','稀有',{cls:['尖兵'], stat:{range:1}, mods:{dmg:20}, desc:'尖兵伤害 +20%、射程 +1'}),
   s3:R('零装甲疾驰','传说',{cls:['尖兵'], stat:{mov:2, hpPct:-40}, mods:{eva:20}, desc:'尖兵移动 +2、回避 +40，但 HP −40%'}),
   s4:R('游击网络','稀有',{foeStack:{by:['尖兵'], per:{hit:-4}, max:5}, desc:'每有 1 名尖兵出击，敌方全体命中 −4（最多 5 层）'}),
-  a1:R('冗余电源','普通',{cls:['辅助'], stat:{hpPct:30}, mods:{armorPct:15}, desc:'辅助 HP +30%、装甲 +15%'}),
-  a2:R('战术数据链·扩展','稀有',{special:'auraDmg', desc:'辅助 3 格内的友军伤害 +10%（不叠加）'}),
-  a3:R('过载广播','传说',{mods:{dmg:20}, special:'broadcast', desc:'全队伤害 +20%，但辅助自身 HP −50%'}),
-  a4:R('后勤网','稀有',{special:'regenStack', desc:'每有 1 名辅助出击，全队每个我方阶段开始回复 3% 最大 HP（最多 5 层）'}),
+  a1:R('冗余电源','普通',{cls:['指挥'], stat:{hpPct:30}, mods:{armorPct:15}, desc:'指挥 HP +30%、装甲 +15%'}),
+  a2:R('战术数据链·扩展','稀有',{special:'auraDmg', desc:'指挥 3 格内的友军伤害 +10%（不叠加）'}),
+  a3:R('过载广播','传说',{mods:{dmg:20}, special:'broadcast', desc:'全队伤害 +20%，但指挥自身 HP −50%'}),
+  a4:R('后勤网','稀有',{special:'regenStack', desc:'每有 1 名指挥出击，全队每个我方阶段开始回复 3% 最大 HP（最多 5 层）'}),
   h1:R('加厚装甲','普通',{cls:['重装'], stat:{hpPct:30}, mods:{armorPct:20}, desc:'重装 HP +30%、装甲 +20%'}),
   h2:R('反应装甲','稀有',{cls:['重装'], mods:{red:15}, desc:'重装减伤 +15%'}),
   h3:R('移动要塞','传说',{cls:['重装'], stat:{mov:-2, guard:1}, mods:{dmg:50}, desc:'重装伤害 +50%、援护防御次数 +1，但移动 −2'}),
@@ -6867,13 +6883,13 @@ const RELICS = {
   // B. 免费晋升
   t1:R('格斗教范','普通',{special:'promo', promo:'近卫', desc:'立即免费晋升 1 名近卫'}),
   t2:R('侦察教范','普通',{special:'promo', promo:'尖兵', desc:'立即免费晋升 1 名尖兵'}),
-  t3:R('后勤教范','普通',{special:'promo', promo:'辅助', desc:'立即免费晋升 1 名辅助'}),
+  t3:R('后勤教范','普通',{special:'promo', promo:'指挥', desc:'立即免费晋升 1 名指挥'}),
   t4:R('防御教范','普通',{special:'promo', promo:'重装', desc:'立即免费晋升 1 名重装'}),
   t5:R('射击教范','普通',{special:'promo', promo:'狙击', desc:'立即免费晋升 1 名狙击'}),
   t6:R('特战教范','普通',{special:'promo', promo:'特种', desc:'立即免费晋升 1 名特种'}),
   // C. 双职业协议
   p1:R('突击协议','普通',{stack:{by:['近卫','尖兵'], per:{dmg:5}, max:12, to:['近卫','尖兵']}, desc:'每有 1 名近卫或尖兵出击，近卫和尖兵伤害 +5%'}),
-  p2:R('堡垒协议','普通',{stack:{by:['重装','辅助'], per:{red:4}, max:12, to:['重装','辅助']}, desc:'每有 1 名重装或辅助出击，重装和辅助减伤 +4%'}),
+  p2:R('堡垒协议','普通',{stack:{by:['重装','指挥'], per:{red:4}, max:12, to:['重装','指挥']}, desc:'每有 1 名重装或指挥出击，重装和指挥减伤 +4%'}),
   p3:R('远程协议','普通',{stack:{by:['狙击','特种'], per:{hit:5, dmg:4}, max:12, to:['狙击','特种']}, desc:'每有 1 名狙击或特种出击，狙击和特种命中 +5、伤害 +4%'}),
   // D. 构筑规则
   b1:R('混编作战条例','传说',{special:'mixed', desc:'出击队伍里每有 1 个不同的职业，全队伤害 +8%'}),
@@ -6935,7 +6951,7 @@ function relicApplyFoe(e, allies){
   e.relicMods = m;
 }
 /* ---- 获取（v0.31 第二步）：三选一、掉落偏重、免费晋升、黑市价格、大地图卡片 ---- */
-const relicFavCls = () => !RUN ? null : CLASSES.includes(RUN.squad) ? RUN.squad : RUN.squad === 'moon' ? '辅助' : null;   // 势力分队不偏重
+const relicFavCls = () => !RUN ? null : CLASSES.includes(RUN.squad) ? RUN.squad : RUN.squad === 'moon' ? '指挥' : null;   // 势力分队不偏重
 const relicIsFav = (id, c) => { const r = RELICS[id]; return !!c && ((r.cls || []).includes(c) || (r.stack && r.stack.by.includes(c)) || (r.foeStack && r.foeStack.by.includes(c)) || r.promo === c); };
 /* 从指定稀有度里挑 n 件没拿过的：每件 70% 从当前分队职业的藏品里出 */
 function relicPick(tiers, n){
@@ -6990,7 +7006,7 @@ function relicDmg(att, def, w, o = {}){
   const allies = units.filter(u => u.side === 'ally' && u.hp > 0 && u !== att);
   const near = r => allies.filter(u => distU(att, u, ax, ay) <= r).length;   // att 站在 (ax, ay) 时和 u 的距离
   let p = 0;
-  if (hasRelic('a2') && allies.some(u => relicCls(u) === '辅助' && distU(att, u, ax, ay) <= 3)) p += 10;
+  if (hasRelic('a2') && allies.some(u => relicCls(u) === '指挥' && distU(att, u, ax, ay) <= 3)) p += 10;
   if (hasRelic('x3') && relicCls(att) === '特种') p += near(3) ? -10 : 60;
   if (hasRelic('b3')) p += Math.min(24, near(2) * 6);
   if (hasRelic('b4') && def) p += Math.min(30, distU(att, def, ax, ay) * 3);
@@ -7005,7 +7021,7 @@ function relicBattleStart(allies){
     if (hasRelic('b1')) m.dmg = (m.dmg || 0) + 8 * kinds;
     if (hasRelic('b2')){ if (n <= 2){ m.dmg = (m.dmg || 0) + 50; m.armorPct = (m.armorPct || 0) + 30; } else if (n >= 4) m.dmg = (m.dmg || 0) - 15; }
     if (hasRelic('f3')) m.dmg = (m.dmg || 0) + Math.min(30, Math.floor(RUN.he / 10) * 3);
-    if (hasRelic('a3') && relicCls(u) === '辅助'){ u.maxHp = Math.max(1, Math.round(u.maxHp * .5)); u.hp = Math.min(u.hp, u.maxHp); }
+    if (hasRelic('a3') && relicCls(u) === '指挥'){ u.maxHp = Math.max(1, Math.round(u.maxHp * .5)); u.hp = Math.min(u.hp, u.maxHp); }
   }
 }
 Hooks.on('strikeResolved', c => {
@@ -7014,7 +7030,7 @@ Hooks.on('strikeResolved', c => {
 }, '藏品：破甲弹头');
 Hooks.on('phaseStart', c => {
   if (c.side !== 'ally' || !hasRelic('a4') || !LV || !LV.run) return;
-  const al = units.filter(u => u.side === 'ally' && u.hp > 0), k = Math.min(5, al.filter(u => relicCls(u) === '辅助').length);
+  const al = units.filter(u => u.side === 'ally' && u.hp > 0), k = Math.min(5, al.filter(u => relicCls(u) === '指挥').length);
   if (!k) return;
   al.forEach(u => { const h = Math.min(u.maxHp - u.hp, Math.round(u.maxHp * .03 * k)); if (h > 0){ u.hp += h; addFloat(u, `+${h}`, '#9fe0b8'); } });
 }, '藏品：后勤网');
@@ -7035,6 +7051,92 @@ const propMax = () => 7 + [0,2,3,4][skLv('领航')] + [0,1,2,2][skLv('后勤')] 
 const deployCap = () => 4 + Math.floor((RUN.lvl - 1) / 3) + (skLv('编制') >= 2 ? 1 : 0) + (hasRelic('f4') ? 1 : 0);   // v0.32 初始 4 人，部队每升 3 级 +1，编制 +1
 const sightR = () => 3 + (skLv('侦察') >= 3 ? 2 : skLv('侦察') >= 1 ? 1 : 0);
 
+/* ---------- v0.39 部署区域、机库、前线中继、撤回（作者 2026-10-07 定） ----------
+   - 编队里选的是「首发」（同时在场上限 = LV.maxDeploy）；队里其余机体都带进战斗，放在机库里；
+   - 我方阶段可以从机库派出机体：只能放在部署格（出击点 + 前线中继周围）上，格子不能有人、不能在敌方控制区里，场上人数不能超过上限；
+   - 刚派出的机体当回合不能移动，但可以攻击、可以选朝向；
+   - 尖兵「前线中继」：移动后在脚下插一个中继，周围 2 格变成部署格（每台尖兵 1 个，再插就挪过去；插完本回合结束；尖兵被击破，中继消失）；
+   - 撤回：在指挥职业机体 4 格内（含指挥自己）可以撤回机库，算这台的行动；撤回的机体当回合不能再派出，换别人上可以；
+   - 全图部署、母舰：暂不做。 */
+let HANGAR = [];
+const RELAYS = new Map();   // 尖兵 uid → {x, y}
+const RELAY_R = 2, RETREAT_R = 4;
+const hangarOn = () => !!(LV && LV.hangar);
+const fieldAllies = () => units.filter(u => u.side === 'ally' && u.hp > 0 && !u.commandOnly);
+const fieldCap = () => (LV && LV.maxDeploy) || 99;
+function baseDeploySet(){
+  const s = new Set();
+  for (const [x, y] of (LV && LV.spots) || []) for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) if (inb(x+i, y+j)) s.add((y+j)*N + x+i);
+  for (const [uid, r] of RELAYS){
+    if (!units.some(u => u.uid === uid && u.hp > 0)) continue;
+    for (let dy = -RELAY_R; dy <= RELAY_R; dy++) for (let dx = -RELAY_R; dx <= RELAY_R; dx++) if (Math.abs(dx) + Math.abs(dy) <= RELAY_R && inb(r.x+dx, r.y+dy)) s.add((r.y+dy)*N + r.x+dx);
+  }
+  return s;
+}
+function deployTiles(u){
+  const set = baseDeploySet(), zs = zocSet(u), out = [];
+  for (const k of set){
+    const x = k % N, y = (k / N) | 0;
+    if (!tilesOf(u, x, y).every(([a, b]) => set.has(b*N + a))) continue;
+    if (!canStand(u, x, y) || inZoc(u, x, y, zs)) continue;
+    out.push({x, y});
+  }
+  return out;
+}
+const canDeploy = u => hangarOn() && HANGAR.includes(u) && u.retreatTurn !== turn && fieldAllies().length < fieldCap() && deployTiles(u).length > 0;
+function startDeploy(u){
+  if (!canDeploy(u)) return;
+  Object.assign(S, {sel:null, mode:'deploy', depUnit:u, depTiles:deployTiles(u), inspect:u});
+  refresh();
+}
+function doDeploy(x, y){
+  const u = S.depUnit; if (!u || !S.depTiles.some(t => t.x === x && t.y === y)) return false;
+  HANGAR = HANGAR.filter(h => h !== u);
+  u.x = x; u.y = y; u.facing = LV.allyFacing || 'right'; u.deployTurn = turn; u.acted = false; u.moved = false; u.movedThisRound = false;
+  units.push(u);
+  log(`${fullName(u)} 从机库出击（场上 ${fieldAllies().length} / ${fieldCap()}）`, null, 'ally');
+  select(u);
+  S.origin = {x, y, facing:u.facing, flying:u.flying, toggledTurn:u.toggledTurn}; S.noUndo = true; S.mode = 'menu';
+  refresh();
+  return true;
+}
+const commanderNear = u => units.some(c => c.side === 'ally' && c.hp > 0 && c.tags && c.tags.战斗分类 === '指挥' && distU(c, u) <= RETREAT_R);
+const canRetreat = u => hangarOn() && !!u && u.side === 'ally' && !u.commandOnly && commanderNear(u);
+async function doRetreat(u){
+  if (!canRetreat(u)) return;
+  units.splice(units.indexOf(u), 1);
+  u.retreatTurn = turn; u.acted = true;
+  HANGAR.push(u);
+  if (RELAYS.has(u.uid)) RELAYS.delete(u.uid);
+  log(`${fullName(u)} 撤回机库（场上 ${fieldAllies().length} / ${fieldCap()}）`, null, 'ally');
+  clearSel(); refresh();
+  checkEnd();
+}
+const canRelay = u => hangarOn() && !!u && abilOn(u, 'relay');
+async function doRelay(u){
+  if (!canRelay(u)) return;
+  RELAYS.set(u.uid, {x:u.x, y:u.y});
+  addFloat(u, '前线中继', '#7fe6ff');
+  log(`${fullName(u)} 在 (${u.x},${u.y}) 插下前线中继：周围 ${RELAY_R} 格成为部署格`, null, 'ally');
+  await finish(u);
+}
+Hooks.on('unitDestroyed', c => { if (c.unit && RELAYS.has(c.unit.uid)){ RELAYS.delete(c.unit.uid); log('前线中继随机体一起失效', null, 'sys'); } }, '前线中继：尖兵被击破就消失');
+/* 开战：编队选出的首发已经上场；其余队员先一起上场（吃到开战时的藏品 / 词缀 / 零件效果），再收进机库 */
+function stowHangar(list){
+  HANGAR = [];
+  for (const u of list){ const i = units.indexOf(u); if (i >= 0) units.splice(i, 1); u.acted = false; HANGAR.push(u); }
+  if (HANGAR.length) log(`机库待命 ${HANGAR.length} 台：${HANGAR.map(u => u.short).join('、')}。我方阶段可以在部署格派出（场上上限 ${fieldCap()} 台）`, null, 'sys');
+}
+function resetDeploy(){ HANGAR = []; RELAYS.clear(); }
+function hangarHTML(){
+  if (!hangarOn()) return '';
+  const n = fieldAllies().length, cap = fieldCap();
+  const rows = HANGAR.map(u => {
+    const why = u.retreatTurn === turn ? '本回合刚撤回' : n >= cap ? '场上已满' : !deployTiles(u).length ? '没有空的部署格' : '';
+    return `<button class="btn" data-hangar="${u.uid}" ${why ? 'disabled' : ''} title="${why}">${u.short} ${u.pilot} · HP ${u.hp}/${u.maxHp}${why ? `（${why}）` : ''}</button>`;
+  }).join('');
+  return `<div class="facerow"><span class="small">机库（场上 ${n} / ${cap}）${HANGAR.length ? '：点一台派出到部署格（当回合不能移动，可以攻击）' : '：空'}</span><div class="acts">${rows}</div></div>`;
+}
 /* ---------- 侵蚀场 ---------- */
 const EROSIONS = {
   overload:{name:'过载侵蚀', desc:'我方全体「过载」：伤害 +30%，但每次攻击（包括反击）自身受到最大 HP 5% 的伤害。'},
@@ -7512,7 +7614,7 @@ const TIER_LV = {杂兵:0, 精锐:1, 头目:2, Boss:2};
    - 敌方武器：Lv5 的敌人，打 Lv10 我方平均（装甲 600、防御 103）；
    - 特殊伤害 / 无视防御：装甲、防御都按 0。
    角色对话以后按新公式重新写某个角色的武器时，把它的机体代号加进 NEW_POWER，它就不再换算。 */
-const DEF_BY_CLASS = {重装:110, 近卫:95, 特种:85, 辅助:80, 狙击:75, 尖兵:75};
+const DEF_BY_CLASS = {重装:110, 近卫:95, 特种:85, 指挥:80, 狙击:75, 尖兵:75};
 const DEF_BY_TIER = {杂兵:50, 精锐:65, 头目:80, Boss:95};
 const NEW_POWER = new Set([]);
 function convPow(P, statRef, multi, noDef, Aref, Dref){
@@ -7777,7 +7879,7 @@ async function runBattle(kind, code){
   rlog('battle_start', {code, kind, lv, affix: affix ? affix.name : null, erosion: RUN.mods.overload || RUN.mods.fog || (RUN.erosion && !RUN.erosionCleared) ? RUN.erosion : null, enemies:keys});
   LEVELS.run = {
     run:true, affix, code, name:`${code} ${st.name} · ${label}${obj !== 'annihilate' ? ' · ' + OBJ_NAME[obj] : ''}${affix ? ' · 【' + affix.name + '】' : ''}`, w:W, h:H, speed:.6, formation:true, noCmd:true,
-    rows:g.map(row => row.join('')), rosterList:RUN.units.map(u => ({...u})), maxDeploy:deployCap(), spots, allyFacing:'right',
+    rows:g.map(row => row.join('')), rosterList:RUN.units.map(u => ({...u})), maxDeploy:deployCap(), hangar:true, spots, allyFacing:'right',
     defaultDeploy:[...RUN.units].sort((a,b) => b.lv - a.lv).map(u => u.mech),
     waves: waves.map((w, i) => ({at:w.at, lv, label:`第 ${i+1} 波`, enemies:w.enemies})),
     onSpawn: e => { e.facing = 'left'; if (affix) affix.fn(e); relicApplyFoe(e, units.filter(u => u.side === 'ally')); },
@@ -7932,7 +8034,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.38';
+const GAME_VERSION = 'v0.39';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
@@ -8345,7 +8447,7 @@ $('#btnSound').onclick = () => setSound(!SOUND.on);
 document.addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !/INPUT|TEXTAREA|SELECT/.test((e.target.tagName || ''))) setSound(!SOUND.on); });
 if (!AU) $('#btnSound').hidden = true; else setSound(SOUND.on);
 
-window.__game = {makeUnit, levelUp, reach, zocSet, moveWatched, bestCounter, legalFaces, get phaseNo(){ return phaseNo; }, damageCalc, dispPow, atkStat, wPow, get map(){ return map; }, RELICS, gainRelic(id){ if (RUN && RELICS[id]){ RUN.relics = RUN.relics || []; if (!RUN.relics.includes(id)) RUN.relics.push(id); } return RUN ? RUN.relics : null; }, AIM_BY_CLASS, guardReach, recCost, tierOf, FACTIONS, ticketOk, ticketName, get sound(){ return {on:SOUND.on, scene:SOUND.scene, cue:AU && AU.state().cue}; }, get RUN(){ return RUN; }, STAGES, buildStage, rlogRecord, rlogText, openRunLogs, enterLayer, checkEnd, moveDist, runClickNode, runBattle, moveTargets, partTargets, get level(){ return level; }, get units(){ return units; }, data:{ALLY_T, ENEMY_T, ABIL, COMMANDS, TRIALS, FIRE}, get roster(){ return roster; }, get LV(){ return LV; }, get turn(){ return turn; }, get over(){ return over; }, setSpeed(v){ SPEED = v; }, startLevel, toggleLock, execCommand, attackables, bestWeaponFor, select, weaponUsable, get S(){ return S; }, orderMeteor, resolveMeteors, get CMD(){ return CMD; }, setTurn(t){ turn = t; }, pushUnit, get walls(){ return walls; }, echoArea, finish, zoneOf, battle, onTile, onAction, endTurn, cheatLevel, choosePick, mapDirs, losClear, canHit, forecast, get editor(){ return {ED, store:edStore()}; }, get art(){ return MI; }, unitSprite, iconIdOf,
+window.__game = {get HANGAR(){ return HANGAR; }, RELAYS, deployTiles, startDeploy, doDeploy, doRetreat, doRelay, canRetreat, canRelay, makeUnit, levelUp, reach, zocSet, moveWatched, bestCounter, legalFaces, get phaseNo(){ return phaseNo; }, damageCalc, dispPow, atkStat, wPow, get map(){ return map; }, RELICS, gainRelic(id){ if (RUN && RELICS[id]){ RUN.relics = RUN.relics || []; if (!RUN.relics.includes(id)) RUN.relics.push(id); } return RUN ? RUN.relics : null; }, AIM_BY_CLASS, guardReach, recCost, tierOf, FACTIONS, ticketOk, ticketName, get sound(){ return {on:SOUND.on, scene:SOUND.scene, cue:AU && AU.state().cue}; }, get RUN(){ return RUN; }, STAGES, buildStage, rlogRecord, rlogText, openRunLogs, enterLayer, checkEnd, moveDist, runClickNode, runBattle, moveTargets, partTargets, get level(){ return level; }, get units(){ return units; }, data:{ALLY_T, ENEMY_T, ABIL, COMMANDS, TRIALS, FIRE}, get roster(){ return roster; }, get LV(){ return LV; }, get turn(){ return turn; }, get over(){ return over; }, setSpeed(v){ SPEED = v; }, startLevel, toggleLock, execCommand, attackables, bestWeaponFor, select, weaponUsable, get S(){ return S; }, orderMeteor, resolveMeteors, get CMD(){ return CMD; }, setTurn(t){ turn = t; }, pushUnit, get walls(){ return walls; }, echoArea, finish, zoneOf, battle, onTile, onAction, endTurn, cheatLevel, choosePick, mapDirs, losClear, canHit, forecast, get editor(){ return {ED, store:edStore()}; }, get art(){ return MI; }, unitSprite, iconIdOf,
   /* 给工具用：全部单位模板（含未出场的），tools/roster.mjs 靠它检查图标覆盖率。roster 已被玩家编队占用，所以叫 templates */
   get templates(){ return {allies: ALLY_T, enemies: ENEMY_T, forms: FORMS, debris: DEBRIS_T}; },
   get levels(){ return LEVELS; }};

@@ -68,7 +68,7 @@ function weakHTML(u){
 }
 function unitCardHTML(u){
   if (u && u.side === 'neutral') return `<h3>单位情报</h3><div class="u-head"><h2>陨石残骸</h2></div>${bar('HP',u.hp,u.maxHp)}<p class="small">挡住所有单位的移动和直射（不挡打向空中目标的直射）。双方都可以攻击它，HP 归零后消失。</p>`;
-  if (!u) return `<h3>单位情报</h3><p class="hint">点击地图上的任意单位查看数据。机体脚下的地面环表示敌我（我方方形、敌方圆形），机体剪影按「战斗分类」区分，胸口核心的颜色就是分类色（近卫橙红、尖兵黄、辅助紫、重装蓝、狙击粉、特种青）。地面环边上的黄色三角是朝向，右上角白色小三角表示飞行，半透明表示隐身。</p>`;
+  if (!u) return `<h3>单位情报</h3><p class="hint">点击地图上的任意单位查看数据。机体脚下的地面环表示敌我（我方方形、敌方圆形），机体剪影按「战斗分类」区分，胸口核心的颜色就是分类色（近卫橙红、尖兵黄、指挥紫、重装蓝、狙击粉、特种青）。地面环边上的黄色三角是朝向，右上角白色小三角表示飞行，半透明表示隐身。</p>`;
   const ter = terrainOf(u);
   const st = [['移动',u.mov],['装甲', effArmor(u) !== u.armor ? `${effArmor(u)}（+30%）` : u.armor],['命中', u.aim ?? 160],['回避', u.noEvade ? '—' : `${100 + 2 * (Math.max(0, u.eva - (u.dodgePen || 0)) + (u.moveEva || 0))}${u.moveEva ? `（+${2 * u.moveEva}）` : ''}${u.dodgePen ? `（疲劳 −${2 * u.dodgePen}）` : ''}`],['朝向',FACE_ARROW[u.facing]],['体积',`${u.w}×${u.h}`],['格斗',u.melee],['射击',u.shoot],['防御',u.defense || 0],['觉醒',u.awaken ?? 100],['等级',u.lv]]
     .map(([k,v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
@@ -96,8 +96,12 @@ function actionHTML(){
       const left = units.filter(x => x.side === 'ally' && !x.acted).length;
       return `<h3>指令</h3><p class="hint">点击我方机体开始行动。蓝色格是可移动范围，点击机体自身所在格表示原地行动。</p>
         <p class="small">本回合还可行动：${left} 台。全部行动完或随时可以点「结束回合」。</p>
+        ${hangarHTML()}
         <p class="small kbd">⌨ ${left ? `Tab：切换光标${S.cursor ? `（当前：${fullName(S.cursor)}）` : ''}　空格：${S.cursor && !S.cursor.acted ? '选中光标所在机体' : '选中下一台未行动的机体'}` : '空格：结束回合（会先确认）'}</p>`;
     }
+    case 'deploy':
+      return `<h3>派出 · ${fullName(S.depUnit)}</h3><p class="hint">青色格是能放的部署格（出击点、前线中继周围；不能在敌方控制区里）。点一格派出，派出后当回合不能移动，可以攻击、可以选朝向。</p>
+        <div class="acts"><button class="btn" data-a="deploy-cancel">取消</button></div>`;
     case 'moving':
       return `<h3>指令 · ${fullName(u)}</h3><p class="hint">⌨ 空格：原地行动。选择移动目的地（移动力 ${u.mov}${u.flying ? '，飞行中每格消耗 1' : ''}）。点自身格可原地行动。</p>
         <div class="acts">${moveExtras(u)}<button class="btn" data-a="cancel">取消</button></div>`;
@@ -107,7 +111,7 @@ function actionHTML(){
     case 'menu': {
       const can = u.weapons.some(w => weaponUsable(u,w).ok);
       return `<h3>指令 · ${fullName(u)}</h3><p class="hint">${hasTrait(u,'autoCast') ? 'Feena 不能主动使用武器，选择待机即可。' : u.moved ? '已移动：标注「不能移动后使用」的武器不可用。' : '未移动：可使用全部已解锁武器。'}</p>
-        <div class="acts">${hasTrait(u,'autoCast') ? '' : `<button class="btn primary" data-a="attack" ${can ? '' : 'disabled'}>攻击</button>`}<button class="btn" data-a="wait">待机</button>${S.teleported || S.noUndo ? '' : '<button class="btn" data-a="undo">取消移动</button>'}${u.transform && !u.transformed ? '<button class="btn" data-a="transform">脱装 · 纳德雷</button>' : ''}</div>${S.teleported ? '<p class="small">已传送，不能取消。</p>' : ''}${S.noUndo && !S.teleported ? `<p class="small">${S.extraUsed ? 'DASH / 额外攻击：只能攻击或待机。' : '已经变身，不能取消移动。'}</p>` : ''}${u.canFly ? `<p class="small">${u.flying ? '飞行' : '地面'}状态。起飞 / 落地要在移动前决定。</p>` : ''}<p class="small">移动后需要先选择攻击或待机，才能结束回合。</p>
+        <div class="acts">${hasTrait(u,'autoCast') ? '' : `<button class="btn primary" data-a="attack" ${can ? '' : 'disabled'}>攻击</button>`}<button class="btn" data-a="wait">待机</button>${canRelay(u) ? '<button class="btn" data-a="relay" title="在脚下插前线中继：周围 2 格成为部署格，插完本回合结束">插前线中继</button>' : ''}${canRetreat(u) ? '<button class="btn" data-a="retreat" title="在指挥机体 4 格内：撤回机库">撤回机库</button>' : ''}${S.teleported || S.noUndo ? '' : '<button class="btn" data-a="undo">取消移动</button>'}${u.transform && !u.transformed ? '<button class="btn" data-a="transform">脱装 · 纳德雷</button>' : ''}</div>${S.teleported ? '<p class="small">已传送，不能取消。</p>' : ''}${S.noUndo && !S.teleported ? `<p class="small">${S.extraUsed ? 'DASH / 额外攻击：只能攻击或待机。' : '已经变身，不能取消移动。'}</p>` : ''}${u.canFly ? `<p class="small">${u.flying ? '飞行' : '地面'}状态。起飞 / 落地要在移动前决定。</p>` : ''}<p class="small">移动后需要先选择攻击或待机，才能结束回合。</p>
         <div class="facerow"><span class="small">朝向（W A S D 或点方向键）：橙色格子是这个朝向下能反击的范围${abilOn(u, 'overwatch') ? '（也是压制射击的射界）' : ''}，敌方阶段只能反击这里面的敌人。攻击时会自动转到能打到目标的方向并锁定</span><div class="facepad">${['up','left','right','down'].map(f => `<button data-face="${f}" class="${u.facing === f ? 'sel' : ''}" aria-label="朝${FACE_NAME[f]}">${FACE_ARROW[f]}</button>`).join('')}</div></div>
         <p class="small kbd">⌨ WASD：改变朝向　空格：${hasTrait(u,'autoCast') ? '待机' : S.atkList && S.atkList.length ? `攻击（${S.atkList.length} 个目标，红框标出）` : '待机（没有可攻击的目标）'}</p>
         ${can ? '' : '<p class="small">没有可用的武器或射程内没有目标。</p>'}${hasTrait(u,'autoCast') && autoWeapon(u) ? `<p class="small">待机后自动释放【${autoWeapon(u).name}】。${autoWeapon(u).fire === 'support' ? '绿色区域是作用范围。' : '紫色区域是余响的范围。'}</p>` : echoWeapon(u) ? '<p class="small">紫色区域是本次行动结束后「残月的余响」的范围。</p>' : ''}${regenWeapon(u) ? '<p class="small">绿框是本次行动结束后「月华再生」的回复范围。</p>' : ''}`;

@@ -12,7 +12,7 @@ const ALLY_T = [
     wp({name:'影凤凰', power:5000, fire:'map', range:[1,4], unlock:20, afterMove:false, dmgType:'特殊',
         desc:'选 8 个方向之一，冲到第 5 格（必须是合法落点），攻击沿途 4 格内所有单位，包括友军。必中，不能被反击。'}),
   ]},
-  {pilot:'Feena', mech:'M1', short:'M1', trait:'autoCast', command:'meteor', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'辅助'}, hp:5000, armor:0, eva:30, mov:5, melee:90, shoot:130, flying:false, w:1, h:1, abilities:[], weapons:[
+  {pilot:'Feena', mech:'M1', short:'M1', trait:'autoCast', command:'meteor', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'指挥'}, hp:5000, armor:0, eva:30, mov:5, melee:90, shoot:130, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'月光祝福', fire:'support', range:[0,4], afterMove:true, dmgType:'—',
         desc:'以自身为中心菱形 4 格内的友军（不含自己）闪避 +15、命中 +15，持续到下一个我方阶段开始，可叠加。'}),
     wp({name:'残月的余响', fire:'passive', special:'echo', power:2999, stat:'射击', range:[0,4], unlock:20,
@@ -24,7 +24,7 @@ const ALLY_T = [
     wp({name:'螺旋式打桩机', power:800, stat:'格斗', fire:'melee', hit:85, special:'multi', hits:10, step:10, ignoreDef:true, unlock:20,
         desc:'连续判定 10 段。首段命中 85，每段命中后 −10、未中后 +10。每段伤害 = 800 + 格斗×5÷10，无视一切伤害减免。'}),
   ]},
-  {pilot:'Iris', mech:'M3', short:'M3', trait:'fieldAid', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'辅助'}, hp:4000, armor:300, eva:20, mov:5, melee:80, shoot:120, flying:true, w:1, h:1, abilities:[], weapons:[
+  {pilot:'Iris', mech:'M3', short:'M3', trait:'fieldAid', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'指挥'}, hp:4000, armor:300, eva:20, mov:5, melee:80, shoot:120, flying:true, w:1, h:1, abilities:[], weapons:[
     wp({name:'修理装置', fire:'heal', power:3000, range:[1,1], dmgType:'—',
         desc:'相邻的一台友军回复 3000 × 射击÷100 的 HP，不能对自己使用。'}),
     wp({name:'防身机枪', power:1200, fire:'direct', range:[1,2]}),
@@ -107,7 +107,7 @@ const ALLY_T = [
     wp({name:'光束步枪', power:1400, fire:'direct', range:[1,5], dmgType:'光束'}),
     wp({name:'光束军刀', power:1500, stat:'格斗', fire:'melee', dmgType:'光束'}),
   ]},
-  {pilot:'茱莉', mech:'S8', short:'S8', mechName:'M1 异端', trait:'trio', tags:{势力:'克莱因派', 远近分类:'远程', 战斗分类:'辅助'}, hp:3800, armor:300, eva:25, mov:6, melee:100, shoot:130, flying:false, w:1, h:1, abilities:[], weapons:[
+  {pilot:'茱莉', mech:'S8', short:'S8', mechName:'M1 异端', trait:'trio', tags:{势力:'克莱因派', 远近分类:'远程', 战斗分类:'指挥'}, hp:3800, armor:300, eva:25, mov:6, melee:100, shoot:130, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'光束步枪', power:1400, fire:'direct', range:[1,5], dmgType:'光束'}),
     wp({name:'光束军刀', power:1300, stat:'格斗', fire:'melee', dmgType:'光束'}),
   ]},
@@ -134,7 +134,7 @@ const ALLY_T = [
     wp({name:'全弹发射', power:4000, fire:'map', shape:'burst', rad:3, iff:true, afterMove:false, uses:1, unlock:20,
         upgrades:[{lv:30, rad:4, note:'Lv30：半径 4'}], desc:'以自身为中心，3 格内的所有敌机受到攻击（敌我识别）。每场 1 次。'}),
   ]},
-  {pilot:'卡托尔', mech:'W4', short:'W4', mechName:'沙漠', trait:'spaceHeart', tags:{势力:'预防者', 远近分类:'近战', 战斗分类:'辅助'}, hp:6000, armor:900, eva:20, mov:5, melee:140, shoot:120, flying:false, w:1, h:1, abilities:[], weapons:[
+  {pilot:'卡托尔', mech:'W4', short:'W4', mechName:'沙漠', trait:'spaceHeart', tags:{势力:'预防者', 远近分类:'近战', 战斗分类:'指挥'}, hp:6000, armor:900, eva:20, mov:5, melee:140, shoot:120, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'热能双刀', power:2500, stat:'格斗', fire:'melee'}),
     wp({name:'光束机枪', power:1300, fire:'direct', range:[1,3], dmgType:'光束'}),
     wp({name:'十字粉碎', power:3000, stat:'格斗', fire:'melee', critMod:10, cd:2}),
@@ -185,7 +185,7 @@ const ALLY_T = [
     wp({name:'回旋拳', power:1800, fire:'direct', range:[1,3]}),
     wp({name:'计都罗睺剑', power:3000, stat:'格斗', fire:'melee'}),
   ]},
-  {pilot:'库斯哈', mech:'A5', short:'A5', mechName:'龙虎王', trait:'juice', tags:{势力:'ATX', 远近分类:'远程', 战斗分类:'辅助'}, hp:6000, armor:800, eva:20, mov:5, melee:140, shoot:150, flying:false, w:1, h:1, abilities:[], weapons:[
+  {pilot:'库斯哈', mech:'A5', short:'A5', mechName:'龙虎王', trait:'juice', tags:{势力:'ATX', 远近分类:'远程', 战斗分类:'指挥'}, hp:6000, armor:800, eva:20, mov:5, melee:140, shoot:150, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'念动治愈', fire:'heal', power:2800, range:[1,2], dmgType:'—', desc:'2 格内的一台友军回复 2800 × 射击÷100 的 HP。'}),
     wp({name:'龙王破山剑', power:2800, stat:'格斗', fire:'melee'}),
     wp({name:'龙雷闪', power:1800, fire:'indirect', range:[2,6], dmgType:'特殊', desc:'念动力攻击，特殊伤害。'}),
@@ -208,7 +208,7 @@ const ALLY_T = [
     wp({name:'超长距离狙击', power:4000, fire:'direct', range:[5,14], hit:120, critMod:10, afterMove:false, cd:2, unlock:20,
         upgrades:[{lv:30, again:true, note:'Lv30：击破目标后可以再攻击一次（不能移动）'}]}),
   ]},
-  {pilot:'真织', mech:'U2', short:'U2', mechName:'M9·指挥', trait:'squadLead', tags:{势力:'秘银', 远近分类:'远程', 战斗分类:'辅助'}, hp:4800, armor:500, eva:25, mov:6, melee:120, shoot:145, flying:false, w:1, h:1, abilities:[], weapons:[
+  {pilot:'真织', mech:'U2', short:'U2', mechName:'M9·指挥', trait:'squadLead', tags:{势力:'秘银', 远近分类:'远程', 战斗分类:'指挥'}, hp:4800, armor:500, eva:25, mov:6, melee:120, shoot:145, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'突击步枪', power:1400, fire:'direct', range:[1,4]}),
     wp({name:'导弹发射器', power:1800, fire:'indirect', range:[2,6], uses:4, special:'splash', desc:'溅射：与目标相邻的其他敌机受到本次伤害的 50%。'}),
     wp({name:'单分子刀', power:1400, stat:'格斗', fire:'melee'}),
@@ -253,7 +253,7 @@ ALLY_T.forEach(t => {
   const cls = t.tags.战斗分类, add = k => { if (!t.abilities.includes(k)) t.abilities.push(k); };
   if (cls === '近卫'){ add('dash'); add('mook'); }   // v0.35 近卫：压制杂兵
   if (cls === '狙击'){ add('supportAtk'); add('overwatch'); }   // v0.38 压制射击
-  if (cls === '尖兵') add('zocFree');   // v0.36 ZOC：尖兵无视控制区
+  if (cls === '尖兵'){ add('zocFree'); add('relay'); }   // v0.36 ZOC：尖兵无视控制区；v0.39 前线中继
   if (cls === '重装') add('guard');
   if (t.mech === 'S2') add('guardAtk');
   /* v0.30 友军加强（作者试玩）：近卫威力 +20%、初始近战射程至少 2；不能移动后使用的武器（地图炮除外）威力 +25%；刹那、雷萨、Nagi 单独调整 */

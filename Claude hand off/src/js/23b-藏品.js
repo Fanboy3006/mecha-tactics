@@ -19,10 +19,10 @@ const RELICS = {
   s2:R('侦察兵的直觉','稀有',{cls:['尖兵'], stat:{range:1}, mods:{dmg:20}, desc:'尖兵伤害 +20%、射程 +1'}),
   s3:R('零装甲疾驰','传说',{cls:['尖兵'], stat:{mov:2, hpPct:-40}, mods:{eva:20}, desc:'尖兵移动 +2、回避 +40，但 HP −40%'}),
   s4:R('游击网络','稀有',{foeStack:{by:['尖兵'], per:{hit:-4}, max:5}, desc:'每有 1 名尖兵出击，敌方全体命中 −4（最多 5 层）'}),
-  a1:R('冗余电源','普通',{cls:['辅助'], stat:{hpPct:30}, mods:{armorPct:15}, desc:'辅助 HP +30%、装甲 +15%'}),
-  a2:R('战术数据链·扩展','稀有',{special:'auraDmg', desc:'辅助 3 格内的友军伤害 +10%（不叠加）'}),
-  a3:R('过载广播','传说',{mods:{dmg:20}, special:'broadcast', desc:'全队伤害 +20%，但辅助自身 HP −50%'}),
-  a4:R('后勤网','稀有',{special:'regenStack', desc:'每有 1 名辅助出击，全队每个我方阶段开始回复 3% 最大 HP（最多 5 层）'}),
+  a1:R('冗余电源','普通',{cls:['指挥'], stat:{hpPct:30}, mods:{armorPct:15}, desc:'指挥 HP +30%、装甲 +15%'}),
+  a2:R('战术数据链·扩展','稀有',{special:'auraDmg', desc:'指挥 3 格内的友军伤害 +10%（不叠加）'}),
+  a3:R('过载广播','传说',{mods:{dmg:20}, special:'broadcast', desc:'全队伤害 +20%，但指挥自身 HP −50%'}),
+  a4:R('后勤网','稀有',{special:'regenStack', desc:'每有 1 名指挥出击，全队每个我方阶段开始回复 3% 最大 HP（最多 5 层）'}),
   h1:R('加厚装甲','普通',{cls:['重装'], stat:{hpPct:30}, mods:{armorPct:20}, desc:'重装 HP +30%、装甲 +20%'}),
   h2:R('反应装甲','稀有',{cls:['重装'], mods:{red:15}, desc:'重装减伤 +15%'}),
   h3:R('移动要塞','传说',{cls:['重装'], stat:{mov:-2, guard:1}, mods:{dmg:50}, desc:'重装伤害 +50%、援护防御次数 +1，但移动 −2'}),
@@ -38,13 +38,13 @@ const RELICS = {
   // B. 免费晋升
   t1:R('格斗教范','普通',{special:'promo', promo:'近卫', desc:'立即免费晋升 1 名近卫'}),
   t2:R('侦察教范','普通',{special:'promo', promo:'尖兵', desc:'立即免费晋升 1 名尖兵'}),
-  t3:R('后勤教范','普通',{special:'promo', promo:'辅助', desc:'立即免费晋升 1 名辅助'}),
+  t3:R('后勤教范','普通',{special:'promo', promo:'指挥', desc:'立即免费晋升 1 名指挥'}),
   t4:R('防御教范','普通',{special:'promo', promo:'重装', desc:'立即免费晋升 1 名重装'}),
   t5:R('射击教范','普通',{special:'promo', promo:'狙击', desc:'立即免费晋升 1 名狙击'}),
   t6:R('特战教范','普通',{special:'promo', promo:'特种', desc:'立即免费晋升 1 名特种'}),
   // C. 双职业协议
   p1:R('突击协议','普通',{stack:{by:['近卫','尖兵'], per:{dmg:5}, max:12, to:['近卫','尖兵']}, desc:'每有 1 名近卫或尖兵出击，近卫和尖兵伤害 +5%'}),
-  p2:R('堡垒协议','普通',{stack:{by:['重装','辅助'], per:{red:4}, max:12, to:['重装','辅助']}, desc:'每有 1 名重装或辅助出击，重装和辅助减伤 +4%'}),
+  p2:R('堡垒协议','普通',{stack:{by:['重装','指挥'], per:{red:4}, max:12, to:['重装','指挥']}, desc:'每有 1 名重装或指挥出击，重装和指挥减伤 +4%'}),
   p3:R('远程协议','普通',{stack:{by:['狙击','特种'], per:{hit:5, dmg:4}, max:12, to:['狙击','特种']}, desc:'每有 1 名狙击或特种出击，狙击和特种命中 +5、伤害 +4%'}),
   // D. 构筑规则
   b1:R('混编作战条例','传说',{special:'mixed', desc:'出击队伍里每有 1 个不同的职业，全队伤害 +8%'}),
@@ -106,7 +106,7 @@ function relicApplyFoe(e, allies){
   e.relicMods = m;
 }
 /* ---- 获取（v0.31 第二步）：三选一、掉落偏重、免费晋升、黑市价格、大地图卡片 ---- */
-const relicFavCls = () => !RUN ? null : CLASSES.includes(RUN.squad) ? RUN.squad : RUN.squad === 'moon' ? '辅助' : null;   // 势力分队不偏重
+const relicFavCls = () => !RUN ? null : CLASSES.includes(RUN.squad) ? RUN.squad : RUN.squad === 'moon' ? '指挥' : null;   // 势力分队不偏重
 const relicIsFav = (id, c) => { const r = RELICS[id]; return !!c && ((r.cls || []).includes(c) || (r.stack && r.stack.by.includes(c)) || (r.foeStack && r.foeStack.by.includes(c)) || r.promo === c); };
 /* 从指定稀有度里挑 n 件没拿过的：每件 70% 从当前分队职业的藏品里出 */
 function relicPick(tiers, n){
@@ -161,7 +161,7 @@ function relicDmg(att, def, w, o = {}){
   const allies = units.filter(u => u.side === 'ally' && u.hp > 0 && u !== att);
   const near = r => allies.filter(u => distU(att, u, ax, ay) <= r).length;   // att 站在 (ax, ay) 时和 u 的距离
   let p = 0;
-  if (hasRelic('a2') && allies.some(u => relicCls(u) === '辅助' && distU(att, u, ax, ay) <= 3)) p += 10;
+  if (hasRelic('a2') && allies.some(u => relicCls(u) === '指挥' && distU(att, u, ax, ay) <= 3)) p += 10;
   if (hasRelic('x3') && relicCls(att) === '特种') p += near(3) ? -10 : 60;
   if (hasRelic('b3')) p += Math.min(24, near(2) * 6);
   if (hasRelic('b4') && def) p += Math.min(30, distU(att, def, ax, ay) * 3);
@@ -176,7 +176,7 @@ function relicBattleStart(allies){
     if (hasRelic('b1')) m.dmg = (m.dmg || 0) + 8 * kinds;
     if (hasRelic('b2')){ if (n <= 2){ m.dmg = (m.dmg || 0) + 50; m.armorPct = (m.armorPct || 0) + 30; } else if (n >= 4) m.dmg = (m.dmg || 0) - 15; }
     if (hasRelic('f3')) m.dmg = (m.dmg || 0) + Math.min(30, Math.floor(RUN.he / 10) * 3);
-    if (hasRelic('a3') && relicCls(u) === '辅助'){ u.maxHp = Math.max(1, Math.round(u.maxHp * .5)); u.hp = Math.min(u.hp, u.maxHp); }
+    if (hasRelic('a3') && relicCls(u) === '指挥'){ u.maxHp = Math.max(1, Math.round(u.maxHp * .5)); u.hp = Math.min(u.hp, u.maxHp); }
   }
 }
 Hooks.on('strikeResolved', c => {
@@ -185,7 +185,7 @@ Hooks.on('strikeResolved', c => {
 }, '藏品：破甲弹头');
 Hooks.on('phaseStart', c => {
   if (c.side !== 'ally' || !hasRelic('a4') || !LV || !LV.run) return;
-  const al = units.filter(u => u.side === 'ally' && u.hp > 0), k = Math.min(5, al.filter(u => relicCls(u) === '辅助').length);
+  const al = units.filter(u => u.side === 'ally' && u.hp > 0), k = Math.min(5, al.filter(u => relicCls(u) === '指挥').length);
   if (!k) return;
   al.forEach(u => { const h = Math.min(u.maxHp - u.hp, Math.round(u.maxHp * .03 * k)); if (h > 0){ u.hp += h; addFloat(u, `+${h}`, '#9fe0b8'); } });
 }, '藏品：后勤网');

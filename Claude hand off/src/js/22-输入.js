@@ -1,7 +1,7 @@
 /* ---------- 输入 ---------- */
 function select(u){
   S.moveCost = 0; S.lastPick = u; S.cursor = null; S.selFly = u.flying; S.selFacing = u.facing;
-  Object.assign(S, {sel:u, inspect:u, origin:null, reach:reach(u), mode:'moving', weapon:null, target:null, dirs:[], dir:null, teleported:false, portalTiles:[]});
+  Object.assign(S, {sel:u, inspect:u, origin:null, reach: u.deployTurn === turn ? [{x:u.x, y:u.y, d:0, face:null}] : reach(u), mode:'moving', weapon:null, target:null, dirs:[], dir:null, teleported:false, portalTiles:[]});
   fireTip('select:' + u.mech);
   refresh();
 }
@@ -33,6 +33,7 @@ function onTile(x,y){
   if (over || S.mode === 'enemy' || S.mode === 'busy') return;
   if (S.mode === 'command'){ if (execCommand(x, y)){ S.mode = 'idle'; } refresh(); return; }
   const u = occupant(x,y);
+  if (S.mode === 'deploy'){ if (!doDeploy(x, y)){ S.mode = 'idle'; S.depUnit = null; refresh(); } return; }
   switch (S.mode){
     case 'idle':
       if (u && u.side === 'ally' && !u.acted) select(u); else { S.inspect = u || null; refresh(); }
@@ -119,6 +120,9 @@ async function onAction(a){
     refresh();
   }
   else if (a === 'wait') await finish(u);
+  else if (a === 'relay') await doRelay(u);
+  else if (a === 'retreat') await doRetreat(u);
+  else if (a === 'deploy-cancel'){ S.mode = 'idle'; S.depUnit = null; refresh(); }
   else if (a === 'undo'){ u.x = S.origin.x; u.y = S.origin.y; u.facing = S.origin.facing; u.movedThisRound = false; S.moveCost = 0; if (S.origin.flying != null) u.flying = S.origin.flying; u.moved = false; S.origin = null; S.reach = reach(u); S.mode = 'moving'; refresh(); }
   else if (a === 'back-menu'){ S.mode = 'menu'; refresh(); }
   else if (a === 'back-weapon'){ S.mode = 'weapon'; S.target = null; S.dir = null; S.dirs = []; refresh(); }
@@ -230,6 +234,7 @@ $('#actionCard').addEventListener('click', e => {
     refresh();
   }
   if (b.dataset.face && S.sel){ S.sel.facing = b.dataset.face; refresh(); }
+  if (b.dataset.hangar != null){ const h = HANGAR.find(x => x.uid === +b.dataset.hangar); if (h) startDeploy(h); }
   if (b.dataset.pick != null){ const t = units.find(x => x.uid === +b.dataset.pick); if (t) choosePick(t); }
   if (b.dataset.lock != null){ const t = units.find(x => x.uid === +b.dataset.lock); if (t) toggleLock(t); }
   if (b.dataset.hack != null){ const t = units.find(x => x.uid === +b.dataset.hack); if (t) hackAct(t); }
@@ -398,7 +403,7 @@ const TIER = {
 const TIER_NAME = {S:'精锐', A:'骨干', B:'普通'};
 const PRICE = {S:{rec:5, p20:3, p30:4}, A:{rec:3, p20:2, p30:3}, B:{rec:0, p20:1, p30:2}};
 const CAP_CHARS = [];          // （已取消）原来晋升 Lv20 时出击上限 +1 的角色；以后改由藏品提供
-const CLASSES = ['近卫','尖兵','辅助','重装','狙击','特种'];
+const CLASSES = ['近卫','尖兵','指挥','重装','狙击','特种'];   // v0.39 辅助 → 指挥
 /* v0.26 势力招募券：券上写的是战斗分类就按分类、写的是势力就按势力；每场胜利 60% 职业券、40% 势力券 */
 const FACTIONS = [...new Set(ALLY_T.map(t => t.tags.势力))];
 const ticketOk = (k, m) => CLASSES.includes(k) ? tplOf(m).tags.战斗分类 === k : tplOf(m).tags.势力 === k;

@@ -205,6 +205,11 @@ function draw(now){
       ctx.stroke();
     }
   }
+  if (hangarOn()){
+    if (S.mode === 'deploy') fillTiles(S.depTiles, 'rgba(127,230,255,.35)');
+    else if (S.mode === 'idle' && HANGAR.length){ ctx.strokeStyle = 'rgba(127,230,255,.45)'; ctx.lineWidth = 1; for (const k of baseDeploySet()){ const x = k % N, y = (k / N) | 0; ctx.strokeRect(x*TS+2.5, y*TS+2.5, TS-5, TS-5); } }
+    for (const r of RELAYS.values()){ const cx = r.x*TS + TS/2, cy = r.y*TS + TS/2; ctx.fillStyle = '#7fe6ff'; ctx.beginPath(); ctx.moveTo(cx, cy-6); ctx.lineTo(cx+6, cy); ctx.lineTo(cx, cy+6); ctx.lineTo(cx-6, cy); ctx.closePath(); ctx.globalAlpha = .8; ctx.fill(); ctx.globalAlpha = 1; }
+  }
   if (S.sel && ['menu','weapon','pick'].includes(S.mode)) drawCover(S.sel, abilOn(S.sel, 'overwatch') ? 'rgba(255,211,107,.22)' : 'rgba(233,162,59,.14)');
   else if (S.mode === 'idle' && S.inspect && S.inspect.hp > 0 && S.inspect.side !== 'neutral') drawCover(S.inspect, S.inspect.side === 'enemy' ? 'rgba(224,90,79,.13)' : 'rgba(233,162,59,.14)');
   if (S.mode === 'moving' || S.mode === 'moving2'){
@@ -339,7 +344,7 @@ function iconIdOf(u){
 }
 /* 还没画专属图标的机体：先借用同「战斗分类」的原型剪影（配色仍按自己的势力）。
    这和 art/README 9.4「地图只负责认出定位」的约定一致。tools/roster.mjs 照样会把它们列为缺图标。 */
-const STOCK_BY_ROLE = {近卫:'B1', 尖兵:'B2', 辅助:'M1', 重装:'M2', 狙击:'CB2', 特种:'CB3'};
+const STOCK_BY_ROLE = {近卫:'B1', 尖兵:'B2', 指挥:'M1', 重装:'M2', 狙击:'CB2', 特种:'CB3'};
 function stockIcon(u){
   if (u.side === 'ally') return STOCK_BY_ROLE[roleOf(u)] || 'B1';
   const fp = Math.max(u.w || 1, u.h || 1);

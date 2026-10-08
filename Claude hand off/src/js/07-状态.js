@@ -8,7 +8,7 @@ const floats = [];
 const fullName = u => u.side === 'ally' ? `${u.pilot}·${u.mech}` : u.mech;
 
 ENEMY_SUPPORT.forEach(k => { if (ENEMY_T[k] && !ENEMY_T[k].abilities.includes('supportAtk')) ENEMY_T[k].abilities.push('supportAtk'); });
-const AIM_BY_CLASS = {狙击:180, 尖兵:170, 近卫:165, 特种:165, 辅助:160, 重装:150};   // 我方按战斗分类的初始命中，敌人默认 160
+const AIM_BY_CLASS = {狙击:180, 尖兵:170, 近卫:165, 特种:165, 指挥:160, 重装:150};   // 我方按战斗分类的初始命中，敌人默认 160
 function makeUnit(t, side, x, y){
   return {...t, aim: t.aim ?? (side === 'ally' ? (AIM_BY_CLASS[(t.tags || {}).战斗分类] ?? 160) : 160), shieldHp:t.shield || 0, uid:++uidc, side, x, y, lv:1, maxHp:t.hp, hp:t.hp, moved:false, movedThisRound:false, moveEva:0, acted:false, barrierLeft:3, guardLeft:2, buffs:[], debuffs:[], backlash:0, toggledTurn:0, facing: side === 'ally' ? 'up' : 'down',
     tags:{...(t.tags||{})}, abilities:[...t.abilities], weapons:t.weapons.map(w => ({...w, usesLeft:w.uses, cdLeft:0}))};
