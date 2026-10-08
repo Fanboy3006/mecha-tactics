@@ -268,7 +268,7 @@ export const TOOLS = [
   {
     name: 'ds_code',
     description: [
-      '在 C:\\DSH-机战 里派活给 DeepSeek（Aider）：aider 自己读文件、改文件、git 提交，',
+      `在 ${ROOT} 里派活给 DeepSeek（Aider）：` + 'aider 自己读文件、改文件、git 提交，',
       '然后自动跑 node tools/build-src.mjs --check，给了 test 再跑那个测试脚本。',
       '返回很短：提交号、git diff --stat、✓/✗ 行、ERRS 行，不回整段代码。',
       'files 可以传要动的文件（仓库相对路径，如 "Claude hand off/tests/class_mech.js"，也可以只写 "tests/class_mech.js"）。',
@@ -291,7 +291,7 @@ export const TOOLS = [
   },
   {
     name: 'ds_status',
-    description: '看 C:\\DSH-机战 的当前状态：分支与上游对齐情况、最近 5 个提交（git log --oneline -5）、未提交改动（git status --short）。',
+    description: `看 ${ROOT} 的当前状态：` + '分支与上游对齐情况、最近 5 个提交（git log --oneline -5）、未提交改动（git status --short）。',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
   },
 ];

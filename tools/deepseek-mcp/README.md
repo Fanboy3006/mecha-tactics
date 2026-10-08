@@ -11,6 +11,10 @@ Claude 桌面版 ──stdio(MCP)──> server.mjs ──> aider --model deepse
                                     └─> node <你指定的测试脚本>
 ```
 
+> **2026-10-07 起有两台电脑**：主力机 `desktop-ckhk2fd`（仓库 `F:\DSH-mecha\mecha-tactics`），次要机 fanboy desktop（`C:\DSH-机战`）。
+> 服务器的项目根目录 = `server.mjs` 所在的仓库，放哪都行；下面例子里的 `C:\DSH-机战` 换成你那台电脑上的实际路径即可。
+> 主力机已经按本文装好：Aider 在 `C:\Users\zxwu0\.aider312`，配置文件的 `args` 指向 `F:\DSH-mecha\mecha-tactics\tools\deepseek-mcp\server.mjs`。
+
 ## 1. 装什么（一次性）
 
 ```powershell

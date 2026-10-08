@@ -7,7 +7,7 @@
  *   ds_status()                     看分支 / 最近提交 / 未提交改动
  *
  * 约定：
- *   - 只允许操作项目根目录（默认 C:\DSH-机战）里的文件，越界和禁区一律拒绝；
+ *   - 只允许操作项目根目录（server.mjs 所在仓库的根目录，或 DS_MCP_ROOT）里的文件，越界和禁区一律拒绝；
  *   - DEEPSEEK_API_KEY 只从环境变量读（写在 claude_desktop_config.json 的 env 里），不进仓库；
  *   - 不 push，不碰 GitHub；
  *   - stdout 只留给 MCP 协议，任何日志都走 stderr。
