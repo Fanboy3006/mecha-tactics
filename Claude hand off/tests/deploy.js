@@ -57,6 +57,11 @@ const fs = require('fs');
       const any = H()[0];
       out.relay = g.RELAYS.has(sc.uid) && !!any && g.deployTiles(any).some(q => Math.abs(q.x - sc.x) + Math.abs(q.y - sc.y) <= 2);
     }
+    // v0.39.2 全图部署（迪奥 W2 试玩）：部署格远多于普通机体，且不在敌方控制区
+    const duo = g.makeUnit(g.data.ALLY_T.find(t => t.mech === 'W2'), 'ally', 0, 0); H().push(duo);
+    const dt = g.deployTiles(duo), nt = g.deployTiles(H().find(u => u !== duo && u.w === 1 && u.h === 1) || nxt), zs = g.zocSet(duo);
+    out.global = duo.abilities.includes('globalDeploy') && dt.length > nt.length * 3 && !dt.some(q => zs.has(q.y*40 + q.x));
+    H().splice(H().indexOf(duo), 1);
     // 场上清空但机库有人：不判负
     const keep = field().slice(); keep.forEach(u => { us.splice(us.indexOf(u), 1); H().push(u); });
     g.checkEnd(); out.defeatEmpty = g.over;
@@ -69,6 +74,7 @@ const fs = require('fs');
   check('派出到部署格，当回合不能移动', r.deployed && r.noMove && r.reachSelf && r.tiles > 0);
   check('刚撤回的机体本回合不能再派出', r.retNoRedeploy);
   check('尖兵前线中继：周围成为部署格', r.scout && r.relay);
+  check('全图部署：迪奥可以派到地图任意空格（不进控制区）', r.global);
   check('场上一台都没有就算输（机库里有人也一样）', r.defeatEmpty);
   console.log('ERRS', JSON.stringify(errs));
   await b.close();

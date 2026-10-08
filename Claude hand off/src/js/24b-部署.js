@@ -4,10 +4,13 @@
    - 刚派出的机体当回合不能移动，但可以攻击、可以选朝向；
    - 尖兵「前线中继」：移动后在脚下插一个中继，周围 2 格变成部署格（每台尖兵 1 个，再插就挪过去；插完本回合结束；尖兵被击破，中继消失）；
    - 撤回：在指挥职业机体 4 格内（含指挥自己）可以撤回机库，算这台的行动；撤回的机体当回合不能再派出，换别人上可以；
-   - 全图部署、母舰：暂不做。 */
+   - v0.39.2 全图部署（作者 10-08：先给迪奥 W2 试玩）：派出时可以放在任意空格，仍然不能进敌方控制区；名单在 GLOBAL_DEPLOY；
+   - 母舰：暂不做。 */
 let HANGAR = [];
 const RELAYS = new Map();   // 尖兵 uid → {x, y}
 const RELAY_R = 2, RETREAT_R = 4;
+const GLOBAL_DEPLOY = ['W2'];   // 全图部署名单（试玩）。正式给谁由角色对话定
+ALLY_T.forEach(t => { if (GLOBAL_DEPLOY.includes(t.mech) && !t.abilities.includes('globalDeploy')) t.abilities.push('globalDeploy'); });
 const hangarOn = () => !!(LV && LV.hangar);
 const fieldAllies = () => units.filter(u => u.side === 'ally' && u.hp > 0 && !u.commandOnly);
 const fieldCap = () => (LV && LV.maxDeploy) || 99;
@@ -20,8 +23,9 @@ function baseDeploySet(){
   }
   return s;
 }
+function allTilesSet(){ const s = new Set(); for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) s.add(y*N + x); return s; }
 function deployTiles(u){
-  const set = baseDeploySet(), zs = zocSet(u), out = [];
+  const set = abilOn(u, 'globalDeploy') ? allTilesSet() : baseDeploySet(), zs = zocSet(u), out = [];
   for (const k of set){
     const x = k % N, y = (k / N) | 0;
     if (!tilesOf(u, x, y).every(([a, b]) => set.has(b*N + a))) continue;

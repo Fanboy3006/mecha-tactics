@@ -3086,6 +3086,7 @@ const ABIL = {
   berserk:{name:'狂暴', desc:'HP 低于 50% 时伤害 +30%。'},
   relay:{name:'前线中继', desc:'（尖兵）移动后可以在脚下插一个前线中继，周围 2 格成为部署格，机库里的机体可以直接在前线出击。每台尖兵 1 个，再插就挪过去；插完本回合结束；尖兵被击破，中继消失。'},
   overwatch:{name:'压制射击', desc:'（狙击）敌方阶段，第一个走进当前朝向攻击范围的敌人挨一发（每个敌方阶段 1 次，目标不能反击，打完它继续走）。'},
+  globalDeploy:{name:'全图部署', desc:'（试玩，作者 10-08）从机库派出时可以放在地图上任意空格，不受出击点 / 前线中继限制；仍然不能放在敌方控制区里。派出当回合不能移动、可以攻击。'},
   zocFree:{name:'渗透', desc:'（尖兵）无视敌方控制区：穿过敌人身边的格子不用停下。'},
   summon:{name:'召唤物', desc:'没有控制区：我方可以从它身边直接走过去。'},
   mook:{name:'压制杂兵', desc:'（近卫）打杂兵时攻击能力值 +100、命中 +20：一刀一个。'},
@@ -7057,10 +7058,13 @@ const sightR = () => 3 + (skLv('侦察') >= 3 ? 2 : skLv('侦察') >= 1 ? 1 : 0)
    - 刚派出的机体当回合不能移动，但可以攻击、可以选朝向；
    - 尖兵「前线中继」：移动后在脚下插一个中继，周围 2 格变成部署格（每台尖兵 1 个，再插就挪过去；插完本回合结束；尖兵被击破，中继消失）；
    - 撤回：在指挥职业机体 4 格内（含指挥自己）可以撤回机库，算这台的行动；撤回的机体当回合不能再派出，换别人上可以；
-   - 全图部署、母舰：暂不做。 */
+   - v0.39.2 全图部署（作者 10-08：先给迪奥 W2 试玩）：派出时可以放在任意空格，仍然不能进敌方控制区；名单在 GLOBAL_DEPLOY；
+   - 母舰：暂不做。 */
 let HANGAR = [];
 const RELAYS = new Map();   // 尖兵 uid → {x, y}
 const RELAY_R = 2, RETREAT_R = 4;
+const GLOBAL_DEPLOY = ['W2'];   // 全图部署名单（试玩）。正式给谁由角色对话定
+ALLY_T.forEach(t => { if (GLOBAL_DEPLOY.includes(t.mech) && !t.abilities.includes('globalDeploy')) t.abilities.push('globalDeploy'); });
 const hangarOn = () => !!(LV && LV.hangar);
 const fieldAllies = () => units.filter(u => u.side === 'ally' && u.hp > 0 && !u.commandOnly);
 const fieldCap = () => (LV && LV.maxDeploy) || 99;
@@ -7073,8 +7077,9 @@ function baseDeploySet(){
   }
   return s;
 }
+function allTilesSet(){ const s = new Set(); for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) s.add(y*N + x); return s; }
 function deployTiles(u){
-  const set = baseDeploySet(), zs = zocSet(u), out = [];
+  const set = abilOn(u, 'globalDeploy') ? allTilesSet() : baseDeploySet(), zs = zocSet(u), out = [];
   for (const k of set){
     const x = k % N, y = (k / N) | 0;
     if (!tilesOf(u, x, y).every(([a, b]) => set.has(b*N + a))) continue;
@@ -8034,7 +8039,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.39.1';
+const GAME_VERSION = 'v0.39.2';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
