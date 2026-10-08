@@ -187,6 +187,14 @@ function draw(now){
     ctx.fillStyle = 'rgba(160,240,190,.95)'; ctx.font = '700 12px "Noto Sans SC", system-ui, sans-serif'; ctx.textAlign = 'center';
     ctx.fillText('撤离区', (z.x0 + (z.x1-z.x0+1)/2)*TS, z.y0*TS + 16); ctx.textAlign = 'start';
   }
+  if (LV && LV.breach){   // v0.40.5 防线（需求单 #9，关卡字段 breach）：敌方阶段结束时有地面敌人站在里面就判负
+    const z = LV.breach;
+    ctx.fillStyle = 'rgba(224,90,79,.16)'; ctx.fillRect(z.x0*TS, z.y0*TS, (z.x1-z.x0+1)*TS, (z.y1-z.y0+1)*TS);
+    ctx.setLineDash([5,4]); ctx.strokeStyle = 'rgba(240,110,95,.9)'; ctx.lineWidth = 2;
+    ctx.strokeRect(z.x0*TS+1, z.y0*TS+1, (z.x1-z.x0+1)*TS-2, (z.y1-z.y0+1)*TS-2); ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,170,160,.95)'; ctx.font = '700 12px "Noto Sans SC", system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('防线', (z.x0 + (z.x1-z.x0+1)/2)*TS, z.y0*TS + 16); ctx.textAlign = 'start';
+  }
   if (CMD){
     for (const m of CMD.pending){
       ctx.setLineDash([4,3]); ctx.strokeStyle = 'rgba(255,120,90,.95)'; ctx.lineWidth = 2;
