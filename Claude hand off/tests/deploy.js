@@ -59,7 +59,7 @@ const fs = require('fs');
     }
     // 场上清空但机库有人：不判负
     const keep = field().slice(); keep.forEach(u => { us.splice(us.indexOf(u), 1); H().push(u); });
-    out.overBefore = g.over; out.hgTiles = H().map(u => g.deployTiles(u).length).join(","); g.checkEnd(); out.noDefeat = !g.over;
+    g.checkEnd(); out.defeatEmpty = g.over;
     return out;
   });
   check('辅助职业改名为指挥', r.cls, JSON.stringify(r));
@@ -69,7 +69,7 @@ const fs = require('fs');
   check('派出到部署格，当回合不能移动', r.deployed && r.noMove && r.reachSelf && r.tiles > 0);
   check('刚撤回的机体本回合不能再派出', r.retNoRedeploy);
   check('尖兵前线中继：周围成为部署格', r.scout && r.relay);
-  check('场上清空但机库有人：不判负', r.noDefeat);
+  check('场上一台都没有就算输（机库里有人也一样）', r.defeatEmpty);
   console.log('ERRS', JSON.stringify(errs));
   await b.close();
   process.exit(bad || errs.length ? 1 : 0);

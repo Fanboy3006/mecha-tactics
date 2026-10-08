@@ -3482,7 +3482,7 @@ const ALLY_T = [
     wp({name:'超长距离狙击', power:4000, fire:'direct', range:[5,14], hit:120, critMod:10, afterMove:false, cd:2, unlock:20,
         upgrades:[{lv:30, again:true, note:'Lv30：击破目标后可以再攻击一次（不能移动）'}]}),
   ]},
-  {pilot:'真织', mech:'U2', short:'U2', mechName:'M9·指挥', trait:'squadLead', tags:{势力:'秘银', 远近分类:'远程', 战斗分类:'指挥'}, hp:4800, armor:500, eva:25, mov:6, melee:120, shoot:145, flying:false, w:1, h:1, abilities:[], weapons:[
+  {pilot:'梅丽莎·毛', mech:'U2', short:'U2', mechName:'M9·指挥', trait:'squadLead', tags:{势力:'秘银', 远近分类:'远程', 战斗分类:'指挥'}, hp:4800, armor:500, eva:25, mov:6, melee:120, shoot:145, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'突击步枪', power:1400, fire:'direct', range:[1,4]}),
     wp({name:'导弹发射器', power:1800, fire:'indirect', range:[2,6], uses:4, special:'splash', desc:'溅射：与目标相邻的其他敌机受到本次伤害的 50%。'}),
     wp({name:'单分子刀', power:1400, stat:'格斗', fire:'melee'}),
@@ -3921,7 +3921,7 @@ const TRIALS = {
   U7:{e:['venom','mirror','beamcoat','phase','skyfort'], hint:'Lv20 解锁λ力场护盾（4000，每个己方阶段回满），同时解锁隔空 λ 拳。λ 力场被完全击破 2 次后「λ 觉醒」：所有 λ 武器 0 CD，单分子刀升级为 λ 单分子刀（特殊伤害）。λ 驱动·散弹炮是特殊伤害，只会被护盾类效果抵消；λ 试作机和空中要塞都有护盾。Lv30 解锁「λ 驱动·极限放出」。'},
   U6:{e:['sniper','artillery','turret','captain'], wide:true, hint:'目标距离 6 格以上时命中、暴击 +20（狙击之王）。Lv20 超长距离狙击射程 5–14。'},
   U2:{e:['grunt','grunt','grunt','grunt','jammer'], mates:['U6','U1'], cluster:true, hint:'小队长光环让队友暴击 +10；导弹发射器会溅射。Lv20 被动「ECM 干扰」：4 格内敌机命中 −10。'},
-  U1:{e:['grunt','beetle','captain','regen'], mates:['U2'], hint:'侧击 / 背击时伤害 +20%（冷血）：先让真织把敌人的注意力引过去，再绕到侧面或背后。'},
+  U1:{e:['grunt','beetle','captain','regen'], mates:['U2'], hint:'侧击 / 背击时伤害 +20%（冷血）：先让梅丽莎·毛把敌人的注意力引过去，再绕到侧面或背后。'},
   U8:{e:['sniper','artillery','funnel','grunt'], mates:['U6'], hint:'这一回合还没开火时，3 格外的敌人选不中杨（ECS）。Lv20 被动「激光引导」：自己和 3 格内友军命中 +10。'},
 };
 function makeTrial(t){
@@ -4997,14 +4997,14 @@ function checkEnd(){
     return;
   }
   const allies = units.filter(u => u.side === 'ally'), foes = units.filter(u => u.side === 'enemy');
-  if (!allies.length && !HANGAR.some(u => u.hp > 0 && deployTiles(u).length)) return defeat();   // v0.39 机库里还有人、还能派出就没输
+  if (!allies.length) return defeat();   // v0.39.1 场上一台都没有就算输（机库里还有人也一样，作者 10-07 定）
   /* v0.32 关卡目标 */
   if (LV && LV.victory.type === 'survive') return;   // 坚守：撑够回合数才算赢（见 30b），敌人打光也会继续增援
   if (LV && LV.victory.type === 'targets'){ if (!units.some(u => u.target && u.side === 'enemy' && u.hp > 0)) victory(); return; }
   if (LV && LV.victory.type === 'reachAny'){ if (allies.some(u => u.hp > 0 && inZone(u))) victory(); return; }
   if (!foes.length && LV && LV.waves && waveIdx < LV.waves.length - 1){ spawnWave(waveIdx + 1); refresh(); return; }
   if (!foes.length) victory();
-  else if (!allies.length && !HANGAR.some(u => u.hp > 0 && deployTiles(u).length)) defeat();
+  else if (!allies.length) defeat();
 }
 function victory(){
   over = true; S.mode = 'over'; audioJingle('victory');
@@ -8048,7 +8048,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.39';
+const GAME_VERSION = 'v0.39.1';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){

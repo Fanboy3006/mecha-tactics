@@ -34,7 +34,7 @@ const TRIALS = {
   U7:{e:['venom','mirror','beamcoat','phase','skyfort'], hint:'Lv20 解锁λ力场护盾（4000，每个己方阶段回满），同时解锁隔空 λ 拳。λ 力场被完全击破 2 次后「λ 觉醒」：所有 λ 武器 0 CD，单分子刀升级为 λ 单分子刀（特殊伤害）。λ 驱动·散弹炮是特殊伤害，只会被护盾类效果抵消；λ 试作机和空中要塞都有护盾。Lv30 解锁「λ 驱动·极限放出」。'},
   U6:{e:['sniper','artillery','turret','captain'], wide:true, hint:'目标距离 6 格以上时命中、暴击 +20（狙击之王）。Lv20 超长距离狙击射程 5–14。'},
   U2:{e:['grunt','grunt','grunt','grunt','jammer'], mates:['U6','U1'], cluster:true, hint:'小队长光环让队友暴击 +10；导弹发射器会溅射。Lv20 被动「ECM 干扰」：4 格内敌机命中 −10。'},
-  U1:{e:['grunt','beetle','captain','regen'], mates:['U2'], hint:'侧击 / 背击时伤害 +20%（冷血）：先让真织把敌人的注意力引过去，再绕到侧面或背后。'},
+  U1:{e:['grunt','beetle','captain','regen'], mates:['U2'], hint:'侧击 / 背击时伤害 +20%（冷血）：先让梅丽莎·毛把敌人的注意力引过去，再绕到侧面或背后。'},
   U8:{e:['sniper','artillery','funnel','grunt'], mates:['U6'], hint:'这一回合还没开火时，3 格外的敌人选不中杨（ECS）。Lv20 被动「激光引导」：自己和 3 格内友军命中 +10。'},
 };
 function makeTrial(t){

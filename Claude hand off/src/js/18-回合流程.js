@@ -159,14 +159,14 @@ function checkEnd(){
     return;
   }
   const allies = units.filter(u => u.side === 'ally'), foes = units.filter(u => u.side === 'enemy');
-  if (!allies.length && !HANGAR.some(u => u.hp > 0 && deployTiles(u).length)) return defeat();   // v0.39 机库里还有人、还能派出就没输
+  if (!allies.length) return defeat();   // v0.39.1 场上一台都没有就算输（机库里还有人也一样，作者 10-07 定）
   /* v0.32 关卡目标 */
   if (LV && LV.victory.type === 'survive') return;   // 坚守：撑够回合数才算赢（见 30b），敌人打光也会继续增援
   if (LV && LV.victory.type === 'targets'){ if (!units.some(u => u.target && u.side === 'enemy' && u.hp > 0)) victory(); return; }
   if (LV && LV.victory.type === 'reachAny'){ if (allies.some(u => u.hp > 0 && inZone(u))) victory(); return; }
   if (!foes.length && LV && LV.waves && waveIdx < LV.waves.length - 1){ spawnWave(waveIdx + 1); refresh(); return; }
   if (!foes.length) victory();
-  else if (!allies.length && !HANGAR.some(u => u.hp > 0 && deployTiles(u).length)) defeat();
+  else if (!allies.length) defeat();
 }
 function victory(){
   over = true; S.mode = 'over'; audioJingle('victory');
