@@ -311,6 +311,7 @@ function showFormation(done){
     $('#endDlg').innerHTML = `<div class="eyebrow" style="color:var(--accent)">战前编队</div><h2>${fixed ? '选择指挥官' : `选择出击机体（${sel.size} / ${cap}）`}</h2>
       <p class="small">${fixed ? '这一关的出场机体是固定的。' : `${LV.hangar ? `选首发（场上同时最多 ${cap} 台）；没选的队员都带进战斗、放在机库，战斗中可以在部署格派出。` : `这一关最多出击 ${cap} 台。`}点击机体切换是否出击。`}${LV.noCmd ? '' : '指挥官不会出场作战，而是在战场外下达指挥（最多一位，可以不设）。'}</p>
       ${deploy}
+      ${(() => { const fu = roster.find(u => u.skillPick && u.lv >= 20 && (sel.has(u.mech) || (LV.hangar && pool.includes(u) && cmd !== u.mech))); return fu ? `<div class="fgroup"><i style="--fc:var(--accent)"></i>${fu.pilot} 只能携带一个技能</div><div style="display:flex;gap:6px;flex-wrap:wrap">${[['bless','月光祝福（增益）'],['echo','残月的余响（输出）']].map(([k, n]) => `<button class="rv-btn ${FEENA_PICK === k ? 'on' : ''}" data-fp="${k}">${n}</button>`).join('')}</div>` : ''; })()}
       ${LO ? `<div class="fgroup"><i style="--fc:var(--accent)"></i>出击武装：普通武装全部带上；★ 大招每台最多带 1 个，点一下切换（反击也只能用带上的武装）</div>
         ${roster.filter(u => sel.has(u.mech) || (LV.hangar && pool.includes(u) && cmd !== u.mech)).map(u => { const cur = loOf(u); return `<div class="rv-row"><span class="nm" style="flex:0 0 120px">${u.short} ${u.pilot}${LV.hangar ? (sel.has(u.mech) ? ' · 首发' : ' · 机库') : ''}</span><span style="display:flex;flex-wrap:wrap;gap:4px">${loChoices(u).map(w => `<button class="rv-btn ${cur.includes(w.name) ? 'on' : ''}" ${isUlt(w) ? `data-lo="${u.mech}|${w.name}"` : 'disabled'} title="${FIRE[w.fire]}${w.desc ? ' · ' + w.desc.replace(/"/g, '') : ''}">${isUlt(w) ? '★ ' : ''}${w.name}</button>`).join('')}</span></div>`; }).join('') || '<p class="small">先选出击机体。</p>'}
         ${LV.loadout.note ? `<p class="small">${LV.loadout.note}</p>` : ''}` : ''}
@@ -320,6 +321,7 @@ function showFormation(done){
       <div class="acts">${fixed ? '' : '<button class="btn" id="btnFormClear">清空</button>'}<button class="btn primary" id="btnForm" ${sel.size ? '' : 'disabled'}>开始作战</button></div>`;
     $('#endDlg').classList.add('wide');
     $('#endDlg').querySelectorAll('[data-dep]').forEach(b => b.onclick = () => { const m = b.dataset.dep; sel.has(m) ? sel.delete(m) : (sel.size < cap && sel.add(m)); render(); });
+    $('#endDlg').querySelectorAll('[data-fp]').forEach(b => b.onclick = () => { FEENA_PICK = b.dataset.fp; render(); });   // v0.40.10 Feena 携带的技能
     $('#endDlg').querySelectorAll('[data-cmd]').forEach(b => b.onclick = () => { cmd = b.dataset.cmd || null; if (cmd && !fixed) sel.delete(cmd); render(); });
     if ($('#btnFormClear')) $('#btnFormClear').onclick = () => { sel.clear(); render(); };
     $('#endDlg').querySelectorAll('[data-lo]').forEach(b => b.onclick = () => {
@@ -334,6 +336,7 @@ function showFormation(done){
       $('#endModal').hidden = true; $('#endDlg').classList.remove('wide');
       if (!fixed) FORM_MEM[level] = {sel:[...sel], cmd};
       if (!fixed) roster.forEach(u => { u.deployed = false; });
+      roster.forEach(u => { if (u.skillPick) u.pick = FEENA_PICK; });
       const cu = cmd ? roster.find(u => u.mech === cmd) : null;
       const picked = roster.filter(u => sel.has(u.mech) && u !== cu && !u.commandOnly);
       const reserve = LV.hangar ? roster.filter(u => !sel.has(u.mech) && u !== cu && !u.commandOnly && u.hp !== 0) : [];   // v0.39 其余队员进机库

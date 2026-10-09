@@ -11,6 +11,15 @@ function mapDirs(u, w){
     for (let y=0;y<MH;y++) for (let x=0;x<MW;x++){ const d = distRect(u.x,u.y,u.w,u.h,x,y,1,1); if (d >= 1 && d <= r) path.push([x,y]); }
     return [{burst:true, dx:0, dy:0, arrow:'◎', path, land:null, ok:true, hit:unitsOnTiles(path, u, w)}];
   }
+  if (shape === 'box'){   // v0.40.10 选区域的地图炮（苏菲·重力网）：射程内任选一块 size×size，点哪格那格就是左上角
+    const sz = w.size || 2, rg = effRange(u, w), out = [];
+    for (let y=0;y+sz<=MH;y++) for (let x=0;x+sz<=MW;x++){
+      const d = distRect(u.x,u.y,u.w,u.h,x,y,sz,sz); if (d < rg[0] || d > rg[1]) continue;
+      const path = []; for (let j=0;j<sz;j++) for (let i=0;i<sz;i++) path.push([x+i, y+j]);
+      out.push({box:[x,y], dx:Math.sign(x - u.x), dy:Math.sign(y - u.y), arrow:'□', path, land:null, ok:true, hit:unitsOnTiles(path, u, w)});
+    }
+    return out;
+  }
   return DIR8.filter(Boolean).map(([dx,dy,arrow]) => {
     if (shape === 'line'){
       const len = wv(u, w, 'len'), width = wv(u, w, 'width') || 1, path = [];

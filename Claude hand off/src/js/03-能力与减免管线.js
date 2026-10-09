@@ -5,9 +5,12 @@ const ABIL = {
   dodgeFatigue:{name:'闪避疲劳', desc:'通用规则（所有会回避的单位）：同一回合内每完全闪避一次攻击，闪避 −10，下一个我方阶段开始时恢复。'},
   portalTrait:{name:'门之力', desc:'指令「传送」：移动到 7 格内任意空地，代替本回合移动。每次反噬 +25，反噬 ≥100 时不能使用。（之后还会改动 / 升级）'},
   moveEva:{name:'游刃有余', desc:'行动结束时，本回合没用完的移动力每 1 点转为闪避 +5，持续到下一个我方阶段开始。'},
-  autoCast:{name:'月光共鸣（暂名）', desc:'不能主动使用武器。我方阶段每次行动结束后，自动释放已解锁、冷却好了的武器中序号最高的一把：Lv20 前是月光祝福，Lv20 起是残月的余响，Lv30 起满月·月蚀冷却好时优先释放它。'},
+  autoCast:{name:'月光共鸣（暂名）', desc:'不能主动使用武器，我方阶段每次行动结束后自动释放携带的技能。<b>只能携带一个技能</b>（出击前在编队里选，或第 1 回合行动前在指令面板切换）：月光祝福，或者残月的余响（Lv20 解锁；Lv30 起满月·月蚀冷却好时优先释放）。'},
   steadfast:{name:'不动如山', desc:'本回合没有移动时，装甲 +30%，援护次数 +1。'},
-  fieldAid:{name:'战地急救', desc:'修理友军时，额外给对方「物理减免 5%」，持续到下一个我方阶段开始。'},
+  fieldAid:{name:'战地急救', desc:'修理友军时，额外给对方防御 +15，持续到下一个我方阶段开始。'},
+  ironField:{name:'铁壁领域', lv:20, desc:'（Lv20）本回合没有移动时，控制区从相邻 1 格扩大到 2 格。'},
+  zanshin:{name:'残心', lv:20, desc:'（Lv20）月光狙击枪连射的命中惩罚从每次 −70 减为 −55；Lv30 起 −45。'},
+  bind:{name:'拘束', desc:'被牵引锚命中的敌机防御 −20，持续到下一个我方阶段开始（拉过来就让队友打）。'},
   hallelujah:{name:'超兵·哈雷路亚', desc:'HP 低于 50% 时，另一个人格接管：命中 +20、暴击 +20。'},
   veda:{name:'Veda 连接', desc:'变身为纳德雷的那一回合，命中 +30。'},
   gundam:{name:'我就是高达', desc:'每有 1 台敌机与自己相邻，命中 +10、闪避 +10（最多 +30）。'},
@@ -77,7 +80,7 @@ const ABIL = {
   superSoldier:{name:'超兵反射', lv:20, desc:'（Lv20）闪避 +15；Lv30 起 +25。'},
 };
 /* 普通档晋升被动挂在哪台机体上（月华再生本来就是被动武装，不在这里） */
-const PROMO_PASSIVE = {S3:'lunaPower', S4:'shihoOver', S6:'jetLink', S7:'suppress', S8:'dataLink', W7:'pinDown', A4:'darkSword', A5:'psyRes', U2:'ecmAura', U8:'laserGuide', CB3:'superSoldier'};
+const PROMO_PASSIVE = {M2:'ironField', M4:'zanshin', S3:'lunaPower', S4:'shihoOver', S6:'jetLink', S7:'suppress', S8:'dataLink', W7:'pinDown', A4:'darkSword', A5:'psyRes', U2:'ecmAura', U8:'laserGuide', CB3:'superSoldier'};
 const L30 = u => u.side === 'ally' && u.lv >= 30;
 /* 特技 / 能力的数值效果：hit / eva / crit / dmg（伤害%）/ red（减伤%）/ armorPct，可以是常数或函数 (自己, 对方, 武器, 选项)；aura 是光环 */
 const TRAIT_FX = {
@@ -200,6 +203,9 @@ const REDUCTIONS = [
   {id:'beamReflect', name:'光束反射', stage:2,
     applies:c => abilOn(c.def,'beamReflect') && c.w.dmgType === '光束',
     def:c => 50},
+  {id:'buffDef', name:'防御增益', stage:2,   // v0.40.10 角色对话：月光祝福 Lv20+、战地急救加防御；拘束减防御（负数）
+    applies:c => buffSum(c.def,'def') !== 0,
+    def:c => buffSum(c.def,'def')},
   {id:'softRed', name:'减伤（特技 / 增益）', stage:2,
     applies:c => softRed(c) > 0,
     def:c => Math.min(90, softRed(c))},

@@ -109,7 +109,8 @@ function onTile(x,y){
       else if (u){ S.inspect = u; refresh(); }
       break;
     case 'mapdir': case 'mapconfirm': {
-      const d = S.dirs.find(d => d.ok && (d.path.some(([a,b]) => a === x && b === y) || (d.land && d.land[0] === x && d.land[1] === y)));
+      const d = S.weapon && S.weapon.shape === 'box' ? (S.dirs.find(d => d.box[0] === x && d.box[1] === y) || S.dirs.find(d => d.path.some(([a,b]) => a === x && b === y)))   // v0.40.10 选区域：点的格子当左上角
+        : S.dirs.find(d => d.ok && (d.path.some(([a,b]) => a === x && b === y) || (d.land && d.land[0] === x && d.land[1] === y)));
       if (d){ S.dir = d; S.mode = 'mapconfirm'; refresh(); }
       else if (u){ S.inspect = u; refresh(); }
       break;
@@ -131,6 +132,7 @@ async function onAction(a){
     if (S.mode === 'moving') S.reach = reach(u);
     refresh();
   }
+  else if (a === 'feenaPick'){ if (canSwitchPick(u)){ u.pick = FEENA_PICK = pickOf(u) === 'bless' ? 'echo' : 'bless'; log(`Feena 携带【${u.pick === 'bless' ? '月光祝福' : '残月的余响'}】`, null, 'ally'); } refresh(); }   // v0.40.10 只能携带一个技能
   else if (a === 'wait') await finish(u);
   else if (a === 'relay') await doRelay(u);
   else if (a === 'retreat') await doRetreat(u);
@@ -409,8 +411,8 @@ let RUN = null;
 const RM = () => (LV && LV.run && RUN) ? RUN.mods : null;
 const TIER = {
   B1:'S', CB1:'S', S1:'S', W1:'S', U7:'S', M1:'S',
-  B2:'A', M2:'A', M4:'A', CB2:'A', CB4:'A', S2:'A', S5:'A', W2:'A', W3:'A', W4:'A', W5:'A', W6:'A', A1:'A', A2:'A', A3:'A', U6:'A', U1:'A',
-  M3:'B', CB3:'B', S3:'B', S4:'B', S6:'B', S7:'B', S8:'B', W7:'B', A4:'B', A5:'B', U2:'B', U8:'B',
+  B2:'A', M2:'A', M3:'A', CB2:'A', CB4:'A', S2:'A', S5:'A', W2:'A', W3:'A', W4:'A', W5:'A', W6:'A', A1:'A', A2:'A', A3:'A', U6:'A', U1:'A',
+  M4:'B', M5:'B', CB3:'B', S3:'B', S4:'B', S6:'B', S7:'B', S8:'B', W7:'B', A4:'B', A5:'B', U2:'B', U8:'B',
 };
 const TIER_NAME = {S:'精锐', A:'骨干', B:'普通'};
 const PRICE = {S:{rec:5, p20:3, p30:4}, A:{rec:3, p20:2, p30:3}, B:{rec:0, p20:1, p30:2}};

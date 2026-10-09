@@ -131,6 +131,15 @@ function forecast(att, w, def, reaction, opts = {}){
     return {hit:Math.round(avgH), crit:Math.round(avgC), zone:null, multi:true, dmg:perR, hits:w.hits, expHits, exp,
       steps:[`每段威力 ${per}，攻击能力 ${atkStat(att, w)}`, `${w.hits} 段，每段从 8 个随机方向攻击（正面 1/8、侧面 6/8、背面 1/8），目标闪避减半`, `平均命中 ${Math.round(avgH)}%`, `每段经过减免后 ${perR}`, `期望命中 ${expHits.toFixed(1)} 段`]};
   }
+  if (w.special === 'chain'){   // v0.40.10 连射（Nagi）：每命中一次下一枪命中再 −step，直到被闪避
+    const step = chainStepOf(att, w);
+    let p = w.hit, alive = 1, expHits = 0, maxN = 0;
+    for (let i=0;i<CHAIN_MAX;i++){ const q = hitRate(att,w,def,reaction,p,opts).hit/100; if (q <= 0) break; alive *= q; expHits += alive; maxN = i + 1; p -= step; }
+    const perR = perHit(att, w, def, {reaction, zone, counter:opts.counter}), perC = perHit(att, w, def, {reaction, zone, counter:opts.counter, crit:true});
+    const exp = expHits * (perR * (1 - crit/100) + perC * crit/100);
+    return {hit, crit, zone, multi:true, dmg:perR, hits:`连射 ≤${maxN}`, expHits, exp,
+      steps:[`每枪威力 ${wPow(att, w)}，攻击能力 ${atkStat(att, w)}`, `首枪命中 ${hit}%，每命中一次下一枪命中 −${step}，被闪避就停`, `每枪经过减免后 ${perR}`, `期望命中 ${expHits.toFixed(1)} 枪`]};
+  }
   if (w.special === 'multi'){
     const per = multiPer(att, w);
     let dist = new Map([[w.hit, 1]]), expHits = 0;

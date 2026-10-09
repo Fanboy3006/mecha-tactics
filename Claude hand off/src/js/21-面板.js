@@ -111,7 +111,7 @@ function actionHTML(){
     case 'menu': {
       const can = u.weapons.some(w => weaponUsable(u,w).ok);
       return `<h3>指令 · ${fullName(u)}</h3><p class="hint">${hasTrait(u,'autoCast') ? 'Feena 不能主动使用武器，选择待机即可。' : u.moved ? '已移动：标注「不能移动后使用」的武器不可用。' : '未移动：可使用全部已解锁武器。'}</p>
-        <div class="acts">${hasTrait(u,'autoCast') ? '' : `<button class="btn primary" data-a="attack" ${can ? '' : 'disabled'}>攻击</button>`}<button class="btn" data-a="wait">待机</button>${canRelay(u) ? '<button class="btn" data-a="relay" title="在脚下插前线中继：周围 2 格成为部署格，插完本回合结束">插前线中继</button>' : ''}${canRetreat(u) ? '<button class="btn" data-a="retreat" title="在指挥机体 4 格内：撤回机库">撤回机库</button>' : ''}${S.teleported || S.noUndo ? '' : '<button class="btn" data-a="undo">取消移动</button>'}${u.transform && !u.transformed ? '<button class="btn" data-a="transform">脱装 · 纳德雷</button>' : ''}</div>${S.teleported ? '<p class="small">已传送，不能取消。</p>' : ''}${S.noUndo && !S.teleported ? `<p class="small">${S.extraUsed ? 'DASH / 额外攻击：只能攻击或待机。' : S.owHit ? '路上挨了敌方压制射击，不能取消移动。' : '已经变身，不能取消移动。'}</p>` : ''}${u.canFly ? `<p class="small">${u.flying ? '飞行' : '地面'}状态。起飞 / 落地要在移动前决定。</p>` : ''}<p class="small">移动后需要先选择攻击或待机，才能结束回合。</p>
+        <div class="acts">${hasTrait(u,'autoCast') ? '' : `<button class="btn primary" data-a="attack" ${can ? '' : 'disabled'}>攻击</button>`}<button class="btn" data-a="wait">待机</button>${canRelay(u) ? '<button class="btn" data-a="relay" title="在脚下插前线中继：周围 2 格成为部署格，插完本回合结束">插前线中继</button>' : ''}${canRetreat(u) ? '<button class="btn" data-a="retreat" title="在指挥机体 4 格内：撤回机库">撤回机库</button>' : ''}${S.teleported || S.noUndo ? '' : '<button class="btn" data-a="undo">取消移动</button>'}${u.transform && !u.transformed ? '<button class="btn" data-a="transform">脱装 · 纳德雷</button>' : ''}${canSwitchPick(u) ? `<button class="btn" data-a="feenaPick" title="Feena 只能携带一个技能；第 1 回合行动前可以切换">携带：${pickOf(u) === 'bless' ? '月光祝福' : '残月的余响'}（切换）</button>` : ''}</div>${S.teleported ? '<p class="small">已传送，不能取消。</p>' : ''}${S.noUndo && !S.teleported ? `<p class="small">${S.extraUsed ? 'DASH / 额外攻击：只能攻击或待机。' : S.owHit ? '路上挨了敌方压制射击，不能取消移动。' : '已经变身，不能取消移动。'}</p>` : ''}${u.canFly ? `<p class="small">${u.flying ? '飞行' : '地面'}状态。起飞 / 落地要在移动前决定。</p>` : ''}<p class="small">移动后需要先选择攻击或待机，才能结束回合。</p>
         <div class="facerow"><span class="small">朝向（W A S D 或点方向键）：橙色格子是这个朝向下能反击的范围${abilOn(u, 'overwatch') ? '（也是压制射击的射界）' : ''}，敌方阶段只能反击这里面的敌人。攻击时会自动转到能打到目标的方向并锁定</span><div class="facepad">${['up','left','right','down'].map(f => `<button data-face="${f}" class="${u.facing === f ? 'sel' : ''}" aria-label="朝${FACE_NAME[f]}">${FACE_ARROW[f]}</button>`).join('')}</div></div>
         <p class="small kbd">⌨ WASD：改变朝向　空格：${hasTrait(u,'autoCast') ? '待机' : S.atkList && S.atkList.length ? `攻击（${S.atkList.length} 个目标，红框标出）` : '待机（没有可攻击的目标）'}</p>
         ${can ? '' : '<p class="small">没有可用的武器或射程内没有目标。</p>'}${hasTrait(u,'autoCast') && autoWeapon(u) ? `<p class="small">待机后自动释放【${autoWeapon(u).name}】。${autoWeapon(u).fire === 'support' ? '绿色区域是作用范围。' : '紫色区域是余响的范围。'}</p>` : echoWeapon(u) ? '<p class="small">紫色区域是本次行动结束后「残月的余响」的范围。</p>' : ''}${regenWeapon(u) ? '<p class="small">绿框是本次行动结束后「月华再生」的回复范围。</p>' : ''}`;
@@ -146,13 +146,13 @@ function actionHTML(){
         <div class="acts"><button class="btn primary" data-a="fire">确认攻击</button><button class="btn" data-a="back-weapon">换武器</button></div>`;
     }
     case 'mapdir': case 'mapconfirm': {
-      const burst = S.weapon.shape === 'burst';
+      const burst = S.weapon.shape === 'burst' || S.weapon.shape === 'box';   // box：不用方向键，直接点地图
       const pad = burst ? '' : DIR8.map((d,i) => {
         if (!d) return `<div class="mid">${u.short}</div>`;
         const dd = S.dirs.find(x => x.dx === d[0] && x.dy === d[1]);
         return `<button data-dir="${i}" ${dd.ok ? '' : 'disabled'} class="${S.dir === dd ? 'sel' : ''}" aria-label="方向 ${d[2]}">${d[2]}</button>`;
       }).join('');
-      let detail = `<p class="small">选择方向，或直接点击地图上的橙色路径。${S.weapon.shape ? '' : '灰掉的方向第 5 格没有合法落点。'}</p>`;
+      let detail = S.weapon.shape === 'box' ? `<p class="small">点击地图选择 ${S.weapon.size || 2}×${S.weapon.size || 2} 区域：点的格子就是区域左上角（橙色是可选范围）。</p>` : `<p class="small">选择方向，或直接点击地图上的橙色路径。${S.weapon.shape ? '' : '灰掉的方向第 5 格没有合法落点。'}</p>`;
       if (S.dir){
         const rows = S.dir.hit.map(t => {
           const f = forecast(u, S.weapon, t, null);

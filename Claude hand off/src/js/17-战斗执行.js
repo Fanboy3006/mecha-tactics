@@ -73,6 +73,26 @@ async function strike(att, w, def, reaction, {skipConsume=false, zone=null, coun
     if (def.hp <= 0) destroy(def, att); else turnDef();
     await sleep(520); return;
   }
+  if (w.special === 'chain'){   // v0.40.10 Nagi 连射：命中后再开一枪，每命中一次下一枪命中修正再 −chainStep，直到被闪避
+    const step = chainStepOf(att, w), rolls = [];
+    let p = w.hit, total = 0, nh = 0;
+    for (let i = 0; i < CHAIN_MAX && def.hp - total > 0; i++){
+      const q = hitRate(att,w,def,reaction,p,zo).hit;
+      if (Math.random()*100 < q){
+        const cr = Math.random()*100 < cr0, d = perHit(att, w, def, {reaction, zone:z, preview:false, crit:cr, counter});
+        total += d; nh++; rolls.push(`第 ${i+1} 枪（${q}%）命中 ${d}${cr ? ' 暴击' : ''}`); p -= step;
+      } else { rolls.push(`第 ${i+1} 枪（${q}%）被闪避`); break; }
+    }
+    def.hp = Math.max(0, def.hp - total);
+    if (nh){ for (let j=0;j<Math.min(nh,4);j++){ fx('beam', {a:cpx(att), b:cpx(def), color:'#c9e6ff', dur:160}); await sleep(80); } fx('burst', {b:cpx(def), seed:Math.random()}); }
+    else fx('miss', {b:cpx(def), dur:350});
+    addFloat(def, nh ? `${nh}×  ${total}` : 'MISS', nh ? '#ffffff' : '#c9d3dd');
+    log(`${fullName(att)}【${w.name}】→ ${fullName(def)}（${ZONE[z].name}）：连射命中 ${nh} 枪，伤害 ${total}`, rolls, att.side);
+    after();
+    Hooks.emit('strikeResolved', {att, def, w, hit:nh > 0, dmg:total, zone:z, counter});
+    if (def.hp <= 0) destroy(def, att); else turnDef();
+    await sleep(520); return;
+  }
   const missed = Math.random()*100 >= hit, godHit = missed && gamblerProc(att);   // v0.37 赌神：未命中的攻击 50% 改为命中并暴击（×4）
   if (missed && !godHit){
     fx('miss', {b:cpx(def), dur:350});
@@ -135,7 +155,7 @@ async function battle(att, w, def, reaction, cw, {guard=false} = {}){
 }
 async function mapAttack(u, w, dir){
   consume(w);
-  log(`${fullName(u)}【${w.name}】${dir.burst ? '向周围' : `向 ${dir.arrow} `}发动${dir.land ? `，冲向 (${dir.land[0]}, ${dir.land[1]})` : ''}`, null, 'ally');
+  log(`${fullName(u)}【${w.name}】${dir.burst ? '向周围' : dir.box ? `对 (${dir.box[0]}, ${dir.box[1]}) 起的 ${w.size}×${w.size} 区域` : `向 ${dir.arrow} `}发动${dir.land ? `，冲向 (${dir.land[0]}, ${dir.land[1]})` : ''}`, null, 'ally');
   const targets = dir.hit.slice();
   const from = cpx(u);
   if (dir.land){
@@ -155,11 +175,11 @@ async function mapAttack(u, w, dir){
 
 function autoWeapon(u){
   if (!hasTrait(u,'autoCast')) return echoWeapon(u);
-  const ws = u.weapons.filter(w => u.lv >= w.unlock && !cdBlocked(u, w));
+  const ws = u.weapons.filter(w => u.lv >= w.unlock && !cdBlocked(u, w) && pickAllows(u, w));   // v0.40.10 Feena 只能携带一个技能
   return ws[ws.length - 1] || null;
 }
 /* 余响类：取已解锁、冷却好了的序号最大的一把（Lv30 满月·月蚀冷却中时退回残月的余响） */
-function echoWeapon(u){ return u.weapons.filter(w => w.special === 'echo' && u.lv >= w.unlock && !cdBlocked(u, w)).pop() || null; }
+function echoWeapon(u){ return u.weapons.filter(w => w.special === 'echo' && u.lv >= w.unlock && !cdBlocked(u, w) && pickAllows(u, w)).pop() || null; }
 function echoArea(u){
   const w = echoWeapon(u); if (!w) return null;
   const set = new Set(), helpers = [];
@@ -169,8 +189,10 @@ function echoArea(u){
   };
   addAround(u, w.range[1]);
   const canExt = a => (a.tags && a.tags.势力 === '月球王国') || (u.lv >= 30 && TIER[a.mech] !== 'S');   // v0.24：Lv30 起非精锐也能延伸
+  /* v0.40.10（作者 10-08）：队友的延伸 = 它当前位置、当前朝向下实际打得到的格子（任意一把已解锁的近战 / 直射 / 曲射武器，冷却中也算），
+     队友打不到的地方余响也打不到。 */
   for (const a of units) if (a !== u && a.side === u.side && a.hp > 0 && canExt(a) && distU(u, a) <= w.range[1]){
-    const r = maxReach(a); helpers.push({a, r}); addAround(a, r);
+    const ts = attackTilesOf(a); helpers.push({a, r:ts.size}); for (const k of ts) set.add(k);
   }
   return {w, set, helpers};
 }
@@ -178,7 +200,7 @@ const inArea = (set, t) => tilesOf(t).some(([x,y]) => set.has(y*N+x));
 async function echoRelease(u){
   const ar = echoArea(u); if (!ar || u.hp <= 0) return;
   const foes = units.filter(e => e.side === 'enemy' && e.hp > 0 && inArea(ar.set, e));
-  const ext = ar.helpers.map(h => `${fullName(h.a)} +${h.r === Infinity ? '全图' : h.r}`).join('，');
+  const ext = ar.helpers.map(h => `${fullName(h.a)} +${h.r} 格`).join('，');
   if (ar.w.cd) consume(ar.w);
   log(`${fullName(u)}【${ar.w.name}】自动释放${ext ? `（延伸：${ext}）` : ''}，范围内敌军 ${foes.length} 台`, null, 'ally');
   S.echoFlash = {set: ar.set, t0: performance.now()};
@@ -198,7 +220,7 @@ async function regenRelease(u){
   refresh(); await sleep(400);
 }
 const healAmount = (u, w) => Math.round(w.power * u.shoot / 100 * (hasTrait(u,'juice') ? 1.5 : 1));
-function healTargets(u, w){ return units.filter(a => a !== u && a.side === u.side && a.hp > 0 && distU(u, a) >= w.range[0] && distU(u, a) <= w.range[1]); }
+function healTargets(u, w){ const rg = effRange(u, w); return units.filter(a => a !== u && a.side === u.side && a.hp > 0 && distU(u, a) >= rg[0] && distU(u, a) <= rg[1]); }   // v0.40.10 修理射程可以随等级升级
 function doHeal(u, w, t){
   consume(w);
   const amt = Math.min(healAmount(u, w), t.maxHp - t.hp);
@@ -206,7 +228,7 @@ function doHeal(u, w, t){
   if (hasTrait(u,'juice')){ t.buffs.push({src:'特制健康饮料', eva:-10}); log(`${fullName(t)} 喝下了特制健康饮料……闪避 −10（到下一个我方阶段）`, null, 'ally'); }
   fx('heal', {b:cpx(t), dur:600});
   addFloat(t, `+${amt}`, '#9fe0b8');
-  if (hasTrait(u,'fieldAid')){ t.buffs.push({src:'战地急救', physRed:5}); log(`${fullName(t)} 获得物理减免 5%（到下一个我方阶段）`, null, 'ally'); }
+  if (hasTrait(u,'fieldAid')){ t.buffs.push({src:'战地急救', def:15}); log(`${fullName(t)} 防御 +15（到下一个我方阶段）`, null, 'ally'); }
   log(`${fullName(u)}【${w.name}】${fullName(t)} 回复 ${amt} HP（${t.hp}/${t.maxHp}）`, null, 'ally');
 }
 function pushUnit(att, def, n){
@@ -275,10 +297,10 @@ function supportTargets(u, w){
   const r = effRange(u, w)[1];
   return units.filter(a => a.hp > 0 && (w.foe ? (a.side !== u.side && a.side !== 'neutral') : (a.side === u.side && (a !== u || w.self))) && distU(u, a) <= r);
 }
-const BUFF_NAME = {hit:'命中', eva:'闪避', crit:'暴击', dmg:'伤害', red:'减伤', physRed:'物理减伤', beamRed:'光束减伤', armorPct:'装甲'};
+const BUFF_NAME = {hit:'命中', eva:'闪避', crit:'暴击', dmg:'伤害', red:'减伤', physRed:'物理减伤', beamRed:'光束减伤', armorPct:'装甲', def:'防御', mov:'移动'};
 const BUFF_PCT = ['dmg','red','physRed','beamRed','armorPct'];
 const buffTxt = b => Object.entries(b).filter(([k]) => BUFF_NAME[k]).map(([k,v]) => BUFF_PCT.includes(k) && k !== 'dmg' && k !== 'armorPct' ? `${BUFF_NAME[k]} ${v}%` : `${BUFF_NAME[k]} ${v > 0 ? '+' : ''}${v}${BUFF_PCT.includes(k) ? '%' : ''}`).join('、');
-const supBuff = (u, w) => { const b = w.buff || {eva:15, hit:15}; return tierUp(u, w) ? Object.fromEntries(Object.entries(b).map(([k,v]) => [k, Math.round(v * 1.5)])) : b; };
+const supBuff = (u, w) => { const b = wv(u, w, 'buff') || {eva:15, hit:15}; /* v0.40.10 增益可以随等级升级（月光祝福） */ return tierUp(u, w) ? Object.fromEntries(Object.entries(b).map(([k,v]) => [k, Math.round(v * 1.5)])) : b; };
 const supportTxt = (w, u) => w.heal ? `回复最大 HP 的 ${u && tierUp(u, w) ? Math.round(w.heal * 1.5) : w.heal}%` : buffTxt(u ? supBuff(u, w) : (w.buff || {eva:15, hit:15}));
 function castSupport(u, w){
   consume(w);

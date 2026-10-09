@@ -21,7 +21,7 @@ const TIER_LV = {杂兵:0, 精锐:1, 头目:2, Boss:2};
    角色对话以后按新公式重新写某个角色的武器时，把它的机体代号加进 NEW_POWER，它就不再换算。 */
 const DEF_BY_CLASS = {重装:110, 近卫:95, 特种:85, 指挥:80, 狙击:75, 尖兵:75};
 const DEF_BY_TIER = {杂兵:50, 精锐:65, 头目:80, Boss:95};
-const NEW_POWER = new Set(['B1','M1','CB1','S1','W1','U7']);   // v0.40.4 角色对话：精锐已按新公式重写（其他角色重写过的单把武器带 v37:true）
+const NEW_POWER = new Set(['B1','M1','M2','M3','M4','M5','CB1','S1','W1','U7']);   // v0.40.4 角色对话：精锐已按新公式重写（其他角色重写过的单把武器带 v37:true）
 function convPow(P, statRef, multi, noDef, Aref, Dref){
   const old = P + (multi ? .5 : 5) * statRef;
   if (noDef) return Math.max(1, Math.round(old / (1 + statRef / 100)));

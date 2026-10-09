@@ -12,31 +12,45 @@ const ALLY_T = [
     wp({name:'影凤凰', power:2400, statMul:1.2, v37:true, fire:'map', range:[1,4], unlock:20, afterMove:false, dmgType:'特殊',
         desc:'选 8 个方向之一，冲到第 5 格（必须是合法落点），攻击沿途 4 格内所有单位，包括友军。必中，不能被反击。'}),
   ]},
-  {pilot:'Feena', mech:'M1', short:'M1', trait:'autoCast', command:'meteor', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'指挥'}, hp:5000, armor:0, eva:30, mov:5, melee:90, shoot:130, awaken:150, flying:false, w:1, h:1, abilities:[], weapons:[
-    wp({name:'月光祝福', fire:'support', range:[0,4], afterMove:true, dmgType:'—',
-        desc:'以自身为中心菱形 4 格内的友军（不含自己）闪避 +15、命中 +15，持续到下一个我方阶段开始，可叠加。'}),
-    wp({name:'残月的余响', fire:'passive', special:'echo', power:2800, stat:'射击', range:[0,4], unlock:20, startCd:0,
-        upgrades:[{lv:30, power:4700, note:'Lv30：威力 4700；所有非精锐友军都能延伸范围'}],
-        desc:'被动。我方阶段 Feena 每次行动结束后自动释放，对范围内所有敌军造成物理伤害，必中。基础范围是自身 4 格；4 格内每个<b>月球王国</b>队友以自己为中心再延伸（Lv30 起改为月球王国队友 + 所有非精锐友军），延伸距离等于其已解锁武器的最大射程，不能接力。'}),
+  /* ===== 月球王国（v0.40.10 角色对话按势力重设计，作者 10-08 定） =====
+     以 Feena 为核心的坚守队伍：Feena 20 级前靠阿布拉德扛、Iris 修；20 级后 Feena 带「残月的余响」负责输出。
+     Feena 是全队唯一的精锐；阿布拉德、Iris 骨干；Nagi、苏菲普通。 */
+  {pilot:'Feena', mech:'M1', short:'M1', trait:'autoCast', skillPick:true, command:'meteor', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'指挥'}, hp:5200, armor:500, eva:30, mov:5, melee:90, shoot:140, awaken:150, defense:85, flying:false, w:1, h:1, abilities:[], weapons:[
+    wp({name:'月光祝福', fire:'support', range:[0,4], afterMove:true, dmgType:'—', buff:{eva:15, hit:15},
+        upgrades:[{lv:20, buff:{eva:15, hit:15, def:20, crit:10}, note:'Lv20：再加防御 +20、暴击 +10'}, {lv:30, buff:{eva:20, hit:20, def:30, crit:15}, note:'Lv30：闪避、命中 +20，防御 +30，暴击 +15'}],
+        desc:'以自身为中心菱形 4 格内的友军（不含自己）闪避 +15、命中 +15，持续到下一个我方阶段开始。Lv20 起再加防御和暴击。'}),
+    wp({name:'残月的余响', fire:'passive', special:'echo', power:3200, stat:'射击', range:[0,4], unlock:20, startCd:0,
+        upgrades:[{lv:30, power:5400, note:'Lv30：威力 5400；所有非精锐友军都能延伸范围'}],
+        desc:'被动。我方阶段 Feena 每次行动结束后自动释放，对范围内所有敌军造成物理伤害，必中。范围 = 自身 4 格 + 4 格内<b>月球王国</b>队友<b>当前位置、当前朝向下实际打得到的格子</b>（任意一把已解锁武器，冷却中也算；队友打不到的地方余响也打不到）。Lv30 起所有非精锐友军都能延伸。'}),
   ]},
-  {pilot:'阿布拉德', mech:'M2', short:'M2', trait:'steadfast', tags:{势力:'月球王国', 远近分类:'近战', 战斗分类:'重装'}, hp:12000, armor:1500, eva:0, mov:4, melee:140, shoot:110, flying:false, w:2, h:2, abilities:['guard'], weapons:[
-    wp({name:'打桩臂', power:2800, stat:'格斗', fire:'melee'}),
-    wp({name:'螺旋式打桩机', power:440, statMul:1.2, v37:true, stat:'格斗', fire:'melee', hit:85, special:'multi', hits:10, step:10, ignoreDef:true, unlock:20,
+  {pilot:'阿布拉德', mech:'M2', short:'M2', trait:'steadfast', tags:{势力:'月球王国', 远近分类:'近战', 战斗分类:'重装'}, hp:12000, armor:1500, eva:0, mov:4, melee:140, shoot:110, defense:120, flying:false, w:2, h:2, abilities:['guard'], weapons:[
+    wp({name:'打桩臂', power:2300, stat:'格斗', fire:'melee'}),
+    wp({name:'肩部机炮', power:1400, fire:'direct', range:[1,3], desc:'反击用的中距离武器。'}),
+    wp({name:'螺旋式打桩机', power:440, statMul:1.2, stat:'格斗', fire:'melee', hit:85, special:'multi', hits:10, step:10, ignoreDef:true, unlock:20,
         desc:'连续判定 10 段。首段命中 85，每段命中后 −10、未中后 +10。每段无视装甲、防御和一切减免（大招：格斗 ×1.2）。'}),
   ]},
-  {pilot:'Iris', mech:'M3', short:'M3', trait:'fieldAid', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'指挥'}, hp:4000, armor:300, eva:20, mov:5, melee:80, shoot:120, flying:true, w:1, h:1, abilities:[], weapons:[
-    wp({name:'修理装置', fire:'heal', power:3000, range:[1,1], dmgType:'—',
-        desc:'相邻的一台友军回复 3000 × 射击÷100 的 HP，不能对自己使用。'}),
+  {pilot:'Iris', mech:'M3', short:'M3', trait:'fieldAid', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'指挥'}, hp:4800, armor:500, eva:25, mov:5, melee:80, shoot:130, defense:85, flying:true, w:1, h:1, abilities:[], weapons:[
+    wp({name:'修理装置', fire:'heal', power:3600, range:[1,1], dmgType:'—', upgrades:[{lv:20, range:[1,2], note:'Lv20：射程 1–2'}],
+        desc:'一台友军回复 3600 × 射击÷100 的 HP，不能对自己使用。Lv20 起射程 1–2。'}),
     wp({name:'防身机枪', power:1200, fire:'direct', range:[1,2]}),
     wp({name:'月华再生', fire:'passive', special:'regen', range:[0,5], unlock:20, startCd:0, dmgType:'—',
-        desc:'被动。我方阶段 Iris 每次行动结束后，自身 5 格内的全部友军（包括自己）回复最大 HP 的 10%。'}),
+        desc:'被动。我方阶段 Iris 每次行动结束后，自身 5 格内的全部友军（包括自己）回复最大 HP 的 10%（Lv30 起 15%）。'}),
   ]},
-  /* v0.26 新角色（作者设定：月球王国的「小太刀 Nagi」）。月球王国的狙击手：远处用月光狙击枪，被贴近时拔小太刀。数值和武装是 Claude 的第一版草案。 */
-  {pilot:'小太刀 Nagi', mech:'M4', short:'M4', mechName:'朔夜', trait:'iaiSnipe', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'狙击'}, hp:4200, armor:300, eva:25, mov:5, melee:150, shoot:165, flying:false, w:1, h:1, abilities:[], weapons:[
-    wp({name:'月光狙击枪', power:3000, fire:'direct', range:[3,8], hit:125, afterMove:false, dmgType:'光束'}),
-    wp({name:'小太刀', power:2400, stat:'格斗', fire:'melee', critMod:15}),
-    wp({name:'弦月·一闪', power:4100, statMul:1.2, v37:true, fire:'direct', range:[4,10], hit:120, critMod:10, cd:2, unlock:20, afterMove:false, dmgType:'光束', special:'markBreak',
-        desc:'命中后直接挂一层 −20% 破防（标记类）。'}),
+  /* 小太刀 Nagi：直射、曲射齐全；唯一的直射武器可以连射（每命中一次，下一击命中再 −70，直到被闪避） */
+  {pilot:'小太刀 Nagi', mech:'M4', short:'M4', mechName:'朔夜', trait:'iaiSnipe', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'狙击'}, hp:4000, armor:300, eva:20, mov:5, melee:150, shoot:165, defense:75, flying:false, w:1, h:1, abilities:[], weapons:[
+    wp({name:'月光狙击枪', power:2100, fire:'direct', range:[3,8], hit:125, afterMove:false, dmgType:'光束', special:'chain', chainStep:70,
+        desc:'连射：命中后对同一目标再开一枪，每命中一次下一枪命中修正再 −70，直到被闪避为止（Lv20 被动「残心」减轻惩罚）。'}),
+    wp({name:'月影迫击炮', power:2000, fire:'indirect', range:[3,9], afterMove:false, desc:'远距离曲射，不需要视线。'}),
+    wp({name:'掷弹筒', power:1300, fire:'indirect', range:[2,5], desc:'移动后也能用的曲射。'}),
+    wp({name:'小太刀', power:1800, stat:'格斗', fire:'melee', critMod:15}),
+  ]},
+  /* 苏菲（新角色，名字暂定，作者 10-08）：普通档特种。牵引锚把敌人拖进火力网，Lv20 重力网减速 */
+  {pilot:'苏菲', mech:'M5', short:'M5', trait:'bind', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'特种'}, hp:4800, armor:500, eva:25, mov:6, melee:140, shoot:130, defense:85, flying:false, w:1, h:1, abilities:[], weapons:[
+    wp({name:'牵引锚', power:1100, fire:'direct', range:[2,5], special:'pull', pull:4,
+        desc:'命中后把目标向自己拉近最多 4 格（被挡住就停下）。'}),
+    wp({name:'机枪', power:1300, fire:'direct', range:[1,3]}),
+    wp({name:'重力网', power:900, fire:'map', shape:'box', size:2, range:[2,6], iff:true, cd:2, unlock:20, slow:2,
+        desc:'在 2–6 格内选一块 2×2 区域（点哪格，那格就是左上角），区域内的敌机受到攻击，并且到下一个我方阶段开始前移动力 −2。'}),
   ]},
   {pilot:'刹那', mech:'CB1', short:'CB1', trait:'gundam', tags:{势力:'天人', 远近分类:'近战', 战斗分类:'近卫'}, hp:4800, armor:700, eva:30, mov:6, melee:170, shoot:120, awaken:130, flying:false, w:1, h:1, abilities:['followUp'], weapons:[
     wp({name:'GN 剑（剑模式）', power:2300, stat:'格斗', fire:'melee', dmgType:'光束'}),
@@ -256,7 +270,7 @@ const PROMO_WEAPONS = {
    大招倍率 statMul：Lv20 大招 ×1.2、Lv30 大招 ×1.5（大招随等级成长更快）；
    觉醒系大招（门之力、TRANS-AM、量子化、λ 驱动、满月）改用「属性 + 觉醒」，不再乘 statMul。觉醒初值：雷萨 140、Feena 150、刹那 130、宗介 130、洛克昂 110，其他 100。
    开场冷却 startCd：Lv20 大招默认 3；Lv30 大招 4；传送斩 2；被动（残月的余响、月华再生）0；增益类（八咫之守、马格纳克队支援）2。 */
-const NEW_FORMULA = ['B1','M1','CB1','S1','W1','U7'];
+const NEW_FORMULA = ['B1','M1','M2','M3','M4','M5','CB1','S1','W1','U7'];   // v0.40.10 月球王国整体按新公式重写
 ALLY_T.forEach(t => {
   if (PROMO_WEAPONS[t.mech]) t.weapons.push(...PROMO_WEAPONS[t.mech]);
   if (NEW_FORMULA.includes(t.mech)) t.weapons.forEach(w => { w.v37 = true; });
@@ -280,11 +294,10 @@ ALLY_T.forEach(t => {
   /* v0.35.1 档位保底（作者：我方精锐 10 级就该是第一档，骨干也要部分加强）。
      按 Lv10 对第 1 层杂兵的平均伤害算：精锐保底约 6000、骨干约 4500（近卫有压制杂兵、Feena 另算，不在表里）。
      倍率 = 保底 ÷ 现值，最多 ×1.8；作用于该角色全部非地图炮武装（含 Lv20 / Lv30），保持档位成长。 */
-  const TIER_FLOOR = {CB4:1.19, A2:1.26, A3:1.32, M2:1.17, B2:1.6, W4:1.12};
+  const TIER_FLOOR = {CB4:1.19, A2:1.26, A3:1.32, B2:1.6, W4:1.12};
   if (TIER_FLOOR[t.mech]) t.weapons.forEach(w => { if (w.power > 0 && w.fire !== 'map' && !w.v37) w.power = Math.round(w.power * TIER_FLOOR[t.mech]); });   // v0.40.4 拉克丝、宗介、希罗已按新公式重写，移出本表
   if (t.mech === 'CB1'){ t.canFly = true; t.critBase = 15; t.weapons.forEach(w => { if (w.fire !== 'map' && w.range[1] < 3) w.range = [w.range[0], 3]; }); }
   if (t.mech === 'B1') t.weapons.forEach(w => { if (w.unlock <= 1 && w.fire === 'melee') w.range = [w.range[0], 4]; });
-  if (t.mech === 'M4') t.weapons.push(wp({name:'月光手枪', power:1500, fire:'direct', range:[1,4], hit:110, desc:'移动后也能用的副武器。'}));
 });
 const FORMS = {
   /* icon：这个变身形态用哪个图标（tools/roster.mjs 也读这个字段来对账）。 */

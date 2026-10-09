@@ -34,12 +34,14 @@ function zocSet(u){
   if (zocFree(u)) return s;
   for (const o of units){
     if (o === u || o.side === u.side || !exertsZoc(o)) continue;
+    const zr = zocRadius(o);   // v0.40.10 角色：阿布拉德「铁壁领域」不动时控制区 2 格（17b）
+    if (zr > 1){ for (let y=0;y<MH;y++) for (let x=0;x<MW;x++){ const d = distRect(o.x,o.y,o.w,o.h,x,y,1,1); if (d >= 1 && d <= zr) s.add(y*N+x); } continue; }
     for (const [tx,ty] of tilesOf(o)) for (const [dx,dy] of DIRS){ const nx = tx+dx, ny = ty+dy; if (inb(nx,ny)) s.add(ny*N+nx); }
   }
   return s;
 }
 const inZoc = (u, x, y, zs) => zs.size > 0 && tilesOf(u,x,y).some(([a,b]) => zs.has(b*N+a));
-function reach(u, cap = u.mov, opts = {}){
+function reach(u, cap = effMov(u), opts = {}){   // v0.40.10 移动力增减（重力网）走 effMov（17b）
   const zs = opts.zoc === false ? new Set() : zocSet(u);
   const key = (x,y) => y*N+x, best = new Map([[key(u.x,u.y),0]]), pq = [[0,u.x,u.y]], par = new Map();
   while (pq.length){

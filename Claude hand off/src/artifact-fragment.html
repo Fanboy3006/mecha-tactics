@@ -1793,9 +1793,12 @@ const ABIL = {
   dodgeFatigue:{name:'闪避疲劳', desc:'通用规则（所有会回避的单位）：同一回合内每完全闪避一次攻击，闪避 −10，下一个我方阶段开始时恢复。'},
   portalTrait:{name:'门之力', desc:'指令「传送」：移动到 7 格内任意空地，代替本回合移动。每次反噬 +25，反噬 ≥100 时不能使用。（之后还会改动 / 升级）'},
   moveEva:{name:'游刃有余', desc:'行动结束时，本回合没用完的移动力每 1 点转为闪避 +5，持续到下一个我方阶段开始。'},
-  autoCast:{name:'月光共鸣（暂名）', desc:'不能主动使用武器。我方阶段每次行动结束后，自动释放已解锁、冷却好了的武器中序号最高的一把：Lv20 前是月光祝福，Lv20 起是残月的余响，Lv30 起满月·月蚀冷却好时优先释放它。'},
+  autoCast:{name:'月光共鸣（暂名）', desc:'不能主动使用武器，我方阶段每次行动结束后自动释放携带的技能。<b>只能携带一个技能</b>（出击前在编队里选，或第 1 回合行动前在指令面板切换）：月光祝福，或者残月的余响（Lv20 解锁；Lv30 起满月·月蚀冷却好时优先释放）。'},
   steadfast:{name:'不动如山', desc:'本回合没有移动时，装甲 +30%，援护次数 +1。'},
-  fieldAid:{name:'战地急救', desc:'修理友军时，额外给对方「物理减免 5%」，持续到下一个我方阶段开始。'},
+  fieldAid:{name:'战地急救', desc:'修理友军时，额外给对方防御 +15，持续到下一个我方阶段开始。'},
+  ironField:{name:'铁壁领域', lv:20, desc:'（Lv20）本回合没有移动时，控制区从相邻 1 格扩大到 2 格。'},
+  zanshin:{name:'残心', lv:20, desc:'（Lv20）月光狙击枪连射的命中惩罚从每次 −70 减为 −55；Lv30 起 −45。'},
+  bind:{name:'拘束', desc:'被牵引锚命中的敌机防御 −20，持续到下一个我方阶段开始（拉过来就让队友打）。'},
   hallelujah:{name:'超兵·哈雷路亚', desc:'HP 低于 50% 时，另一个人格接管：命中 +20、暴击 +20。'},
   veda:{name:'Veda 连接', desc:'变身为纳德雷的那一回合，命中 +30。'},
   gundam:{name:'我就是高达', desc:'每有 1 台敌机与自己相邻，命中 +10、闪避 +10（最多 +30）。'},
@@ -1865,7 +1868,7 @@ const ABIL = {
   superSoldier:{name:'超兵反射', lv:20, desc:'（Lv20）闪避 +15；Lv30 起 +25。'},
 };
 /* 普通档晋升被动挂在哪台机体上（月华再生本来就是被动武装，不在这里） */
-const PROMO_PASSIVE = {S3:'lunaPower', S4:'shihoOver', S6:'jetLink', S7:'suppress', S8:'dataLink', W7:'pinDown', A4:'darkSword', A5:'psyRes', U2:'ecmAura', U8:'laserGuide', CB3:'superSoldier'};
+const PROMO_PASSIVE = {M2:'ironField', M4:'zanshin', S3:'lunaPower', S4:'shihoOver', S6:'jetLink', S7:'suppress', S8:'dataLink', W7:'pinDown', A4:'darkSword', A5:'psyRes', U2:'ecmAura', U8:'laserGuide', CB3:'superSoldier'};
 const L30 = u => u.side === 'ally' && u.lv >= 30;
 /* 特技 / 能力的数值效果：hit / eva / crit / dmg（伤害%）/ red（减伤%）/ armorPct，可以是常数或函数 (自己, 对方, 武器, 选项)；aura 是光环 */
 const TRAIT_FX = {
@@ -1988,6 +1991,9 @@ const REDUCTIONS = [
   {id:'beamReflect', name:'光束反射', stage:2,
     applies:c => abilOn(c.def,'beamReflect') && c.w.dmgType === '光束',
     def:c => 50},
+  {id:'buffDef', name:'防御增益', stage:2,   // v0.40.10 角色对话：月光祝福 Lv20+、战地急救加防御；拘束减防御（负数）
+    applies:c => buffSum(c.def,'def') !== 0,
+    def:c => buffSum(c.def,'def')},
   {id:'softRed', name:'减伤（特技 / 增益）', stage:2,
     applies:c => softRed(c) > 0,
     def:c => Math.min(90, softRed(c))},
@@ -2033,31 +2039,45 @@ const ALLY_T = [
     wp({name:'影凤凰', power:2400, statMul:1.2, v37:true, fire:'map', range:[1,4], unlock:20, afterMove:false, dmgType:'特殊',
         desc:'选 8 个方向之一，冲到第 5 格（必须是合法落点），攻击沿途 4 格内所有单位，包括友军。必中，不能被反击。'}),
   ]},
-  {pilot:'Feena', mech:'M1', short:'M1', trait:'autoCast', command:'meteor', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'指挥'}, hp:5000, armor:0, eva:30, mov:5, melee:90, shoot:130, awaken:150, flying:false, w:1, h:1, abilities:[], weapons:[
-    wp({name:'月光祝福', fire:'support', range:[0,4], afterMove:true, dmgType:'—',
-        desc:'以自身为中心菱形 4 格内的友军（不含自己）闪避 +15、命中 +15，持续到下一个我方阶段开始，可叠加。'}),
-    wp({name:'残月的余响', fire:'passive', special:'echo', power:2800, stat:'射击', range:[0,4], unlock:20, startCd:0,
-        upgrades:[{lv:30, power:4700, note:'Lv30：威力 4700；所有非精锐友军都能延伸范围'}],
-        desc:'被动。我方阶段 Feena 每次行动结束后自动释放，对范围内所有敌军造成物理伤害，必中。基础范围是自身 4 格；4 格内每个<b>月球王国</b>队友以自己为中心再延伸（Lv30 起改为月球王国队友 + 所有非精锐友军），延伸距离等于其已解锁武器的最大射程，不能接力。'}),
+  /* ===== 月球王国（v0.40.10 角色对话按势力重设计，作者 10-08 定） =====
+     以 Feena 为核心的坚守队伍：Feena 20 级前靠阿布拉德扛、Iris 修；20 级后 Feena 带「残月的余响」负责输出。
+     Feena 是全队唯一的精锐；阿布拉德、Iris 骨干；Nagi、苏菲普通。 */
+  {pilot:'Feena', mech:'M1', short:'M1', trait:'autoCast', skillPick:true, command:'meteor', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'指挥'}, hp:5200, armor:500, eva:30, mov:5, melee:90, shoot:140, awaken:150, defense:85, flying:false, w:1, h:1, abilities:[], weapons:[
+    wp({name:'月光祝福', fire:'support', range:[0,4], afterMove:true, dmgType:'—', buff:{eva:15, hit:15},
+        upgrades:[{lv:20, buff:{eva:15, hit:15, def:20, crit:10}, note:'Lv20：再加防御 +20、暴击 +10'}, {lv:30, buff:{eva:20, hit:20, def:30, crit:15}, note:'Lv30：闪避、命中 +20，防御 +30，暴击 +15'}],
+        desc:'以自身为中心菱形 4 格内的友军（不含自己）闪避 +15、命中 +15，持续到下一个我方阶段开始。Lv20 起再加防御和暴击。'}),
+    wp({name:'残月的余响', fire:'passive', special:'echo', power:3200, stat:'射击', range:[0,4], unlock:20, startCd:0,
+        upgrades:[{lv:30, power:5400, note:'Lv30：威力 5400；所有非精锐友军都能延伸范围'}],
+        desc:'被动。我方阶段 Feena 每次行动结束后自动释放，对范围内所有敌军造成物理伤害，必中。范围 = 自身 4 格 + 4 格内<b>月球王国</b>队友<b>当前位置、当前朝向下实际打得到的格子</b>（任意一把已解锁武器，冷却中也算；队友打不到的地方余响也打不到）。Lv30 起所有非精锐友军都能延伸。'}),
   ]},
-  {pilot:'阿布拉德', mech:'M2', short:'M2', trait:'steadfast', tags:{势力:'月球王国', 远近分类:'近战', 战斗分类:'重装'}, hp:12000, armor:1500, eva:0, mov:4, melee:140, shoot:110, flying:false, w:2, h:2, abilities:['guard'], weapons:[
-    wp({name:'打桩臂', power:2800, stat:'格斗', fire:'melee'}),
-    wp({name:'螺旋式打桩机', power:440, statMul:1.2, v37:true, stat:'格斗', fire:'melee', hit:85, special:'multi', hits:10, step:10, ignoreDef:true, unlock:20,
+  {pilot:'阿布拉德', mech:'M2', short:'M2', trait:'steadfast', tags:{势力:'月球王国', 远近分类:'近战', 战斗分类:'重装'}, hp:12000, armor:1500, eva:0, mov:4, melee:140, shoot:110, defense:120, flying:false, w:2, h:2, abilities:['guard'], weapons:[
+    wp({name:'打桩臂', power:2300, stat:'格斗', fire:'melee'}),
+    wp({name:'肩部机炮', power:1400, fire:'direct', range:[1,3], desc:'反击用的中距离武器。'}),
+    wp({name:'螺旋式打桩机', power:440, statMul:1.2, stat:'格斗', fire:'melee', hit:85, special:'multi', hits:10, step:10, ignoreDef:true, unlock:20,
         desc:'连续判定 10 段。首段命中 85，每段命中后 −10、未中后 +10。每段无视装甲、防御和一切减免（大招：格斗 ×1.2）。'}),
   ]},
-  {pilot:'Iris', mech:'M3', short:'M3', trait:'fieldAid', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'指挥'}, hp:4000, armor:300, eva:20, mov:5, melee:80, shoot:120, flying:true, w:1, h:1, abilities:[], weapons:[
-    wp({name:'修理装置', fire:'heal', power:3000, range:[1,1], dmgType:'—',
-        desc:'相邻的一台友军回复 3000 × 射击÷100 的 HP，不能对自己使用。'}),
+  {pilot:'Iris', mech:'M3', short:'M3', trait:'fieldAid', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'指挥'}, hp:4800, armor:500, eva:25, mov:5, melee:80, shoot:130, defense:85, flying:true, w:1, h:1, abilities:[], weapons:[
+    wp({name:'修理装置', fire:'heal', power:3600, range:[1,1], dmgType:'—', upgrades:[{lv:20, range:[1,2], note:'Lv20：射程 1–2'}],
+        desc:'一台友军回复 3600 × 射击÷100 的 HP，不能对自己使用。Lv20 起射程 1–2。'}),
     wp({name:'防身机枪', power:1200, fire:'direct', range:[1,2]}),
     wp({name:'月华再生', fire:'passive', special:'regen', range:[0,5], unlock:20, startCd:0, dmgType:'—',
-        desc:'被动。我方阶段 Iris 每次行动结束后，自身 5 格内的全部友军（包括自己）回复最大 HP 的 10%。'}),
+        desc:'被动。我方阶段 Iris 每次行动结束后，自身 5 格内的全部友军（包括自己）回复最大 HP 的 10%（Lv30 起 15%）。'}),
   ]},
-  /* v0.26 新角色（作者设定：月球王国的「小太刀 Nagi」）。月球王国的狙击手：远处用月光狙击枪，被贴近时拔小太刀。数值和武装是 Claude 的第一版草案。 */
-  {pilot:'小太刀 Nagi', mech:'M4', short:'M4', mechName:'朔夜', trait:'iaiSnipe', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'狙击'}, hp:4200, armor:300, eva:25, mov:5, melee:150, shoot:165, flying:false, w:1, h:1, abilities:[], weapons:[
-    wp({name:'月光狙击枪', power:3000, fire:'direct', range:[3,8], hit:125, afterMove:false, dmgType:'光束'}),
-    wp({name:'小太刀', power:2400, stat:'格斗', fire:'melee', critMod:15}),
-    wp({name:'弦月·一闪', power:4100, statMul:1.2, v37:true, fire:'direct', range:[4,10], hit:120, critMod:10, cd:2, unlock:20, afterMove:false, dmgType:'光束', special:'markBreak',
-        desc:'命中后直接挂一层 −20% 破防（标记类）。'}),
+  /* 小太刀 Nagi：直射、曲射齐全；唯一的直射武器可以连射（每命中一次，下一击命中再 −70，直到被闪避） */
+  {pilot:'小太刀 Nagi', mech:'M4', short:'M4', mechName:'朔夜', trait:'iaiSnipe', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'狙击'}, hp:4000, armor:300, eva:20, mov:5, melee:150, shoot:165, defense:75, flying:false, w:1, h:1, abilities:[], weapons:[
+    wp({name:'月光狙击枪', power:2100, fire:'direct', range:[3,8], hit:125, afterMove:false, dmgType:'光束', special:'chain', chainStep:70,
+        desc:'连射：命中后对同一目标再开一枪，每命中一次下一枪命中修正再 −70，直到被闪避为止（Lv20 被动「残心」减轻惩罚）。'}),
+    wp({name:'月影迫击炮', power:2000, fire:'indirect', range:[3,9], afterMove:false, desc:'远距离曲射，不需要视线。'}),
+    wp({name:'掷弹筒', power:1300, fire:'indirect', range:[2,5], desc:'移动后也能用的曲射。'}),
+    wp({name:'小太刀', power:1800, stat:'格斗', fire:'melee', critMod:15}),
+  ]},
+  /* 苏菲（新角色，名字暂定，作者 10-08）：普通档特种。牵引锚把敌人拖进火力网，Lv20 重力网减速 */
+  {pilot:'苏菲', mech:'M5', short:'M5', trait:'bind', tags:{势力:'月球王国', 远近分类:'远程', 战斗分类:'特种'}, hp:4800, armor:500, eva:25, mov:6, melee:140, shoot:130, defense:85, flying:false, w:1, h:1, abilities:[], weapons:[
+    wp({name:'牵引锚', power:1100, fire:'direct', range:[2,5], special:'pull', pull:4,
+        desc:'命中后把目标向自己拉近最多 4 格（被挡住就停下）。'}),
+    wp({name:'机枪', power:1300, fire:'direct', range:[1,3]}),
+    wp({name:'重力网', power:900, fire:'map', shape:'box', size:2, range:[2,6], iff:true, cd:2, unlock:20, slow:2,
+        desc:'在 2–6 格内选一块 2×2 区域（点哪格，那格就是左上角），区域内的敌机受到攻击，并且到下一个我方阶段开始前移动力 −2。'}),
   ]},
   {pilot:'刹那', mech:'CB1', short:'CB1', trait:'gundam', tags:{势力:'天人', 远近分类:'近战', 战斗分类:'近卫'}, hp:4800, armor:700, eva:30, mov:6, melee:170, shoot:120, awaken:130, flying:false, w:1, h:1, abilities:['followUp'], weapons:[
     wp({name:'GN 剑（剑模式）', power:2300, stat:'格斗', fire:'melee', dmgType:'光束'}),
@@ -2277,7 +2297,7 @@ const PROMO_WEAPONS = {
    大招倍率 statMul：Lv20 大招 ×1.2、Lv30 大招 ×1.5（大招随等级成长更快）；
    觉醒系大招（门之力、TRANS-AM、量子化、λ 驱动、满月）改用「属性 + 觉醒」，不再乘 statMul。觉醒初值：雷萨 140、Feena 150、刹那 130、宗介 130、洛克昂 110，其他 100。
    开场冷却 startCd：Lv20 大招默认 3；Lv30 大招 4；传送斩 2；被动（残月的余响、月华再生）0；增益类（八咫之守、马格纳克队支援）2。 */
-const NEW_FORMULA = ['B1','M1','CB1','S1','W1','U7'];
+const NEW_FORMULA = ['B1','M1','M2','M3','M4','M5','CB1','S1','W1','U7'];   // v0.40.10 月球王国整体按新公式重写
 ALLY_T.forEach(t => {
   if (PROMO_WEAPONS[t.mech]) t.weapons.push(...PROMO_WEAPONS[t.mech]);
   if (NEW_FORMULA.includes(t.mech)) t.weapons.forEach(w => { w.v37 = true; });
@@ -2301,11 +2321,10 @@ ALLY_T.forEach(t => {
   /* v0.35.1 档位保底（作者：我方精锐 10 级就该是第一档，骨干也要部分加强）。
      按 Lv10 对第 1 层杂兵的平均伤害算：精锐保底约 6000、骨干约 4500（近卫有压制杂兵、Feena 另算，不在表里）。
      倍率 = 保底 ÷ 现值，最多 ×1.8；作用于该角色全部非地图炮武装（含 Lv20 / Lv30），保持档位成长。 */
-  const TIER_FLOOR = {CB4:1.19, A2:1.26, A3:1.32, M2:1.17, B2:1.6, W4:1.12};
+  const TIER_FLOOR = {CB4:1.19, A2:1.26, A3:1.32, B2:1.6, W4:1.12};
   if (TIER_FLOOR[t.mech]) t.weapons.forEach(w => { if (w.power > 0 && w.fire !== 'map' && !w.v37) w.power = Math.round(w.power * TIER_FLOOR[t.mech]); });   // v0.40.4 拉克丝、宗介、希罗已按新公式重写，移出本表
   if (t.mech === 'CB1'){ t.canFly = true; t.critBase = 15; t.weapons.forEach(w => { if (w.fire !== 'map' && w.range[1] < 3) w.range = [w.range[0], 3]; }); }
   if (t.mech === 'B1') t.weapons.forEach(w => { if (w.unlock <= 1 && w.fire === 'melee') w.range = [w.range[0], 4]; });
-  if (t.mech === 'M4') t.weapons.push(wp({name:'月光手枪', power:1500, fire:'direct', range:[1,4], hit:110, desc:'移动后也能用的副武器。'}));
 });
 const FORMS = {
   /* icon：这个变身形态用哪个图标（tools/roster.mjs 也读这个字段来对账）。 */
@@ -2880,10 +2899,11 @@ Hooks.on('turnEnd', () => {
 const TRIALS = {
   B1:{e:['grunt','grunt','artillery','fortress'], hint:'用「传送」越过敌阵直接贴到炮击机身边；Lv20 的传送斩适合对付高 HP 的重装要塞；Lv30 解锁「影界·万刃归一」，传送进敌阵中心再发动。'},
   B2:{e:['hound','hound','drone','drone','fighter'], feat:'forest', hint:'少走几步，把剩余移动力转成闪避（游刃有余）；Lv20 影凤凰是特殊伤害，一次贯穿一排。'},
-  M1:{e:['grunt','grunt','raider','raider'], mates:['M2','M3'], hint:'Feena 不能主动攻击，待机后自动施放。Lv20 残月的余响一上场就能用，会沿月球王国队友的射程延伸；Lv30 威力提升、非精锐友军也能延伸，并解锁满月·月蚀（特殊伤害，射击 + 觉醒）。'},
-  M2:{e:['raider','raider','berserker','grunt'], mates:['M3'], hint:'原地不动时装甲 +30%；敌人打 Iris 时用援护挡下来。Lv20 螺旋式打桩机无视减免。'},
-  M4:{e:['grunt','grunt','hound','raider'], mates:['M1','M2'], hint:'站着不动时直射命中 +15（居合）；被贴身时用小太刀反击伤害 +30%。她是月球王国的人，能沿射程延伸 Feena 的残月的余响。Lv20 弦月·一闪射程 4–10，命中后挂破防。'},
-  M3:{e:['grunt','artillery','hound'], mates:['M2','B1'], hurt:true, hint:'队友开局只剩一半 HP。修理时附带物理减伤；Lv20 月华再生每次行动后群体回复。'},
+  M1:{e:['grunt','grunt','raider','raider','shield'], mates:['M2','M4'], hint:'Feena 不能主动攻击，待机后自动施放携带的技能。<b>只能带一个</b>：第 1 回合在指令面板切换「月光祝福」（Lv20 起加防御、暴击）或「残月的余响」。余响的范围 = 自身 4 格 + 4 格内月球王国队友<b>此刻实际打得到的格子</b>：先让阿布拉德、Nagi 摆好位置和朝向，Feena 最后行动。'},
+  M2:{e:['raider','raider','berserker','grunt'], mates:['M3'], hint:'原地不动时装甲 +30%、援护次数 +1；Lv20「铁壁领域」不动时控制区扩大到 2 格，敌人很难绕过他去打 Iris。Lv20 螺旋式打桩机无视减免。'},
+  M4:{e:['grunt','grunt','hound','raider','artillery'], mates:['M2'], feat:'ridge', hint:'月光狙击枪会连射：每命中一次下一枪命中再 −70，直到被闪避（Lv20「残心」−55）。站着不动时直射命中 +15（居合）。山脊后面的敌人用月影迫击炮（曲射 3–9）打。'},
+  M3:{e:['grunt','artillery','hound'], mates:['M2','B1'], hurt:true, hint:'队友开局只剩一半 HP。修理时对方防御 +15（战地急救）；Lv20 修理射程 1–2，月华再生每次行动后群体回复。'},
+  M5:{e:['grunt','grunt','raider','artillery','turret'], mates:['M2','M4'], hint:'牵引锚（射程 2–5）把后排的炮击机、固定炮台拉到阿布拉德身边，被拉的敌人防御 −20（拘束），再让 Nagi 连射收掉。Lv20 重力网：点地图选 2×2 区域，命中的敌人移动力 −2。'},
   CB1:{e:['hound','hound','grunt','grunt','raider'], hint:'被敌人包围时「我就是高达」命中和闪避都会上升；击破后还能原地再砍一次（连斩）。Lv30 解锁「GN 剑 III·量子跃迁斩」。'},
   CB2:{e:['artillery','turret','grunt','sniper'], feat:'ridge', hint:'所有武器都不能移动后使用：先站好位置再开火。命中溢出的部分会转成暴击。'},
   CB3:{e:['grunt','shield','bomber','grunt'], feat:'chasm', hint:'GN 冲撞会把目标推开 2 格，推进裂谷直接坠毁，撞到别人双方都受伤。Lv20 被动「超兵反射」：闪避 +15。'},
@@ -3119,12 +3139,14 @@ function zocSet(u){
   if (zocFree(u)) return s;
   for (const o of units){
     if (o === u || o.side === u.side || !exertsZoc(o)) continue;
+    const zr = zocRadius(o);   // v0.40.10 角色：阿布拉德「铁壁领域」不动时控制区 2 格（17b）
+    if (zr > 1){ for (let y=0;y<MH;y++) for (let x=0;x<MW;x++){ const d = distRect(o.x,o.y,o.w,o.h,x,y,1,1); if (d >= 1 && d <= zr) s.add(y*N+x); } continue; }
     for (const [tx,ty] of tilesOf(o)) for (const [dx,dy] of DIRS){ const nx = tx+dx, ny = ty+dy; if (inb(nx,ny)) s.add(ny*N+nx); }
   }
   return s;
 }
 const inZoc = (u, x, y, zs) => zs.size > 0 && tilesOf(u,x,y).some(([a,b]) => zs.has(b*N+a));
-function reach(u, cap = u.mov, opts = {}){
+function reach(u, cap = effMov(u), opts = {}){   // v0.40.10 移动力增减（重力网）走 effMov（17b）
   const zs = opts.zoc === false ? new Set() : zocSet(u);
   const key = (x,y) => y*N+x, best = new Map([[key(u.x,u.y),0]]), pq = [[0,u.x,u.y]], par = new Map();
   while (pq.length){
@@ -3278,6 +3300,15 @@ function mapDirs(u, w){
     for (let y=0;y<MH;y++) for (let x=0;x<MW;x++){ const d = distRect(u.x,u.y,u.w,u.h,x,y,1,1); if (d >= 1 && d <= r) path.push([x,y]); }
     return [{burst:true, dx:0, dy:0, arrow:'◎', path, land:null, ok:true, hit:unitsOnTiles(path, u, w)}];
   }
+  if (shape === 'box'){   // v0.40.10 选区域的地图炮（苏菲·重力网）：射程内任选一块 size×size，点哪格那格就是左上角
+    const sz = w.size || 2, rg = effRange(u, w), out = [];
+    for (let y=0;y+sz<=MH;y++) for (let x=0;x+sz<=MW;x++){
+      const d = distRect(u.x,u.y,u.w,u.h,x,y,sz,sz); if (d < rg[0] || d > rg[1]) continue;
+      const path = []; for (let j=0;j<sz;j++) for (let i=0;i<sz;i++) path.push([x+i, y+j]);
+      out.push({box:[x,y], dx:Math.sign(x - u.x), dy:Math.sign(y - u.y), arrow:'□', path, land:null, ok:true, hit:unitsOnTiles(path, u, w)});
+    }
+    return out;
+  }
   return DIR8.filter(Boolean).map(([dx,dy,arrow]) => {
     if (shape === 'line'){
       const len = wv(u, w, 'len'), width = wv(u, w, 'width') || 1, path = [];
@@ -3428,6 +3459,15 @@ function forecast(att, w, def, reaction, opts = {}){
     const expHits = w.hits * avgH/100, exp = expHits * (perR*(1-avgC/100) + perC*avgC/100);
     return {hit:Math.round(avgH), crit:Math.round(avgC), zone:null, multi:true, dmg:perR, hits:w.hits, expHits, exp,
       steps:[`每段威力 ${per}，攻击能力 ${atkStat(att, w)}`, `${w.hits} 段，每段从 8 个随机方向攻击（正面 1/8、侧面 6/8、背面 1/8），目标闪避减半`, `平均命中 ${Math.round(avgH)}%`, `每段经过减免后 ${perR}`, `期望命中 ${expHits.toFixed(1)} 段`]};
+  }
+  if (w.special === 'chain'){   // v0.40.10 连射（Nagi）：每命中一次下一枪命中再 −step，直到被闪避
+    const step = chainStepOf(att, w);
+    let p = w.hit, alive = 1, expHits = 0, maxN = 0;
+    for (let i=0;i<CHAIN_MAX;i++){ const q = hitRate(att,w,def,reaction,p,opts).hit/100; if (q <= 0) break; alive *= q; expHits += alive; maxN = i + 1; p -= step; }
+    const perR = perHit(att, w, def, {reaction, zone, counter:opts.counter}), perC = perHit(att, w, def, {reaction, zone, counter:opts.counter, crit:true});
+    const exp = expHits * (perR * (1 - crit/100) + perC * crit/100);
+    return {hit, crit, zone, multi:true, dmg:perR, hits:`连射 ≤${maxN}`, expHits, exp,
+      steps:[`每枪威力 ${wPow(att, w)}，攻击能力 ${atkStat(att, w)}`, `首枪命中 ${hit}%，每命中一次下一枪命中 −${step}，被闪避就停`, `每枪经过减免后 ${perR}`, `期望命中 ${expHits.toFixed(1)} 枪`]};
   }
   if (w.special === 'multi'){
     const per = multiPer(att, w);
@@ -3622,6 +3662,26 @@ async function strike(att, w, def, reaction, {skipConsume=false, zone=null, coun
     if (def.hp <= 0) destroy(def, att); else turnDef();
     await sleep(520); return;
   }
+  if (w.special === 'chain'){   // v0.40.10 Nagi 连射：命中后再开一枪，每命中一次下一枪命中修正再 −chainStep，直到被闪避
+    const step = chainStepOf(att, w), rolls = [];
+    let p = w.hit, total = 0, nh = 0;
+    for (let i = 0; i < CHAIN_MAX && def.hp - total > 0; i++){
+      const q = hitRate(att,w,def,reaction,p,zo).hit;
+      if (Math.random()*100 < q){
+        const cr = Math.random()*100 < cr0, d = perHit(att, w, def, {reaction, zone:z, preview:false, crit:cr, counter});
+        total += d; nh++; rolls.push(`第 ${i+1} 枪（${q}%）命中 ${d}${cr ? ' 暴击' : ''}`); p -= step;
+      } else { rolls.push(`第 ${i+1} 枪（${q}%）被闪避`); break; }
+    }
+    def.hp = Math.max(0, def.hp - total);
+    if (nh){ for (let j=0;j<Math.min(nh,4);j++){ fx('beam', {a:cpx(att), b:cpx(def), color:'#c9e6ff', dur:160}); await sleep(80); } fx('burst', {b:cpx(def), seed:Math.random()}); }
+    else fx('miss', {b:cpx(def), dur:350});
+    addFloat(def, nh ? `${nh}×  ${total}` : 'MISS', nh ? '#ffffff' : '#c9d3dd');
+    log(`${fullName(att)}【${w.name}】→ ${fullName(def)}（${ZONE[z].name}）：连射命中 ${nh} 枪，伤害 ${total}`, rolls, att.side);
+    after();
+    Hooks.emit('strikeResolved', {att, def, w, hit:nh > 0, dmg:total, zone:z, counter});
+    if (def.hp <= 0) destroy(def, att); else turnDef();
+    await sleep(520); return;
+  }
   const missed = Math.random()*100 >= hit, godHit = missed && gamblerProc(att);   // v0.37 赌神：未命中的攻击 50% 改为命中并暴击（×4）
   if (missed && !godHit){
     fx('miss', {b:cpx(def), dur:350});
@@ -3684,7 +3744,7 @@ async function battle(att, w, def, reaction, cw, {guard=false} = {}){
 }
 async function mapAttack(u, w, dir){
   consume(w);
-  log(`${fullName(u)}【${w.name}】${dir.burst ? '向周围' : `向 ${dir.arrow} `}发动${dir.land ? `，冲向 (${dir.land[0]}, ${dir.land[1]})` : ''}`, null, 'ally');
+  log(`${fullName(u)}【${w.name}】${dir.burst ? '向周围' : dir.box ? `对 (${dir.box[0]}, ${dir.box[1]}) 起的 ${w.size}×${w.size} 区域` : `向 ${dir.arrow} `}发动${dir.land ? `，冲向 (${dir.land[0]}, ${dir.land[1]})` : ''}`, null, 'ally');
   const targets = dir.hit.slice();
   const from = cpx(u);
   if (dir.land){
@@ -3704,11 +3764,11 @@ async function mapAttack(u, w, dir){
 
 function autoWeapon(u){
   if (!hasTrait(u,'autoCast')) return echoWeapon(u);
-  const ws = u.weapons.filter(w => u.lv >= w.unlock && !cdBlocked(u, w));
+  const ws = u.weapons.filter(w => u.lv >= w.unlock && !cdBlocked(u, w) && pickAllows(u, w));   // v0.40.10 Feena 只能携带一个技能
   return ws[ws.length - 1] || null;
 }
 /* 余响类：取已解锁、冷却好了的序号最大的一把（Lv30 满月·月蚀冷却中时退回残月的余响） */
-function echoWeapon(u){ return u.weapons.filter(w => w.special === 'echo' && u.lv >= w.unlock && !cdBlocked(u, w)).pop() || null; }
+function echoWeapon(u){ return u.weapons.filter(w => w.special === 'echo' && u.lv >= w.unlock && !cdBlocked(u, w) && pickAllows(u, w)).pop() || null; }
 function echoArea(u){
   const w = echoWeapon(u); if (!w) return null;
   const set = new Set(), helpers = [];
@@ -3718,8 +3778,10 @@ function echoArea(u){
   };
   addAround(u, w.range[1]);
   const canExt = a => (a.tags && a.tags.势力 === '月球王国') || (u.lv >= 30 && TIER[a.mech] !== 'S');   // v0.24：Lv30 起非精锐也能延伸
+  /* v0.40.10（作者 10-08）：队友的延伸 = 它当前位置、当前朝向下实际打得到的格子（任意一把已解锁的近战 / 直射 / 曲射武器，冷却中也算），
+     队友打不到的地方余响也打不到。 */
   for (const a of units) if (a !== u && a.side === u.side && a.hp > 0 && canExt(a) && distU(u, a) <= w.range[1]){
-    const r = maxReach(a); helpers.push({a, r}); addAround(a, r);
+    const ts = attackTilesOf(a); helpers.push({a, r:ts.size}); for (const k of ts) set.add(k);
   }
   return {w, set, helpers};
 }
@@ -3727,7 +3789,7 @@ const inArea = (set, t) => tilesOf(t).some(([x,y]) => set.has(y*N+x));
 async function echoRelease(u){
   const ar = echoArea(u); if (!ar || u.hp <= 0) return;
   const foes = units.filter(e => e.side === 'enemy' && e.hp > 0 && inArea(ar.set, e));
-  const ext = ar.helpers.map(h => `${fullName(h.a)} +${h.r === Infinity ? '全图' : h.r}`).join('，');
+  const ext = ar.helpers.map(h => `${fullName(h.a)} +${h.r} 格`).join('，');
   if (ar.w.cd) consume(ar.w);
   log(`${fullName(u)}【${ar.w.name}】自动释放${ext ? `（延伸：${ext}）` : ''}，范围内敌军 ${foes.length} 台`, null, 'ally');
   S.echoFlash = {set: ar.set, t0: performance.now()};
@@ -3747,7 +3809,7 @@ async function regenRelease(u){
   refresh(); await sleep(400);
 }
 const healAmount = (u, w) => Math.round(w.power * u.shoot / 100 * (hasTrait(u,'juice') ? 1.5 : 1));
-function healTargets(u, w){ return units.filter(a => a !== u && a.side === u.side && a.hp > 0 && distU(u, a) >= w.range[0] && distU(u, a) <= w.range[1]); }
+function healTargets(u, w){ const rg = effRange(u, w); return units.filter(a => a !== u && a.side === u.side && a.hp > 0 && distU(u, a) >= rg[0] && distU(u, a) <= rg[1]); }   // v0.40.10 修理射程可以随等级升级
 function doHeal(u, w, t){
   consume(w);
   const amt = Math.min(healAmount(u, w), t.maxHp - t.hp);
@@ -3755,7 +3817,7 @@ function doHeal(u, w, t){
   if (hasTrait(u,'juice')){ t.buffs.push({src:'特制健康饮料', eva:-10}); log(`${fullName(t)} 喝下了特制健康饮料……闪避 −10（到下一个我方阶段）`, null, 'ally'); }
   fx('heal', {b:cpx(t), dur:600});
   addFloat(t, `+${amt}`, '#9fe0b8');
-  if (hasTrait(u,'fieldAid')){ t.buffs.push({src:'战地急救', physRed:5}); log(`${fullName(t)} 获得物理减免 5%（到下一个我方阶段）`, null, 'ally'); }
+  if (hasTrait(u,'fieldAid')){ t.buffs.push({src:'战地急救', def:15}); log(`${fullName(t)} 防御 +15（到下一个我方阶段）`, null, 'ally'); }
   log(`${fullName(u)}【${w.name}】${fullName(t)} 回复 ${amt} HP（${t.hp}/${t.maxHp}）`, null, 'ally');
 }
 function pushUnit(att, def, n){
@@ -3824,10 +3886,10 @@ function supportTargets(u, w){
   const r = effRange(u, w)[1];
   return units.filter(a => a.hp > 0 && (w.foe ? (a.side !== u.side && a.side !== 'neutral') : (a.side === u.side && (a !== u || w.self))) && distU(u, a) <= r);
 }
-const BUFF_NAME = {hit:'命中', eva:'闪避', crit:'暴击', dmg:'伤害', red:'减伤', physRed:'物理减伤', beamRed:'光束减伤', armorPct:'装甲'};
+const BUFF_NAME = {hit:'命中', eva:'闪避', crit:'暴击', dmg:'伤害', red:'减伤', physRed:'物理减伤', beamRed:'光束减伤', armorPct:'装甲', def:'防御', mov:'移动'};
 const BUFF_PCT = ['dmg','red','physRed','beamRed','armorPct'];
 const buffTxt = b => Object.entries(b).filter(([k]) => BUFF_NAME[k]).map(([k,v]) => BUFF_PCT.includes(k) && k !== 'dmg' && k !== 'armorPct' ? `${BUFF_NAME[k]} ${v}%` : `${BUFF_NAME[k]} ${v > 0 ? '+' : ''}${v}${BUFF_PCT.includes(k) ? '%' : ''}`).join('、');
-const supBuff = (u, w) => { const b = w.buff || {eva:15, hit:15}; return tierUp(u, w) ? Object.fromEntries(Object.entries(b).map(([k,v]) => [k, Math.round(v * 1.5)])) : b; };
+const supBuff = (u, w) => { const b = wv(u, w, 'buff') || {eva:15, hit:15}; /* v0.40.10 增益可以随等级升级（月光祝福） */ return tierUp(u, w) ? Object.fromEntries(Object.entries(b).map(([k,v]) => [k, Math.round(v * 1.5)])) : b; };
 const supportTxt = (w, u) => w.heal ? `回复最大 HP 的 ${u && tierUp(u, w) ? Math.round(w.heal * 1.5) : w.heal}%` : buffTxt(u ? supBuff(u, w) : (w.buff || {eva:15, hit:15}));
 function castSupport(u, w){
   consume(w);
@@ -3845,6 +3907,60 @@ function castSupport(u, w){
   log(`${fullName(u)}【${w.name}】${ts.length ? ts.map(fullName).join('、') + ' ' + buffTxt(b) : w.foe ? '范围内没有敌机' : '范围内没有友军'}`, null, u.side);
 }
 
+/* ---------- 角色机制（角色对话维护，v0.40.10 起） ----------
+   按势力重设计角色时新增的机制放在这里：个人特技 / 被动的钩子、只给个别角色用的武器效果。
+   规则层面的接口改动（读这里的函数）记在《规则对话交接》里。 */
+
+/* ===== 月球王国 ===== */
+/* Feena 只能携带一个技能（作者 10-08）：出击前在编队里选，或第 1 回合行动前在指令面板切换。
+   'bless' = 月光祝福；'echo' = 残月的余响（Lv30 起满月·月蚀冷却好时优先）。Lv20 以前只有祝福。 */
+let FEENA_PICK = 'echo';
+const pickOf = u => u.lv < 20 ? 'bless' : (u.pick || FEENA_PICK);
+const pickAllows = (u, w) => !u.skillPick || (pickOf(u) === 'bless' ? w.fire === 'support' : w.special === 'echo');
+const canSwitchPick = u => !!u && u.skillPick && u.side === 'ally' && u.lv >= 20 && turn === 1 && !u.acted;
+
+/* 一台机体在当前位置、当前朝向下实际打得到的格子（残月的余响的延伸范围用）。
+   任意一把已解锁的近战 / 直射 / 曲射武器都算，冷却中也算；按朝向形状、最小射程、直射视线判定。
+   每帧都会画余响范围，所以按局面缓存。 */
+const ATK_TILE_CACHE = new Map();
+function attackTilesOf(a){
+  const sig = `${turn}|${a.uid}|${a.x},${a.y}|${a.facing}|${a.lv}|${a.flying ? 1 : 0}|${walls.size}|${units.map(o => o.uid + ':' + o.x + ',' + o.y).join(';')}`;
+  const hit = ATK_TILE_CACHE.get(a.uid);
+  if (hit && hit.sig === sig) return hit.set;
+  const set = new Set(), ws = a.weapons.filter(w => a.lv >= w.unlock && (w.fire === 'melee' || w.fire === 'direct' || w.fire === 'indirect'));
+  const R = ws.reduce((m, w) => Math.max(m, effRange(a, w)[1]), 0) + Math.max(a.w, a.h);
+  for (let y = Math.max(0, a.y - R); y <= Math.min(MH - 1, a.y + R); y++) for (let x = Math.max(0, a.x - R); x <= Math.min(MW - 1, a.x + R); x++){
+    const pt = {x, y, w:1, h:1, side:'enemy', flying:false, abilities:[], buffs:[], hp:1};
+    if (ws.some(w => canHit(a, w, pt, a.x, a.y, a.facing))) set.add(y*N + x);
+  }
+  ATK_TILE_CACHE.set(a.uid, {sig, set});
+  return set;
+}
+
+/* 小太刀 Nagi 的连射：每命中一次，下一枪命中修正再 −step；Lv20 被动「残心」减轻惩罚 */
+const CHAIN_MAX = 8;
+const chainStepOf = (u, w) => abilOn(u, 'zanshin') ? (L30(u) ? 45 : 55) : (w.chainStep || 70);
+
+/* 移动力增减（重力网的减速等），reach() 默认用它 */
+const effMov = u => Math.max(1, u.mov + buffSum(u, 'mov'));
+
+/* 阿布拉德 Lv20「铁壁领域」：本回合没有移动时，控制区扩大到 2 格（11-移动.js 的 zocSet 读它） */
+const zocRadius = o => abilOn(o, 'ironField') && !o.movedThisRound ? 2 : 1;
+
+Hooks.on('strikeResolved', c => {
+  if (!c.hit || c.def.hp <= 0 || !c.w.slow) return;
+  c.def.buffs.push({src:c.w.name, mov:-c.w.slow});
+  log(`${fullName(c.def)} 被【${c.w.name}】缠住：移动力 −${c.w.slow}（到下一个我方阶段开始）`, null, c.att.side);
+}, '重力网：命中的敌机移动力 −2，到下一个我方阶段开始');
+Hooks.on('strikeResolved', c => {
+  if (!c.hit || c.def.hp <= 0 || c.w.special !== 'pull' || !hasTrait(c.att, 'bind')) return;
+  c.def.buffs.push({src:'拘束', def:-20});
+  log(`${fullName(c.def)} 被【拘束】：防御 −20（到下一个我方阶段开始）`, null, c.att.side);
+}, '苏菲「拘束」：被牵引锚命中的敌机防御 −20');
+
+/* 测试接口：角色机制的函数（tests/moon.js 等用；window.__game 归规则对话，所以单独挂一个） */
+window.__chars = {autoWeapon:u => autoWeapon(u), echoWeapon:u => echoWeapon(u), attackTilesOf, pickOf, setPick:k => { FEENA_PICK = k; }, canSwitchPick, chainStepOf, effMov, zocRadius,
+  strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d)};
 /* ---------- 回合流程 ---------- */
 function fireTip(key){
   if (!LV || !LV.tips) return;
@@ -4158,6 +4274,7 @@ function showFormation(done){
     $('#endDlg').innerHTML = `<div class="eyebrow" style="color:var(--accent)">战前编队</div><h2>${fixed ? '选择指挥官' : `选择出击机体（${sel.size} / ${cap}）`}</h2>
       <p class="small">${fixed ? '这一关的出场机体是固定的。' : `${LV.hangar ? `选首发（场上同时最多 ${cap} 台）；没选的队员都带进战斗、放在机库，战斗中可以在部署格派出。` : `这一关最多出击 ${cap} 台。`}点击机体切换是否出击。`}${LV.noCmd ? '' : '指挥官不会出场作战，而是在战场外下达指挥（最多一位，可以不设）。'}</p>
       ${deploy}
+      ${(() => { const fu = roster.find(u => u.skillPick && u.lv >= 20 && (sel.has(u.mech) || (LV.hangar && pool.includes(u) && cmd !== u.mech))); return fu ? `<div class="fgroup"><i style="--fc:var(--accent)"></i>${fu.pilot} 只能携带一个技能</div><div style="display:flex;gap:6px;flex-wrap:wrap">${[['bless','月光祝福（增益）'],['echo','残月的余响（输出）']].map(([k, n]) => `<button class="rv-btn ${FEENA_PICK === k ? 'on' : ''}" data-fp="${k}">${n}</button>`).join('')}</div>` : ''; })()}
       ${LO ? `<div class="fgroup"><i style="--fc:var(--accent)"></i>出击武装：普通武装全部带上；★ 大招每台最多带 1 个，点一下切换（反击也只能用带上的武装）</div>
         ${roster.filter(u => sel.has(u.mech) || (LV.hangar && pool.includes(u) && cmd !== u.mech)).map(u => { const cur = loOf(u); return `<div class="rv-row"><span class="nm" style="flex:0 0 120px">${u.short} ${u.pilot}${LV.hangar ? (sel.has(u.mech) ? ' · 首发' : ' · 机库') : ''}</span><span style="display:flex;flex-wrap:wrap;gap:4px">${loChoices(u).map(w => `<button class="rv-btn ${cur.includes(w.name) ? 'on' : ''}" ${isUlt(w) ? `data-lo="${u.mech}|${w.name}"` : 'disabled'} title="${FIRE[w.fire]}${w.desc ? ' · ' + w.desc.replace(/"/g, '') : ''}">${isUlt(w) ? '★ ' : ''}${w.name}</button>`).join('')}</span></div>`; }).join('') || '<p class="small">先选出击机体。</p>'}
         ${LV.loadout.note ? `<p class="small">${LV.loadout.note}</p>` : ''}` : ''}
@@ -4167,6 +4284,7 @@ function showFormation(done){
       <div class="acts">${fixed ? '' : '<button class="btn" id="btnFormClear">清空</button>'}<button class="btn primary" id="btnForm" ${sel.size ? '' : 'disabled'}>开始作战</button></div>`;
     $('#endDlg').classList.add('wide');
     $('#endDlg').querySelectorAll('[data-dep]').forEach(b => b.onclick = () => { const m = b.dataset.dep; sel.has(m) ? sel.delete(m) : (sel.size < cap && sel.add(m)); render(); });
+    $('#endDlg').querySelectorAll('[data-fp]').forEach(b => b.onclick = () => { FEENA_PICK = b.dataset.fp; render(); });   // v0.40.10 Feena 携带的技能
     $('#endDlg').querySelectorAll('[data-cmd]').forEach(b => b.onclick = () => { cmd = b.dataset.cmd || null; if (cmd && !fixed) sel.delete(cmd); render(); });
     if ($('#btnFormClear')) $('#btnFormClear').onclick = () => { sel.clear(); render(); };
     $('#endDlg').querySelectorAll('[data-lo]').forEach(b => b.onclick = () => {
@@ -4181,6 +4299,7 @@ function showFormation(done){
       $('#endModal').hidden = true; $('#endDlg').classList.remove('wide');
       if (!fixed) FORM_MEM[level] = {sel:[...sel], cmd};
       if (!fixed) roster.forEach(u => { u.deployed = false; });
+      roster.forEach(u => { if (u.skillPick) u.pick = FEENA_PICK; });
       const cu = cmd ? roster.find(u => u.mech === cmd) : null;
       const picked = roster.filter(u => sel.has(u.mech) && u !== cu && !u.commandOnly);
       const reserve = LV.hangar ? roster.filter(u => !sel.has(u.mech) && u !== cu && !u.commandOnly && u.hp !== 0) : [];   // v0.39 其余队员进机库
@@ -5261,7 +5380,7 @@ function actionHTML(){
     case 'menu': {
       const can = u.weapons.some(w => weaponUsable(u,w).ok);
       return `<h3>指令 · ${fullName(u)}</h3><p class="hint">${hasTrait(u,'autoCast') ? 'Feena 不能主动使用武器，选择待机即可。' : u.moved ? '已移动：标注「不能移动后使用」的武器不可用。' : '未移动：可使用全部已解锁武器。'}</p>
-        <div class="acts">${hasTrait(u,'autoCast') ? '' : `<button class="btn primary" data-a="attack" ${can ? '' : 'disabled'}>攻击</button>`}<button class="btn" data-a="wait">待机</button>${canRelay(u) ? '<button class="btn" data-a="relay" title="在脚下插前线中继：周围 2 格成为部署格，插完本回合结束">插前线中继</button>' : ''}${canRetreat(u) ? '<button class="btn" data-a="retreat" title="在指挥机体 4 格内：撤回机库">撤回机库</button>' : ''}${S.teleported || S.noUndo ? '' : '<button class="btn" data-a="undo">取消移动</button>'}${u.transform && !u.transformed ? '<button class="btn" data-a="transform">脱装 · 纳德雷</button>' : ''}</div>${S.teleported ? '<p class="small">已传送，不能取消。</p>' : ''}${S.noUndo && !S.teleported ? `<p class="small">${S.extraUsed ? 'DASH / 额外攻击：只能攻击或待机。' : S.owHit ? '路上挨了敌方压制射击，不能取消移动。' : '已经变身，不能取消移动。'}</p>` : ''}${u.canFly ? `<p class="small">${u.flying ? '飞行' : '地面'}状态。起飞 / 落地要在移动前决定。</p>` : ''}<p class="small">移动后需要先选择攻击或待机，才能结束回合。</p>
+        <div class="acts">${hasTrait(u,'autoCast') ? '' : `<button class="btn primary" data-a="attack" ${can ? '' : 'disabled'}>攻击</button>`}<button class="btn" data-a="wait">待机</button>${canRelay(u) ? '<button class="btn" data-a="relay" title="在脚下插前线中继：周围 2 格成为部署格，插完本回合结束">插前线中继</button>' : ''}${canRetreat(u) ? '<button class="btn" data-a="retreat" title="在指挥机体 4 格内：撤回机库">撤回机库</button>' : ''}${S.teleported || S.noUndo ? '' : '<button class="btn" data-a="undo">取消移动</button>'}${u.transform && !u.transformed ? '<button class="btn" data-a="transform">脱装 · 纳德雷</button>' : ''}${canSwitchPick(u) ? `<button class="btn" data-a="feenaPick" title="Feena 只能携带一个技能；第 1 回合行动前可以切换">携带：${pickOf(u) === 'bless' ? '月光祝福' : '残月的余响'}（切换）</button>` : ''}</div>${S.teleported ? '<p class="small">已传送，不能取消。</p>' : ''}${S.noUndo && !S.teleported ? `<p class="small">${S.extraUsed ? 'DASH / 额外攻击：只能攻击或待机。' : S.owHit ? '路上挨了敌方压制射击，不能取消移动。' : '已经变身，不能取消移动。'}</p>` : ''}${u.canFly ? `<p class="small">${u.flying ? '飞行' : '地面'}状态。起飞 / 落地要在移动前决定。</p>` : ''}<p class="small">移动后需要先选择攻击或待机，才能结束回合。</p>
         <div class="facerow"><span class="small">朝向（W A S D 或点方向键）：橙色格子是这个朝向下能反击的范围${abilOn(u, 'overwatch') ? '（也是压制射击的射界）' : ''}，敌方阶段只能反击这里面的敌人。攻击时会自动转到能打到目标的方向并锁定</span><div class="facepad">${['up','left','right','down'].map(f => `<button data-face="${f}" class="${u.facing === f ? 'sel' : ''}" aria-label="朝${FACE_NAME[f]}">${FACE_ARROW[f]}</button>`).join('')}</div></div>
         <p class="small kbd">⌨ WASD：改变朝向　空格：${hasTrait(u,'autoCast') ? '待机' : S.atkList && S.atkList.length ? `攻击（${S.atkList.length} 个目标，红框标出）` : '待机（没有可攻击的目标）'}</p>
         ${can ? '' : '<p class="small">没有可用的武器或射程内没有目标。</p>'}${hasTrait(u,'autoCast') && autoWeapon(u) ? `<p class="small">待机后自动释放【${autoWeapon(u).name}】。${autoWeapon(u).fire === 'support' ? '绿色区域是作用范围。' : '紫色区域是余响的范围。'}</p>` : echoWeapon(u) ? '<p class="small">紫色区域是本次行动结束后「残月的余响」的范围。</p>' : ''}${regenWeapon(u) ? '<p class="small">绿框是本次行动结束后「月华再生」的回复范围。</p>' : ''}`;
@@ -5296,13 +5415,13 @@ function actionHTML(){
         <div class="acts"><button class="btn primary" data-a="fire">确认攻击</button><button class="btn" data-a="back-weapon">换武器</button></div>`;
     }
     case 'mapdir': case 'mapconfirm': {
-      const burst = S.weapon.shape === 'burst';
+      const burst = S.weapon.shape === 'burst' || S.weapon.shape === 'box';   // box：不用方向键，直接点地图
       const pad = burst ? '' : DIR8.map((d,i) => {
         if (!d) return `<div class="mid">${u.short}</div>`;
         const dd = S.dirs.find(x => x.dx === d[0] && x.dy === d[1]);
         return `<button data-dir="${i}" ${dd.ok ? '' : 'disabled'} class="${S.dir === dd ? 'sel' : ''}" aria-label="方向 ${d[2]}">${d[2]}</button>`;
       }).join('');
-      let detail = `<p class="small">选择方向，或直接点击地图上的橙色路径。${S.weapon.shape ? '' : '灰掉的方向第 5 格没有合法落点。'}</p>`;
+      let detail = S.weapon.shape === 'box' ? `<p class="small">点击地图选择 ${S.weapon.size || 2}×${S.weapon.size || 2} 区域：点的格子就是区域左上角（橙色是可选范围）。</p>` : `<p class="small">选择方向，或直接点击地图上的橙色路径。${S.weapon.shape ? '' : '灰掉的方向第 5 格没有合法落点。'}</p>`;
       if (S.dir){
         const rows = S.dir.hit.map(t => {
           const f = forecast(u, S.weapon, t, null);
@@ -5570,7 +5689,8 @@ function onTile(x,y){
       else if (u){ S.inspect = u; refresh(); }
       break;
     case 'mapdir': case 'mapconfirm': {
-      const d = S.dirs.find(d => d.ok && (d.path.some(([a,b]) => a === x && b === y) || (d.land && d.land[0] === x && d.land[1] === y)));
+      const d = S.weapon && S.weapon.shape === 'box' ? (S.dirs.find(d => d.box[0] === x && d.box[1] === y) || S.dirs.find(d => d.path.some(([a,b]) => a === x && b === y)))   // v0.40.10 选区域：点的格子当左上角
+        : S.dirs.find(d => d.ok && (d.path.some(([a,b]) => a === x && b === y) || (d.land && d.land[0] === x && d.land[1] === y)));
       if (d){ S.dir = d; S.mode = 'mapconfirm'; refresh(); }
       else if (u){ S.inspect = u; refresh(); }
       break;
@@ -5592,6 +5712,7 @@ async function onAction(a){
     if (S.mode === 'moving') S.reach = reach(u);
     refresh();
   }
+  else if (a === 'feenaPick'){ if (canSwitchPick(u)){ u.pick = FEENA_PICK = pickOf(u) === 'bless' ? 'echo' : 'bless'; log(`Feena 携带【${u.pick === 'bless' ? '月光祝福' : '残月的余响'}】`, null, 'ally'); } refresh(); }   // v0.40.10 只能携带一个技能
   else if (a === 'wait') await finish(u);
   else if (a === 'relay') await doRelay(u);
   else if (a === 'retreat') await doRetreat(u);
@@ -5870,8 +5991,8 @@ let RUN = null;
 const RM = () => (LV && LV.run && RUN) ? RUN.mods : null;
 const TIER = {
   B1:'S', CB1:'S', S1:'S', W1:'S', U7:'S', M1:'S',
-  B2:'A', M2:'A', M4:'A', CB2:'A', CB4:'A', S2:'A', S5:'A', W2:'A', W3:'A', W4:'A', W5:'A', W6:'A', A1:'A', A2:'A', A3:'A', U6:'A', U1:'A',
-  M3:'B', CB3:'B', S3:'B', S4:'B', S6:'B', S7:'B', S8:'B', W7:'B', A4:'B', A5:'B', U2:'B', U8:'B',
+  B2:'A', M2:'A', M3:'A', CB2:'A', CB4:'A', S2:'A', S5:'A', W2:'A', W3:'A', W4:'A', W5:'A', W6:'A', A1:'A', A2:'A', A3:'A', U6:'A', U1:'A',
+  M4:'B', M5:'B', CB3:'B', S3:'B', S4:'B', S6:'B', S7:'B', S8:'B', W7:'B', A4:'B', A5:'B', U2:'B', U8:'B',
 };
 const TIER_NAME = {S:'精锐', A:'骨干', B:'普通'};
 const PRICE = {S:{rec:5, p20:3, p30:4}, A:{rec:3, p20:2, p30:3}, B:{rec:0, p20:1, p30:2}};
@@ -6698,7 +6819,7 @@ const TIER_LV = {杂兵:0, 精锐:1, 头目:2, Boss:2};
    角色对话以后按新公式重新写某个角色的武器时，把它的机体代号加进 NEW_POWER，它就不再换算。 */
 const DEF_BY_CLASS = {重装:110, 近卫:95, 特种:85, 指挥:80, 狙击:75, 尖兵:75};
 const DEF_BY_TIER = {杂兵:50, 精锐:65, 头目:80, Boss:95};
-const NEW_POWER = new Set(['B1','M1','CB1','S1','W1','U7']);   // v0.40.4 角色对话：精锐已按新公式重写（其他角色重写过的单把武器带 v37:true）
+const NEW_POWER = new Set(['B1','M1','M2','M3','M4','M5','CB1','S1','W1','U7']);   // v0.40.4 角色对话：精锐已按新公式重写（其他角色重写过的单把武器带 v37:true）
 function convPow(P, statRef, multi, noDef, Aref, Dref){
   const old = P + (multi ? .5 : 5) * statRef;
   if (noDef) return Math.max(1, Math.round(old / (1 + statRef / 100)));
@@ -7186,7 +7307,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.40.9';
+const GAME_VERSION = 'v0.40.10';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
