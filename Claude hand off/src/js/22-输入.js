@@ -422,7 +422,11 @@ const CLASSES = ['近卫','尖兵','指挥','重装','狙击','特种'];   // v0
 const FACTIONS = [...new Set(ALLY_T.map(t => t.tags.势力))];
 const ticketOk = (k, m) => CLASSES.includes(k) ? tplOf(m).tags.战斗分类 === k : inFaction(tplOf(m), k);   // v0.40.11 双势力
 const ticketName = k => CLASSES.includes(k) ? `${k}招募券` : `${k}势力招募券`;
-const randTicket = () => Math.random() < .6 ? pick(CLASSES) : pick(FACTIONS);
+const anyTicket = () => Math.random() < .6 ? pick(CLASSES) : pick(FACTIONS);
+/* v0.40.13 作者 10-08：分队偏重招募券——一半概率出本分队对应的券（职业分队出本职业券、势力分队出本势力券），另一半照旧随机 */
+const squadTicket = () => RUN && (CLASSES.includes(RUN.squad) || FACTIONS.includes(RUN.squad)) ? RUN.squad : null;
+const SQUAD_TICKET_P = .5;
+const randTicket = () => { const sq = squadTicket(); return sq && Math.random() < SQUAD_TICKET_P ? sq : anyTicket(); };
 const tierOf = m => TIER[m] || 'B';
 const tplOf = m => ALLY_T.find(t => t.mech === m);
 const recCost = m => PRICE[tierOf(m)].rec;

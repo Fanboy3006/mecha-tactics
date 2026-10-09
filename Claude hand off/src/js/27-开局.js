@@ -45,7 +45,7 @@ async function runStartScreen(){
   runLog(`选择了${v === 'moon' ? '月之国分队（Feena 指挥）' : CLASSES.includes(v) ? v + '分队' : v + '势力分队'}`);
   await enterLayer(1);
   // 开局招募券：职业分队 2 张，月之国分队 3 张（随机分类），开局就可以用
-  for (let i = 0; i < (v === 'moon' ? 3 : 2); i++) addTicket(v === 'moon' && i === 2 ? pick(FACTIONS) : pick(CLASSES), '开局');   // 月之国分队：2 张职业券 + 1 张势力券
+  for (let i = 0; i < (v === 'moon' ? 3 : 2); i++) addTicket(v === 'moon' ? (i === 2 ? pick(FACTIONS) : pick(CLASSES)) : i === 0 ? v : pick(CLASSES), '开局');   // 月之国分队：2 张职业券 + 1 张势力券；v0.40.13 其他分队：第 1 张固定是本分队的券
   runRender();
   for (const t of [...RUN.tickets]) await useTicket(RUN.tickets.indexOf(t));
   runRender();

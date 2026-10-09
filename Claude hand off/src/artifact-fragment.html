@@ -6056,7 +6056,11 @@ const CLASSES = ['近卫','尖兵','指挥','重装','狙击','特种'];   // v0
 const FACTIONS = [...new Set(ALLY_T.map(t => t.tags.势力))];
 const ticketOk = (k, m) => CLASSES.includes(k) ? tplOf(m).tags.战斗分类 === k : inFaction(tplOf(m), k);   // v0.40.11 双势力
 const ticketName = k => CLASSES.includes(k) ? `${k}招募券` : `${k}势力招募券`;
-const randTicket = () => Math.random() < .6 ? pick(CLASSES) : pick(FACTIONS);
+const anyTicket = () => Math.random() < .6 ? pick(CLASSES) : pick(FACTIONS);
+/* v0.40.13 作者 10-08：分队偏重招募券——一半概率出本分队对应的券（职业分队出本职业券、势力分队出本势力券），另一半照旧随机 */
+const squadTicket = () => RUN && (CLASSES.includes(RUN.squad) || FACTIONS.includes(RUN.squad)) ? RUN.squad : null;
+const SQUAD_TICKET_P = .5;
+const randTicket = () => { const sq = squadTicket(); return sq && Math.random() < SQUAD_TICKET_P ? sq : anyTicket(); };
 const tierOf = m => TIER[m] || 'B';
 const tplOf = m => ALLY_T.find(t => t.mech === m);
 const recCost = m => PRICE[tierOf(m)].rec;
@@ -6511,7 +6515,7 @@ async function runStartScreen(){
   runLog(`选择了${v === 'moon' ? '月之国分队（Feena 指挥）' : CLASSES.includes(v) ? v + '分队' : v + '势力分队'}`);
   await enterLayer(1);
   // 开局招募券：职业分队 2 张，月之国分队 3 张（随机分类），开局就可以用
-  for (let i = 0; i < (v === 'moon' ? 3 : 2); i++) addTicket(v === 'moon' && i === 2 ? pick(FACTIONS) : pick(CLASSES), '开局');   // 月之国分队：2 张职业券 + 1 张势力券
+  for (let i = 0; i < (v === 'moon' ? 3 : 2); i++) addTicket(v === 'moon' ? (i === 2 ? pick(FACTIONS) : pick(CLASSES)) : i === 0 ? v : pick(CLASSES), '开局');   // 月之国分队：2 张职业券 + 1 张势力券；v0.40.13 其他分队：第 1 张固定是本分队的券
   runRender();
   for (const t of [...RUN.tickets]) await useTicket(RUN.tickets.indexOf(t));
   runRender();
@@ -7793,7 +7797,7 @@ $('#btnSound').onclick = () => setSound(!SOUND.on);
 document.addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !/INPUT|TEXTAREA|SELECT/.test((e.target.tagName || ''))) setSound(!SOUND.on); });
 if (!AU) $('#btnSound').hidden = true; else setSound(SOUND.on);
 
-window.__game = {get HANGAR(){ return HANGAR; }, passageDlg, addTicket, wStatus, startWait, readyTurnOf, cutCd, startCdOf, get BATTLE_ID(){ return BATTLE_ID; }, RELAYS, deployTiles, startDeploy, doDeploy, doRetreat, doRelay, canRetreat, canRelay, makeUnit, levelUp, reach, zocSet, moveWatched, bestCounter, legalFaces, get phaseNo(){ return phaseNo; }, damageCalc, dispPow, atkStat, wPow, get map(){ return map; }, RELICS, gainRelic(id){ if (RUN && RELICS[id]){ RUN.relics = RUN.relics || []; if (!RUN.relics.includes(id)) RUN.relics.push(id); } return RUN ? RUN.relics : null; }, AIM_BY_CLASS, guardReach, recCost, tierOf, FACTIONS, ticketOk, ticketName, get sound(){ return {on:SOUND.on, scene:SOUND.scene, cue:AU && AU.state().cue}; }, get RUN(){ return RUN; }, STAGES, buildStage, rlogRecord, rlogText, openRunLogs, enterLayer, checkEnd, moveDist, runClickNode, runBattle, moveTargets, partTargets, get level(){ return level; }, get units(){ return units; }, data:{ALLY_T, ENEMY_T, ABIL, COMMANDS, TRIALS, FIRE}, get roster(){ return roster; }, get LV(){ return LV; }, get turn(){ return turn; }, get over(){ return over; }, setSpeed(v){ SPEED = v; }, startLevel, toggleLock, execCommand, attackables, bestWeaponFor, select, weaponUsable, get S(){ return S; }, orderMeteor, resolveMeteors, get CMD(){ return CMD; }, setTurn(t){ turn = t; }, pushUnit, get walls(){ return walls; }, echoArea, finish, zoneOf, battle, onTile, onAction, endTurn, cheatLevel, choosePick, mapDirs, losClear, canHit, forecast, get editor(){ return {ED, store:edStore()}; }, get art(){ return MI; }, unitSprite, iconIdOf,
+window.__game = {get HANGAR(){ return HANGAR; }, passageDlg, addTicket, randTicket, get CMD_ENABLED(){ return CMD_ENABLED; }, wStatus, startWait, readyTurnOf, cutCd, startCdOf, get BATTLE_ID(){ return BATTLE_ID; }, RELAYS, deployTiles, startDeploy, doDeploy, doRetreat, doRelay, canRetreat, canRelay, makeUnit, levelUp, reach, zocSet, moveWatched, bestCounter, legalFaces, get phaseNo(){ return phaseNo; }, damageCalc, dispPow, atkStat, wPow, get map(){ return map; }, RELICS, gainRelic(id){ if (RUN && RELICS[id]){ RUN.relics = RUN.relics || []; if (!RUN.relics.includes(id)) RUN.relics.push(id); } return RUN ? RUN.relics : null; }, AIM_BY_CLASS, guardReach, recCost, tierOf, FACTIONS, ticketOk, ticketName, get sound(){ return {on:SOUND.on, scene:SOUND.scene, cue:AU && AU.state().cue}; }, get RUN(){ return RUN; }, STAGES, buildStage, rlogRecord, rlogText, openRunLogs, enterLayer, checkEnd, moveDist, runClickNode, runBattle, moveTargets, partTargets, get level(){ return level; }, get units(){ return units; }, data:{ALLY_T, ENEMY_T, ABIL, COMMANDS, TRIALS, FIRE}, get roster(){ return roster; }, get LV(){ return LV; }, get turn(){ return turn; }, get over(){ return over; }, setSpeed(v){ SPEED = v; }, startLevel, toggleLock, execCommand, attackables, bestWeaponFor, select, weaponUsable, get S(){ return S; }, orderMeteor, resolveMeteors, get CMD(){ return CMD; }, setTurn(t){ turn = t; }, pushUnit, get walls(){ return walls; }, echoArea, finish, zoneOf, battle, onTile, onAction, endTurn, cheatLevel, choosePick, mapDirs, losClear, canHit, forecast, get editor(){ return {ED, store:edStore()}; }, get art(){ return MI; }, unitSprite, iconIdOf,
   /* 给工具用：全部单位模板（含未出场的），tools/roster.mjs 靠它检查图标覆盖率。roster 已被玩家编队占用，所以叫 templates */
   get templates(){ return {allies: ALLY_T, enemies: ENEMY_T, forms: FORMS, debris: DEBRIS_T}; },
   get levels(){ return LEVELS; }};
