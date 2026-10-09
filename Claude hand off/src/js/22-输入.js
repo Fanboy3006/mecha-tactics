@@ -410,8 +410,8 @@ $('#hookList').innerHTML = '已注册的事件钩子：<br>' + Hooks.labels.map(
 let RUN = null;
 const RM = () => (LV && LV.run && RUN) ? RUN.mods : null;
 const TIER = {
-  B1:'S', CB1:'S', S1:'S', W1:'S', U7:'S', M1:'S',
-  B2:'A', M2:'A', M3:'A', CB2:'A', CB4:'A', S2:'A', S5:'A', W2:'A', W3:'A', W4:'A', W5:'A', W6:'A', A1:'A', A2:'A', A3:'A', U6:'A', U1:'A',
+  B1:'S', A1:'S', CB1:'S', S1:'S', W1:'S', U7:'S', M1:'S',
+  B2:'A', M2:'A', M3:'A', CB2:'A', CB4:'A', S2:'A', S5:'A', W2:'A', W3:'A', W4:'A', W5:'A', W6:'A', A2:'A', A3:'A', U6:'A', U1:'A',
   M4:'B', M5:'B', CB3:'B', S3:'B', S4:'B', S6:'B', S7:'B', S8:'B', W7:'B', A4:'B', A5:'B', U2:'B', U8:'B',
 };
 const TIER_NAME = {S:'精锐', A:'骨干', B:'普通'};
@@ -420,7 +420,7 @@ const CAP_CHARS = [];          // （已取消）原来晋升 Lv20 时出击上�
 const CLASSES = ['近卫','尖兵','指挥','重装','狙击','特种'];   // v0.39 辅助 → 指挥
 /* v0.26 势力招募券：券上写的是战斗分类就按分类、写的是势力就按势力；每场胜利 60% 职业券、40% 势力券 */
 const FACTIONS = [...new Set(ALLY_T.map(t => t.tags.势力))];
-const ticketOk = (k, m) => CLASSES.includes(k) ? tplOf(m).tags.战斗分类 === k : tplOf(m).tags.势力 === k;
+const ticketOk = (k, m) => CLASSES.includes(k) ? tplOf(m).tags.战斗分类 === k : inFaction(tplOf(m), k);   // v0.40.11 双势力
 const ticketName = k => CLASSES.includes(k) ? `${k}招募券` : `${k}势力招募券`;
 const randTicket = () => Math.random() < .6 ? pick(CLASSES) : pick(FACTIONS);
 const tierOf = m => TIER[m] || 'B';

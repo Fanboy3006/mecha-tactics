@@ -155,6 +155,7 @@ async function battle(att, w, def, reaction, cw, {guard=false} = {}){
 }
 async function mapAttack(u, w, dir){
   consume(w);
+  if (w.smoke){ placeSmoke(u, w, dir); refresh(); return; }   // v0.40.11 烟雾弹（17b）：不造成伤害
   log(`${fullName(u)}【${w.name}】${dir.burst ? '向周围' : dir.box ? `对 (${dir.box[0]}, ${dir.box[1]}) 起的 ${w.size}×${w.size} 区域` : `向 ${dir.arrow} `}发动${dir.land ? `，冲向 (${dir.land[0]}, ${dir.land[1]})` : ''}`, null, 'ally');
   const targets = dir.hit.slice();
   const from = cpx(u);
@@ -188,7 +189,7 @@ function echoArea(u){
     for (let y=0;y<MH;y++) for (let x=0;x<MW;x++) if (distRect(src.x,src.y,src.w,src.h,x,y,1,1) <= r) set.add(y*N+x);
   };
   addAround(u, w.range[1]);
-  const canExt = a => (a.tags && a.tags.势力 === '月球王国') || (u.lv >= 30 && TIER[a.mech] !== 'S');   // v0.24：Lv30 起非精锐也能延伸
+  const canExt = a => inFaction(a, '月球王国') || (u.lv >= 30 && TIER[a.mech] !== 'S');   // v0.24：Lv30 起非精锐也能延伸
   /* v0.40.10（作者 10-08）：队友的延伸 = 它当前位置、当前朝向下实际打得到的格子（任意一把已解锁的近战 / 直射 / 曲射武器，冷却中也算），
      队友打不到的地方余响也打不到。 */
   for (const a of units) if (a !== u && a.side === u.side && a.hp > 0 && canExt(a) && distU(u, a) <= w.range[1]){
@@ -297,7 +298,7 @@ function supportTargets(u, w){
   const r = effRange(u, w)[1];
   return units.filter(a => a.hp > 0 && (w.foe ? (a.side !== u.side && a.side !== 'neutral') : (a.side === u.side && (a !== u || w.self))) && distU(u, a) <= r);
 }
-const BUFF_NAME = {hit:'命中', eva:'闪避', crit:'暴击', dmg:'伤害', red:'减伤', physRed:'物理减伤', beamRed:'光束减伤', armorPct:'装甲', def:'防御', mov:'移动'};
+const BUFF_NAME = {hit:'命中', eva:'闪避', crit:'暴击', dmg:'伤害', red:'减伤', physRed:'物理减伤', beamRed:'光束减伤', armorPct:'装甲', def:'防御', mov:'移动', critX:'暴击倍率'};
 const BUFF_PCT = ['dmg','red','physRed','beamRed','armorPct'];
 const buffTxt = b => Object.entries(b).filter(([k]) => BUFF_NAME[k]).map(([k,v]) => BUFF_PCT.includes(k) && k !== 'dmg' && k !== 'armorPct' ? `${BUFF_NAME[k]} ${v}%` : `${BUFF_NAME[k]} ${v > 0 ? '+' : ''}${v}${BUFF_PCT.includes(k) ? '%' : ''}`).join('、');
 const supBuff = (u, w) => { const b = wv(u, w, 'buff') || {eva:15, hit:15}; /* v0.40.10 增益可以随等级升级（月光祝福） */ return tierUp(u, w) ? Object.fromEntries(Object.entries(b).map(([k,v]) => [k, Math.round(v * 1.5)])) : b; };

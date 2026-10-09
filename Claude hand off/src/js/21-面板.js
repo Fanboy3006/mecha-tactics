@@ -158,6 +158,7 @@ function actionHTML(){
           const f = forecast(u, S.weapon, t, null);
           return `<li><span class="${t.side}">${fullName(t)}${t.side === 'ally' ? '（友军）' : ''}</span><span>命中 ${f.hit}% · 伤害 ${dmgTxt(f)} / HP ${t.hp}</span></li>`;
         }).join('');
+        if (S.weapon.smoke) return `<h3>${S.weapon.name}</h3><p class="small">烟雾覆盖 (${S.dir.box[0]}, ${S.dir.box[1]}) 起的 ${S.weapon.size}×${S.weapon.size}，持续 ${S.weapon.smoke} 回合；里面现在有 ${S.dir.hit.length} 台机体。从烟雾里开火或打烟雾里的目标，命中 −${SMOKE_HIT}。</p><div class="acts"><button class="btn primary" data-a="mapfire">放烟雾</button><button class="btn" data-a="back-weapon">换武器</button></div>`;   // v0.40.11
         const ff = S.dir.hit.some(t => t.side === 'ally');
         detail = `<p class="small">${S.dir.land ? `落点 (${S.dir.land[0]}, ${S.dir.land[1]})，沿途` : '范围内'} ${S.dir.hit.length} 个单位${S.weapon.iff ? '（敌我识别，只打敌机）' : ''}：</p>
           ${rows ? `<ul class="hitlist">${rows}</ul>` : '<p class="small">沿途没有单位。</p>'}

@@ -1796,6 +1796,8 @@ const ABIL = {
   autoCast:{name:'月光共鸣（暂名）', desc:'不能主动使用武器，我方阶段每次行动结束后自动释放携带的技能。<b>只能携带一个技能</b>（出击前在编队里选，或第 1 回合行动前在指令面板切换）：月光祝福，或者残月的余响（Lv20 解锁；Lv30 起满月·月蚀冷却好时优先释放）。'},
   steadfast:{name:'不动如山', desc:'本回合没有移动时，装甲 +30%，援护次数 +1。'},
   fieldAid:{name:'战地急救', desc:'修理友军时，额外给对方防御 +15，持续到下一个我方阶段开始。'},
+  gamblerSense:{name:'赌徒的直觉', desc:'场上每有一次攻击打空（敌我都算，反击也算），左轮打桩机系列的冷却永久 −1：先减开场冷却（10 回合），再减武器本身的冷却，减到 0 后每次行动都能用。'},
+  psyVeil:{name:'念动迷彩', desc:'光环：3 格内的敌机命中 −10。'},
   ironField:{name:'铁壁领域', lv:20, desc:'（Lv20）本回合没有移动时，控制区从相邻 1 格扩大到 2 格。'},
   zanshin:{name:'残心', lv:20, desc:'（Lv20）月光狙击枪连射的命中惩罚从每次 −70 减为 −55；Lv30 起 −45。'},
   bind:{name:'拘束', desc:'被牵引锚命中的敌机防御 −20，持续到下一个我方阶段开始（拉过来就让队友打）。'},
@@ -1898,6 +1900,7 @@ const TRAIT_FX = {
   shihoOver:{dmg:(u,d,w,o) => d && distFrom(u, d, o) >= 4 ? (L30(u) ? 35 : 20) : 0},
   jetLink:{aura:{r:2, dmg:src => L30(src) ? 15 : 10}},
   suppress:{aura:{r:3, who:'foe', hit:src => L30(src) ? -15 : -10}},
+  psyVeil:{aura:{r:3, who:'foe', hit:() => -10}},   // v0.40.11 库斯哈
   dataLink:{aura:{r:4, hit:src => L30(src) ? 15 : 10, crit:src => L30(src) ? 10 : 5}},
   pinDown:{aura:{r:3, who:'foe', eva:src => L30(src) ? -15 : -10}},
   darkSword:{dmg:(u,d,w) => w && w.fire === 'melee' ? (L30(u) ? 35 : 20) : 0, crit:(u,d,w) => w && w.fire === 'melee' ? (L30(u) ? 15 : 10) : 0},
@@ -1931,7 +1934,7 @@ const foesNear = (u, r) => units.filter(e => e.side !== u.side && e.side !== 'ne
 const seedOn = u => u.hp < u.maxHp * .7 || foesNear(u, 2) >= 3;
 const trioN = u => units.filter(a => a !== u && a.side === u.side && a.hp > 0 && hasTrait(a,'trio') && distU(a, u) <= 3).length;
 const gamblerProc = u => hasTrait(u,'gambler') && Math.random() < .5;
-const critMul = u => hasTrait(u,'zero') ? 2.5 : 2;   // v0.37 暴击：武器威力 ×2（零式 ×2.5；赌神触发时 ×4）
+const critMul = u => (hasTrait(u,'zero') ? 2.5 : 2) + buffSum(u,'critX');   // v0.40.11 好运加护：暴击倍率 +1   // v0.37 暴击：武器威力 ×2（零式 ×2.5；赌神触发时 ×4）
 const hasStealth = t => abilOn(t,'stealth') || hasTrait(t,'hyperJammer') || (hasTrait(t,'ecs') && t.firedTurn !== turn);
 const noCounterVs = (att, w) => !!w && (w.noCounter || w.special === 'lock' || hasTrait(att,'hyperJammer'));
 /* 弱点 / 抗性：正数 = 弱点（生成阶段增伤），负数 = 抗性（百分比减免阶段，受破防削弱） */
@@ -2026,6 +2029,8 @@ const lsLeft = u => u.lsPhase !== phaseNo ? 2 : 2 - (u.lsCount || 0);
 const softRed = c => (RM() && c.def.side === 'ally' ? RM().def * 2 : 0) + buffSum(c.def,'red') + (c.w.dmgType === '光束' ? buffSum(c.def,'beamRed') : 0) + tfx(c.def, 'red', c.att, c.w, c);
 
 /* ---------- 武器与机体 ---------- */
+/* v0.40.11 双势力：拉米亚同时属于 ATX 和影世界（tags.副势力）。按势力判断的地方都用 inFaction */
+const inFaction = (t, f) => !!(t && t.tags) && (t.tags.势力 === f || t.tags.副势力 === f);
 const wp = o => Object.assign({range:[1,1], hit:100, critMod:0, stat:'射击', fire:'direct', dmgType:'物理', cd:0, uses:null, unlock:1, upgrades:[], afterMove:true, ignoreDef:false, special:null, power:0, desc:''}, o);
 const ALLY_T = [
   {pilot:'雷萨', mech:'B1', short:'B1', trait:'portalTrait', portal:{range:7, cost:25}, tags:{势力:'影世界', 远近分类:'近战', 战斗分类:'近卫'}, hp:5000, armor:1000, eva:15, mov:5, melee:160, shoot:100, awaken:140, flying:false, w:1, h:1, abilities:[], weapons:[
@@ -2201,35 +2206,40 @@ const ALLY_T = [
     wp({name:'机炮', power:900, fire:'direct', range:[1,2]}),
   ]},
   /* ---- ATX 小队（机战 OG） ---- */
-  {pilot:'响介', mech:'A1', short:'A1', mechName:'古铁', trait:'gambler', tags:{势力:'ATX', 远近分类:'近战', 战斗分类:'近卫'}, hp:6500, armor:1300, eva:5, mov:5, melee:170, shoot:120, flying:false, w:1, h:1, abilities:[], weapons:[
-    wp({name:'三连机炮', power:1200, fire:'direct', range:[1,3]}),
-    wp({name:'左轮打桩机', power:3200, stat:'格斗', fire:'melee', hit:90, critMod:10}),
-    wp({name:'方形钢弹', power:2800, stat:'格斗', fire:'melee', range:[1,2], hit:85}),
-    wp({name:'切札·全力冲刺', power:3700, statMul:1.2, v37:true, stat:'格斗', fire:'map', iff:true, afterMove:false, cd:3, unlock:20,
-        desc:'选 8 个方向之一，冲到第 5 格（必须是合法落点），攻击沿途 4 格内的敌机（敌我识别）。'}),
+  /* ===== ATX 小队（v0.40.11 角色对话按势力重设计，作者 10-08 定） =====
+     整队压低敌我双方的命中：拉米亚放烟雾弹、库斯哈念动迷彩、艾克赛琳给队友加暴击倍率（代价是命中 −20），
+     大家多打空，响介的「赌神」更容易触发；场上每打空一次，响介的大招左轮打桩机冷却永久 −1。
+     响介是精锐；艾克赛琳、拉米亚骨干；布鲁克林、库斯哈普通。拉米亚同时属于 ATX 和影世界。 */
+  {pilot:'响介', mech:'A1', short:'A1', mechName:'古铁', trait:'gambler', tags:{势力:'ATX', 远近分类:'近战', 战斗分类:'近卫'}, hp:6500, armor:1300, eva:5, mov:5, melee:170, shoot:120, defense:100, flying:false, w:1, h:1, abilities:['gamblerSense'], weapons:[
+    wp({name:'三连机炮', power:1500, fire:'direct', range:[1,3]}),
+    wp({name:'方形钢弹', power:2300, stat:'格斗', fire:'melee', range:[1,2], hit:85}),
+    wp({name:'左轮打桩机', power:4700, statMul:1.2, stat:'格斗', fire:'melee', range:[1,2], hit:70, critMod:20, cd:3, unlock:20, startCd:10, evadeCd:true,
+        desc:'大招。命中不高，但打空时「赌神」有一半几率改成 ×4 暴击。开场冷却 10 回合；场上每有一次攻击打空（敌我都算，反击也算），冷却永久 −1，先减开场冷却，再减本身的冷却，减到 0 后每次行动都能用。'}),
   ]},
-  {pilot:'艾克赛琳', mech:'A2', short:'A2', mechName:'白骑士', trait:'lucky', canFly:true, tags:{势力:'ATX', 远近分类:'远程', 战斗分类:'狙击'}, hp:4200, armor:200, eva:35, mov:6, melee:90, shoot:160, flying:true, w:1, h:1, abilities:[], weapons:[
+  {pilot:'艾克赛琳', mech:'A2', short:'A2', mechName:'白骑士', trait:'lucky', canFly:true, tags:{势力:'ATX', 远近分类:'远程', 战斗分类:'狙击'}, hp:4200, armor:200, eva:35, mov:6, melee:90, shoot:160, defense:75, flying:true, w:1, h:1, abilities:[], weapons:[
     wp({name:'嚎叫发射器·光束', power:2400, fire:'direct', range:[2,7], dmgType:'光束'}),
     wp({name:'嚎叫发射器·实弹', power:2400, fire:'direct', range:[2,7], desc:'和光束模式同一把武器，打光束抗性高的敌人时切换到这个。'}),
-    wp({name:'分裂导弹', power:1600, fire:'indirect', range:[2,6], uses:3}),
-    wp({name:'嚎叫发射器·全开', power:2550, statMul:1.2, v37:true, fire:'direct', range:[2,7], special:'lock', lockN:3, cd:2, unlock:20, dmgType:'光束',
+    wp({name:'好运加护', fire:'support', range:[0,3], buff:{critX:1, hit:-20}, cd:2, dmgType:'—',
+        desc:'3 格内的其他友军暴击倍率 +1（×2 → ×3；赌神 ×4 → ×5），但命中 −20，持续到下一个我方阶段开始。打不中也没关系：打空能喂响介的冷却。'}),
+    wp({name:'嚎叫发射器·全开', power:2550, statMul:1.2, fire:'direct', range:[2,7], special:'lock', lockN:3, cd:2, unlock:20, dmgType:'光束',
         upgrades:[{lv:30, lockN:4, note:'Lv30：最多锁定 4 台'}], desc:'多重锁定：在射程内选择最多 3 台敌机逐一攻击，目标不能反击、防御或回避。'}),
   ]},
-  {pilot:'拉米亚', mech:'A3', short:'A3', mechName:'安杰尔格', trait:'wSeries', canFly:true, tags:{势力:'ATX', 远近分类:'远程', 战斗分类:'尖兵'}, hp:4800, armor:500, eva:35, mov:7, melee:140, shoot:150, flying:true, w:1, h:1, abilities:[], weapons:[
-    wp({name:'牛舌步枪', power:2000, fire:'direct', range:[1,5], dmgType:'光束'}),
-    wp({name:'幻影剑', power:2400, stat:'格斗', fire:'melee', critMod:10, dmgType:'光束'}),
-    wp({name:'溅射破坏者', power:1800, fire:'direct', range:[1,4], special:'splash', cd:1, dmgType:'光束', desc:'溅射：与目标相邻的其他敌机受到本次伤害的 50%。'}),
-    wp({name:'幻影凤凰', power:4500, statMul:1.2, v37:true, fire:'direct', range:[2,6], critMod:20, cd:3, unlock:20, dmgType:'光束',
+  {pilot:'拉米亚', mech:'A3', short:'A3', mechName:'安杰尔格', trait:'wSeries', canFly:true, tags:{势力:'ATX', 副势力:'影世界', 远近分类:'远程', 战斗分类:'尖兵'}, hp:4800, armor:500, eva:35, mov:7, melee:140, shoot:150, defense:75, flying:true, w:1, h:1, abilities:[], weapons:[
+    wp({name:'牛舌步枪', power:1600, fire:'direct', range:[1,5], dmgType:'光束'}),
+    wp({name:'幻影剑', power:1800, stat:'格斗', fire:'melee', critMod:10, dmgType:'光束'}),
+    wp({name:'烟雾弹', fire:'map', shape:'box', size:3, range:[1,5], smoke:3, cd:3, dmgType:'—',
+        desc:'在 1–5 格内放一块 3×3 的烟雾（点哪格那格就是左上角），持续 3 回合：从烟雾里开火、或者打烟雾里的目标，命中 −30（敌我都算）。'}),
+    wp({name:'幻影凤凰', power:4500, statMul:1.2, fire:'direct', range:[2,6], critMod:20, cd:3, unlock:20, dmgType:'光束',
         upgrades:[{lv:30, again:true, note:'Lv30：击破目标后可以再攻击一次（不能移动）'}]}),
   ]},
-  {pilot:'布鲁克林', mech:'A4', short:'A4', mechName:'古兰森三型', trait:'hotBlood', tags:{势力:'ATX', 远近分类:'近战', 战斗分类:'重装'}, hp:9000, armor:1500, eva:5, mov:5, melee:160, shoot:110, flying:false, w:1, h:1, abilities:['guard'], weapons:[
-    wp({name:'回旋拳', power:1800, fire:'direct', range:[1,3]}),
-    wp({name:'计都罗睺剑', power:3000, stat:'格斗', fire:'melee'}),
+  {pilot:'布鲁克林', mech:'A4', short:'A4', mechName:'古兰森三型', trait:'hotBlood', tags:{势力:'ATX', 远近分类:'近战', 战斗分类:'重装'}, hp:9000, armor:1500, eva:5, mov:5, melee:160, shoot:110, defense:110, flying:false, w:1, h:1, abilities:['guard'], weapons:[
+    wp({name:'回旋拳', power:1400, fire:'direct', range:[1,3]}),
+    wp({name:'计都罗睺剑', power:2000, stat:'格斗', fire:'melee'}),
   ]},
-  {pilot:'库斯哈', mech:'A5', short:'A5', mechName:'龙虎王', trait:'juice', tags:{势力:'ATX', 远近分类:'远程', 战斗分类:'指挥'}, hp:6000, armor:800, eva:20, mov:5, melee:140, shoot:150, flying:false, w:1, h:1, abilities:[], weapons:[
-    wp({name:'念动治愈', fire:'heal', power:2800, range:[1,2], dmgType:'—', desc:'2 格内的一台友军回复 2800 × 射击÷100 的 HP。'}),
-    wp({name:'龙王破山剑', power:2800, stat:'格斗', fire:'melee'}),
-    wp({name:'龙雷闪', power:1800, fire:'indirect', range:[2,6], dmgType:'特殊', desc:'念动力攻击，特殊伤害。'}),
+  {pilot:'库斯哈', mech:'A5', short:'A5', mechName:'龙虎王', trait:'juice', tags:{势力:'ATX', 远近分类:'远程', 战斗分类:'指挥'}, hp:6000, armor:800, eva:20, mov:5, melee:140, shoot:150, defense:80, flying:false, w:1, h:1, abilities:['psyVeil'], weapons:[
+    wp({name:'念动治愈', fire:'heal', power:3000, range:[1,2], dmgType:'—', desc:'2 格内的一台友军回复 3000 × 射击÷100 的 HP。'}),
+    wp({name:'龙王破山剑', power:1800, stat:'格斗', fire:'melee'}),
+    wp({name:'龙雷闪', power:1000, fire:'indirect', range:[2,6], dmgType:'特殊', desc:'念动力攻击，特殊伤害。'}),
   ]},
   /* ---- 秘银·乌鲁兹小队（全金属狂潮；v0.26 起势力名「米斯里尔」改为「秘银」） ---- */
   {pilot:'宗介', mech:'U7', short:'U7', mechName:'强弩', trait:'pro', shield:4000, shieldLv:20, shieldName:'λ 力场', lambdaAwaken:2, awakenSwap:{'单分子刀':'隔空 λ 拳', '散弹炮':'λ 驱动·散弹炮'}, tags:{势力:'秘银', 远近分类:'远程', 战斗分类:'特种'}, hp:5000, armor:700, eva:30, mov:6, melee:150, shoot:155, awaken:130, flying:false, w:1, h:1, abilities:[], weapons:[
@@ -2274,6 +2284,8 @@ function cmdOnly(pilot, mech, mechName, faction, command){
    规则：普通档晋升只给属性 + 被动（PROMO_PASSIVE）；骨干和精锐 Lv20 多一个武装；
    Lv30 只有精锐再多一个、比 Lv20 武装更强的武装，同时精锐 / 骨干原本的 Lv20 武装提升一档（见 tierUp）。 */
 const PROMO_WEAPONS = {
+  A1:[wp({name:'左轮打桩机·六连全弹', power:1850, statMul:1.5, stat:'格斗', fire:'melee', range:[1,1], hit:75, critMod:20, special:'multi', hits:6, step:10, cd:4, unlock:30, startCd:10, evadeCd:true,
+      desc:'把左轮弹仓里的 6 发一口气打完：连续判定 6 段，首段命中 75，命中后 −10、未中后 +10；每段都可以单独暴击，打空的那段「赌神」有一半几率改成 ×4 暴击。冷却规则和左轮打桩机相同（场上每打空一次 −1）。'})],
   B1:[wp({name:'影界·万刃归一', power:2900, stat:'格斗+觉醒', fire:'map', shape:'burst', rad:3, iff:true, afterMove:false, cd:4, unlock:30, startCd:4, dmgType:'特殊',
       desc:'以自身为中心 3 格内的所有敌机受到特殊伤害（不伤友军）。门之力：攻击能力值 = 格斗 + 觉醒。配合「传送」先跳进敌阵中心再发动。'})],
   CB1:[wp({name:'GN 剑 III·量子跃迁斩', power:5000, stat:'格斗+觉醒', fire:'melee', range:[1,5], hit:110, cd:3, unlock:30, startCd:4, dmgType:'光束', again:true, noCounter:true,
@@ -2297,7 +2309,7 @@ const PROMO_WEAPONS = {
    大招倍率 statMul：Lv20 大招 ×1.2、Lv30 大招 ×1.5（大招随等级成长更快）；
    觉醒系大招（门之力、TRANS-AM、量子化、λ 驱动、满月）改用「属性 + 觉醒」，不再乘 statMul。觉醒初值：雷萨 140、Feena 150、刹那 130、宗介 130、洛克昂 110，其他 100。
    开场冷却 startCd：Lv20 大招默认 3；Lv30 大招 4；传送斩 2；被动（残月的余响、月华再生）0；增益类（八咫之守、马格纳克队支援）2。 */
-const NEW_FORMULA = ['B1','M1','M2','M3','M4','M5','CB1','S1','W1','U7'];   // v0.40.10 月球王国整体按新公式重写
+const NEW_FORMULA = ['B1','M1','M2','M3','M4','M5','A1','A2','A3','A4','A5','CB1','S1','W1','U7'];   // v0.40.11 ATX 整体按新公式重写   // v0.40.10 月球王国整体按新公式重写
 ALLY_T.forEach(t => {
   if (PROMO_WEAPONS[t.mech]) t.weapons.push(...PROMO_WEAPONS[t.mech]);
   if (NEW_FORMULA.includes(t.mech)) t.weapons.forEach(w => { w.v37 = true; });
@@ -2321,7 +2333,7 @@ ALLY_T.forEach(t => {
   /* v0.35.1 档位保底（作者：我方精锐 10 级就该是第一档，骨干也要部分加强）。
      按 Lv10 对第 1 层杂兵的平均伤害算：精锐保底约 6000、骨干约 4500（近卫有压制杂兵、Feena 另算，不在表里）。
      倍率 = 保底 ÷ 现值，最多 ×1.8；作用于该角色全部非地图炮武装（含 Lv20 / Lv30），保持档位成长。 */
-  const TIER_FLOOR = {CB4:1.19, A2:1.26, A3:1.32, B2:1.6, W4:1.12};
+  const TIER_FLOOR = {CB4:1.19, B2:1.6, W4:1.12};
   if (TIER_FLOOR[t.mech]) t.weapons.forEach(w => { if (w.power > 0 && w.fire !== 'map' && !w.v37) w.power = Math.round(w.power * TIER_FLOOR[t.mech]); });   // v0.40.4 拉克丝、宗介、希罗已按新公式重写，移出本表
   if (t.mech === 'CB1'){ t.canFly = true; t.critBase = 15; t.weapons.forEach(w => { if (w.fire !== 'map' && w.range[1] < 3) w.range = [w.range[0], 3]; }); }
   if (t.mech === 'B1') t.weapons.forEach(w => { if (w.unlock <= 1 && w.fire === 'melee') w.range = [w.range[0], 4]; });
@@ -2923,11 +2935,11 @@ const TRIALS = {
   W5:{e:['sniper','artillery','grunt','captain'], hint:'龙爪可以把敌人拉到身边。目标周围 2 格没有别的敌人时，正义让伤害 +25%：先把它们拆开再打。'},
   W6:{e:['raider','raider','raider','hound','hound'], hint:'移动 3 格以上再近战，暴击 +30（闪电伯爵）。Lv20 光束剑·横扫可以移动后使用，冲进人堆再扫。'},
   W7:{e:['fighter','fighter','drone','grunt','artillery'], hint:'一击脱离：攻击之后还能用剩下的移动力撤走。先近身打、再退回安全区。Lv20 被动「编队牵制」：3 格内敌机闪避 −10。'},
-  A1:{e:['beetle','tank','grunt','shield'], hint:'命中率低于 70% 时暴击 +30：打桩机命中不高，但一旦暴击就很痛。Lv20 切札是冲刺型地图炮。'},
-  A2:{e:['beamcoat','beamcoat','phase','phase','fighter'], hint:'光束涂层机抗光束、相转移装甲机抗实弹：按目标切换嚎叫发射器的光束 / 实弹模式。每个阶段第一次被打时闪避 +30（天然）。'},
-  A3:{e:['grunt','grunt','grunt','hound','hound','stealth'], cluster:true, hint:'溅射破坏者会波及相邻敌机。W 系列被侧击、背击时装甲不会被无视。'},
+  A1:{e:['grunt','raider','shield','beetle','berserker'], mates:['A2','A3'], hint:'响介是赌神：打空的攻击有一半改成 ×4 暴击。Lv20 大招左轮打桩机开场冷却 10 回合，但<b>场上每打空一次（敌我都算）冷却 −1</b>，减完开场冷却再减本身的冷却，最后每次行动都能用。让拉米亚放烟雾、艾克赛琳给他加暴击倍率，大家多打空。Lv30 六连全弹每段都能触发赌神。'},
+  A2:{e:['beamcoat','beamcoat','phase','phase','fighter'], mates:['A1'], hint:'好运加护：3 格内友军暴击倍率 +1（响介的赌神 ×4 → ×5），但命中 −20。光束涂层机抗光束、相转移装甲机抗实弹：按目标切换嚎叫发射器的光束 / 实弹模式。每个阶段第一次被打时闪避 +30（天然）。'},
+  A3:{e:['grunt','grunt','grunt','hound','hound','stealth'], cluster:true, mates:['A1'], hint:'烟雾弹：点地图放一块 3×3 烟雾，持续 3 回合；从烟雾里开火、或者打烟雾里的目标，命中 −30（敌我都算）。把烟雾丢在敌群上，敌人打不中、我们也打不中——响介的大招冷却会掉得飞快。拉米亚同时属于 ATX 和影世界。'},
   A4:{e:['berserker','raider','grunt','tank'], mates:['A5'], hint:'每回合第一次主动攻击伤害 +25%（热血）；替库斯哈援护挡刀。Lv20 被动「暗剑杀之心」：近战伤害 +20%、暴击 +10。'},
-  A5:{e:['mirror','phase','beamcoat','grunt'], mates:['A1','A4'], hurt:true, hint:'修理量 +50%，但饮料太难喝，喝完闪避 −10。龙雷闪是特殊伤害，无视光束 / 物理抗性。Lv20 被动「念动共鸣」：每个我方阶段开始时 3 格内友军回复 10%。'},
+  A5:{e:['mirror','phase','beamcoat','grunt'], mates:['A1','A4'], hurt:true, hint:'念动迷彩：3 格内敌机命中 −10。修理量 +50%，但饮料太难喝，喝完闪避 −10。龙雷闪是特殊伤害。Lv20 被动「念动共鸣」：每个我方阶段开始时 3 格内友军回复 10%。'},
   U7:{e:['venom','mirror','beamcoat','phase','skyfort'], hint:'Lv20 解锁λ力场护盾（4000，每个己方阶段回满），同时解锁隔空 λ 拳。λ 力场被完全击破 2 次后「λ 觉醒」：所有 λ 武器 0 CD，单分子刀升级为 λ 单分子刀（特殊伤害）。λ 驱动·散弹炮是特殊伤害，只会被护盾类效果抵消；λ 试作机和空中要塞都有护盾。Lv30 解锁「λ 驱动·极限放出」。'},
   U6:{e:['sniper','artillery','turret','captain'], wide:true, hint:'目标距离 6 格以上时命中、暴击 +20（狙击之王）。Lv20 超长距离狙击射程 5–14。'},
   U2:{e:['grunt','grunt','grunt','grunt','jammer'], mates:['U6','U1'], cluster:true, hint:'小队长光环让队友暴击 +10；导弹发射器会溅射。Lv20 被动「ECM 干扰」：4 格内敌机命中 −10。'},
@@ -2976,7 +2988,7 @@ ALLY_T.forEach(t => { LEVELS['trial_' + t.mech] = makeTrial(t); });
 /* 机体展示模式：按势力分组，每台机体一关（Lv20，敌人 Lv1） */
 for (const f of [...new Set(ALLY_T.map(t => t.tags.势力))]){
   const og = document.createElement('optgroup'); og.label = `机体展示 · ${f}`;
-  ALLY_T.filter(t => t.tags.势力 === f).forEach(t => { const o = document.createElement('option'); o.value = 'trial_' + t.mech; o.textContent = `${t.pilot}（${t.mech} · ${t.tags.战斗分类}）`; og.appendChild(o); });
+  ALLY_T.filter(t => inFaction(t, f)).forEach(t => { const o = document.createElement('option'); o.value = 'trial_' + t.mech; o.textContent = `${t.pilot}（${t.mech} · ${t.tags.战斗分类}）`; og.appendChild(o); });
   $('#levelSel').insertBefore(og, $('#levelSel optgroup[label="工具"]'));
 }
 /* ---------- 状态 ---------- */
@@ -3345,7 +3357,7 @@ function hitRate(att, w, def, reaction, baseHit, opts = {}){
   eva = Math.max(0, eva - ZONE[zone].eva);
   if (w.special === 'funnel') eva = Math.round(eva / 2);
   const rage = (hasTrait(att,'hallelujah') && att.hp < att.maxHp/2 ? 20 : 0) + (hasTrait(att,'veda') && att.transformTurn === turn ? 30 : 0);
-  let h = (baseHit ?? w.hit) - (RM() && att.side === 'enemy' ? RM().ecm : 0) + Math.round(((att.aim ?? 160) - 160) / 2) + (abilOn(att, 'mook') && def.key && tierOfEnemy(def.key) === '杂兵' ? 20 : 0) + buffSum(att,'hit') + rage + gundamBonus(att) + tfx(att, 'hit', def, w, opts) - eva;
+  let h = (baseHit ?? w.hit) - (RM() && att.side === 'enemy' ? RM().ecm : 0) + Math.round(((att.aim ?? 160) - 160) / 2) + (abilOn(att, 'mook') && def.key && tierOfEnemy(def.key) === '杂兵' ? 20 : 0) + buffSum(att,'hit') + rage + gundamBonus(att) + tfx(att, 'hit', def, w, opts) - eva - smokeHit(att, def);   // v0.40.11 烟雾弹（17b）
   if (reaction === 'evade') h *= .5;
   return {hit: clamp(Math.round(h),0,100), raw: Math.round(h), eva, zone};
 }
@@ -3389,7 +3401,7 @@ function dmgCore(att, w, def, o = {}){
     const v = Math.max(-95, pos + neg);
     if (v){ W *= 1 + v/100; wn.push(`${wk.map(([k,x]) => `${x > 0 ? '弱点' : '抗性'}·${k} ${x > 0 ? '+' : ''}${x}%`).join('、')}`); }
   }
-  if (c.crit){ const x = o.critX || critMul(att); W *= x; wn.push(`暴击 ×${x}`); }
+  if (c.crit){ const x = o.critX ? o.critX + (att ? buffSum(att,'critX') : 0) : critMul(att); W *= x; wn.push(`暴击 ×${x}`); }
   W = Math.round(W);
   /* 装甲 */
   let A = 0;
@@ -3744,6 +3756,7 @@ async function battle(att, w, def, reaction, cw, {guard=false} = {}){
 }
 async function mapAttack(u, w, dir){
   consume(w);
+  if (w.smoke){ placeSmoke(u, w, dir); refresh(); return; }   // v0.40.11 烟雾弹（17b）：不造成伤害
   log(`${fullName(u)}【${w.name}】${dir.burst ? '向周围' : dir.box ? `对 (${dir.box[0]}, ${dir.box[1]}) 起的 ${w.size}×${w.size} 区域` : `向 ${dir.arrow} `}发动${dir.land ? `，冲向 (${dir.land[0]}, ${dir.land[1]})` : ''}`, null, 'ally');
   const targets = dir.hit.slice();
   const from = cpx(u);
@@ -3777,7 +3790,7 @@ function echoArea(u){
     for (let y=0;y<MH;y++) for (let x=0;x<MW;x++) if (distRect(src.x,src.y,src.w,src.h,x,y,1,1) <= r) set.add(y*N+x);
   };
   addAround(u, w.range[1]);
-  const canExt = a => (a.tags && a.tags.势力 === '月球王国') || (u.lv >= 30 && TIER[a.mech] !== 'S');   // v0.24：Lv30 起非精锐也能延伸
+  const canExt = a => inFaction(a, '月球王国') || (u.lv >= 30 && TIER[a.mech] !== 'S');   // v0.24：Lv30 起非精锐也能延伸
   /* v0.40.10（作者 10-08）：队友的延伸 = 它当前位置、当前朝向下实际打得到的格子（任意一把已解锁的近战 / 直射 / 曲射武器，冷却中也算），
      队友打不到的地方余响也打不到。 */
   for (const a of units) if (a !== u && a.side === u.side && a.hp > 0 && canExt(a) && distU(u, a) <= w.range[1]){
@@ -3886,7 +3899,7 @@ function supportTargets(u, w){
   const r = effRange(u, w)[1];
   return units.filter(a => a.hp > 0 && (w.foe ? (a.side !== u.side && a.side !== 'neutral') : (a.side === u.side && (a !== u || w.self))) && distU(u, a) <= r);
 }
-const BUFF_NAME = {hit:'命中', eva:'闪避', crit:'暴击', dmg:'伤害', red:'减伤', physRed:'物理减伤', beamRed:'光束减伤', armorPct:'装甲', def:'防御', mov:'移动'};
+const BUFF_NAME = {hit:'命中', eva:'闪避', crit:'暴击', dmg:'伤害', red:'减伤', physRed:'物理减伤', beamRed:'光束减伤', armorPct:'装甲', def:'防御', mov:'移动', critX:'暴击倍率'};
 const BUFF_PCT = ['dmg','red','physRed','beamRed','armorPct'];
 const buffTxt = b => Object.entries(b).filter(([k]) => BUFF_NAME[k]).map(([k,v]) => BUFF_PCT.includes(k) && k !== 'dmg' && k !== 'armorPct' ? `${BUFF_NAME[k]} ${v}%` : `${BUFF_NAME[k]} ${v > 0 ? '+' : ''}${v}${BUFF_PCT.includes(k) ? '%' : ''}`).join('、');
 const supBuff = (u, w) => { const b = wv(u, w, 'buff') || {eva:15, hit:15}; /* v0.40.10 增益可以随等级升级（月光祝福） */ return tierUp(u, w) ? Object.fromEntries(Object.entries(b).map(([k,v]) => [k, Math.round(v * 1.5)])) : b; };
@@ -3958,9 +3971,48 @@ Hooks.on('strikeResolved', c => {
   log(`${fullName(c.def)} 被【拘束】：防御 −20（到下一个我方阶段开始）`, null, c.att.side);
 }, '苏菲「拘束」：被牵引锚命中的敌机防御 −20');
 
+/* ===== ATX 小队（v0.40.11） ===== */
+/* 拉米亚·烟雾弹：一块 3×3 的烟雾，持续 N 回合（到第 放下回合 + N 回合的我方阶段开始消失）。
+   从烟雾里开火、或者打烟雾里的目标，命中 −SMOKE_HIT（敌我都算；两边都在烟雾里也只算一次）。15 的 hitRate 读 smokeHit。 */
+const SMOKE_HIT = 30;
+let SMOKES = [];
+const smokeAt = (x, y) => SMOKES.some(s => s.b === BATTLE_ID && turn < s.until && s.set.has(y*N + x));
+const inSmoke = u => !!u && tilesOf(u).some(([x, y]) => smokeAt(x, y));
+const smokeHit = (att, def) => SMOKES.length && (inSmoke(att) || inSmoke(def)) ? SMOKE_HIT : 0;
+function placeSmoke(u, w, dir){
+  SMOKES = SMOKES.filter(s => s.b === BATTLE_ID && turn < s.until);
+  SMOKES.push({b:BATTLE_ID, until:turn + w.smoke, set:new Set(dir.path.map(([x, y]) => y*N + x))});
+  log(`${fullName(u)}【${w.name}】在 (${dir.box[0]}, ${dir.box[1]}) 放下 ${w.size}×${w.size} 烟雾，持续到第 ${turn + w.smoke} 回合我方阶段开始：里外开火命中 −${SMOKE_HIT}`, null, u.side);
+}
+function drawSmoke(ctx){
+  if (!SMOKES.length) return;
+  ctx.fillStyle = 'rgba(200,205,215,.38)';
+  for (const s of SMOKES) if (s.b === BATTLE_ID && turn < s.until) for (const k of s.set) ctx.fillRect((k%N)*TS, ((k/N)|0)*TS, TS, TS);
+}
+
+/* 响介·赌徒的直觉：场上每有一次攻击打空（敌我都算，反击也算；必中的地图炮 / 被动不会打空），
+   带 evadeCd 的武器（左轮打桩机系列）冷却永久 −1：先用 cutCd 减开场冷却和当前冷却，
+   开场冷却 EVADE_START 次减完后，多出来的次数减武器本身的冷却，减到 0 = 用完不进冷却。 */
+const EVADE_START = 10;
+const evadeN = u => u.evB === BATTLE_ID ? (u.evN || 0) : 0;
+const evadeCdCut = u => Math.max(0, evadeN(u) - EVADE_START);
+Hooks.on('strikeResolved', c => {
+  if (c.hit || isSure(c.w)) return;
+  for (const u of units) if (u.hp > 0 && u.weapons.some(w => w.evadeCd && u.lv >= w.unlock)){
+    u.evN = evadeN(u) + 1; u.evB = BATTLE_ID;
+    cutCd(u, 1);
+    log(`${fullName(u)}【赌徒的直觉】${fullName(c.att)} 打空了：左轮打桩机冷却 −1（本场累计 ${u.evN} 次）`, null, u.side);
+  }
+}, '响介「赌徒的直觉」：场上每打空一次，左轮打桩机冷却 −1');
+Hooks.on('strikeResolved', c => {
+  if (!c.w.evadeCd || c.counter) return;
+  const cut = evadeCdCut(c.att), w = c.att.weapons.find(x => x.name === c.w.name) || c.w;
+  if (cut >= w.cd) w.cdLeft = 0; else if (cut > 0) w.cdLeft = Math.max(0, w.cdLeft - cut);
+}, '响介「赌徒的直觉」：开场冷却减完后，多打空的次数减武器本身的冷却');
+
 /* 测试接口：角色机制的函数（tests/moon.js 等用；window.__game 归规则对话，所以单独挂一个） */
 window.__chars = {autoWeapon:u => autoWeapon(u), echoWeapon:u => echoWeapon(u), attackTilesOf, pickOf, setPick:k => { FEENA_PICK = k; }, canSwitchPick, chainStepOf, effMov, zocRadius,
-  strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d)};
+  strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d), smokeHit, inSmoke, evadeN, evadeCdCut, get SMOKES(){ return SMOKES; }};
 /* ---------- 回合流程 ---------- */
 function fireTip(key){
   if (!LV || !LV.tips) return;
@@ -4804,6 +4856,7 @@ function draw(now){
     ctx.fillStyle = 'rgba(170,120,235,.22)';
     for (const k of ar.set) ctx.fillRect((k%N)*TS, ((k/N)|0)*TS, TS, TS);
   }
+  drawSmoke(ctx);   // v0.40.11 烟雾弹（17b）
   if (S.echoFlash){
     const age = (now - S.echoFlash.t0)/1000;
     if (age > 1.2) S.echoFlash = null;
@@ -5427,6 +5480,7 @@ function actionHTML(){
           const f = forecast(u, S.weapon, t, null);
           return `<li><span class="${t.side}">${fullName(t)}${t.side === 'ally' ? '（友军）' : ''}</span><span>命中 ${f.hit}% · 伤害 ${dmgTxt(f)} / HP ${t.hp}</span></li>`;
         }).join('');
+        if (S.weapon.smoke) return `<h3>${S.weapon.name}</h3><p class="small">烟雾覆盖 (${S.dir.box[0]}, ${S.dir.box[1]}) 起的 ${S.weapon.size}×${S.weapon.size}，持续 ${S.weapon.smoke} 回合；里面现在有 ${S.dir.hit.length} 台机体。从烟雾里开火或打烟雾里的目标，命中 −${SMOKE_HIT}。</p><div class="acts"><button class="btn primary" data-a="mapfire">放烟雾</button><button class="btn" data-a="back-weapon">换武器</button></div>`;   // v0.40.11
         const ff = S.dir.hit.some(t => t.side === 'ally');
         detail = `<p class="small">${S.dir.land ? `落点 (${S.dir.land[0]}, ${S.dir.land[1]})，沿途` : '范围内'} ${S.dir.hit.length} 个单位${S.weapon.iff ? '（敌我识别，只打敌机）' : ''}：</p>
           ${rows ? `<ul class="hitlist">${rows}</ul>` : '<p class="small">沿途没有单位。</p>'}
@@ -5990,8 +6044,8 @@ $('#hookList').innerHTML = '已注册的事件钩子：<br>' + Hooks.labels.map(
 let RUN = null;
 const RM = () => (LV && LV.run && RUN) ? RUN.mods : null;
 const TIER = {
-  B1:'S', CB1:'S', S1:'S', W1:'S', U7:'S', M1:'S',
-  B2:'A', M2:'A', M3:'A', CB2:'A', CB4:'A', S2:'A', S5:'A', W2:'A', W3:'A', W4:'A', W5:'A', W6:'A', A1:'A', A2:'A', A3:'A', U6:'A', U1:'A',
+  B1:'S', A1:'S', CB1:'S', S1:'S', W1:'S', U7:'S', M1:'S',
+  B2:'A', M2:'A', M3:'A', CB2:'A', CB4:'A', S2:'A', S5:'A', W2:'A', W3:'A', W4:'A', W5:'A', W6:'A', A2:'A', A3:'A', U6:'A', U1:'A',
   M4:'B', M5:'B', CB3:'B', S3:'B', S4:'B', S6:'B', S7:'B', S8:'B', W7:'B', A4:'B', A5:'B', U2:'B', U8:'B',
 };
 const TIER_NAME = {S:'精锐', A:'骨干', B:'普通'};
@@ -6000,7 +6054,7 @@ const CAP_CHARS = [];          // （已取消）原来晋升 Lv20 时出击上�
 const CLASSES = ['近卫','尖兵','指挥','重装','狙击','特种'];   // v0.39 辅助 → 指挥
 /* v0.26 势力招募券：券上写的是战斗分类就按分类、写的是势力就按势力；每场胜利 60% 职业券、40% 势力券 */
 const FACTIONS = [...new Set(ALLY_T.map(t => t.tags.势力))];
-const ticketOk = (k, m) => CLASSES.includes(k) ? tplOf(m).tags.战斗分类 === k : tplOf(m).tags.势力 === k;
+const ticketOk = (k, m) => CLASSES.includes(k) ? tplOf(m).tags.战斗分类 === k : inFaction(tplOf(m), k);   // v0.40.11 双势力
 const ticketName = k => CLASSES.includes(k) ? `${k}招募券` : `${k}势力招募券`;
 const randTicket = () => Math.random() < .6 ? pick(CLASSES) : pick(FACTIONS);
 const tierOf = m => TIER[m] || 'B';
@@ -6819,7 +6873,7 @@ const TIER_LV = {杂兵:0, 精锐:1, 头目:2, Boss:2};
    角色对话以后按新公式重新写某个角色的武器时，把它的机体代号加进 NEW_POWER，它就不再换算。 */
 const DEF_BY_CLASS = {重装:110, 近卫:95, 特种:85, 指挥:80, 狙击:75, 尖兵:75};
 const DEF_BY_TIER = {杂兵:50, 精锐:65, 头目:80, Boss:95};
-const NEW_POWER = new Set(['B1','M1','M2','M3','M4','M5','CB1','S1','W1','U7']);   // v0.40.4 角色对话：精锐已按新公式重写（其他角色重写过的单把武器带 v37:true）
+const NEW_POWER = new Set(['B1','M1','M2','M3','M4','M5','A1','A2','A3','A4','A5','CB1','S1','W1','U7']);   // v0.40.4 角色对话：精锐已按新公式重写（其他角色重写过的单把武器带 v37:true）
 function convPow(P, statRef, multi, noDef, Aref, Dref){
   const old = P + (multi ? .5 : 5) * statRef;
   if (noDef) return Math.max(1, Math.round(old / (1 + statRef / 100)));
@@ -7307,7 +7361,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.40.11';
+const GAME_VERSION = 'v0.40.12';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){

@@ -49,6 +49,45 @@ Hooks.on('strikeResolved', c => {
   log(`${fullName(c.def)} 被【拘束】：防御 −20（到下一个我方阶段开始）`, null, c.att.side);
 }, '苏菲「拘束」：被牵引锚命中的敌机防御 −20');
 
+/* ===== ATX 小队（v0.40.11） ===== */
+/* 拉米亚·烟雾弹：一块 3×3 的烟雾，持续 N 回合（到第 放下回合 + N 回合的我方阶段开始消失）。
+   从烟雾里开火、或者打烟雾里的目标，命中 −SMOKE_HIT（敌我都算；两边都在烟雾里也只算一次）。15 的 hitRate 读 smokeHit。 */
+const SMOKE_HIT = 30;
+let SMOKES = [];
+const smokeAt = (x, y) => SMOKES.some(s => s.b === BATTLE_ID && turn < s.until && s.set.has(y*N + x));
+const inSmoke = u => !!u && tilesOf(u).some(([x, y]) => smokeAt(x, y));
+const smokeHit = (att, def) => SMOKES.length && (inSmoke(att) || inSmoke(def)) ? SMOKE_HIT : 0;
+function placeSmoke(u, w, dir){
+  SMOKES = SMOKES.filter(s => s.b === BATTLE_ID && turn < s.until);
+  SMOKES.push({b:BATTLE_ID, until:turn + w.smoke, set:new Set(dir.path.map(([x, y]) => y*N + x))});
+  log(`${fullName(u)}【${w.name}】在 (${dir.box[0]}, ${dir.box[1]}) 放下 ${w.size}×${w.size} 烟雾，持续到第 ${turn + w.smoke} 回合我方阶段开始：里外开火命中 −${SMOKE_HIT}`, null, u.side);
+}
+function drawSmoke(ctx){
+  if (!SMOKES.length) return;
+  ctx.fillStyle = 'rgba(200,205,215,.38)';
+  for (const s of SMOKES) if (s.b === BATTLE_ID && turn < s.until) for (const k of s.set) ctx.fillRect((k%N)*TS, ((k/N)|0)*TS, TS, TS);
+}
+
+/* 响介·赌徒的直觉：场上每有一次攻击打空（敌我都算，反击也算；必中的地图炮 / 被动不会打空），
+   带 evadeCd 的武器（左轮打桩机系列）冷却永久 −1：先用 cutCd 减开场冷却和当前冷却，
+   开场冷却 EVADE_START 次减完后，多出来的次数减武器本身的冷却，减到 0 = 用完不进冷却。 */
+const EVADE_START = 10;
+const evadeN = u => u.evB === BATTLE_ID ? (u.evN || 0) : 0;
+const evadeCdCut = u => Math.max(0, evadeN(u) - EVADE_START);
+Hooks.on('strikeResolved', c => {
+  if (c.hit || isSure(c.w)) return;
+  for (const u of units) if (u.hp > 0 && u.weapons.some(w => w.evadeCd && u.lv >= w.unlock)){
+    u.evN = evadeN(u) + 1; u.evB = BATTLE_ID;
+    cutCd(u, 1);
+    log(`${fullName(u)}【赌徒的直觉】${fullName(c.att)} 打空了：左轮打桩机冷却 −1（本场累计 ${u.evN} 次）`, null, u.side);
+  }
+}, '响介「赌徒的直觉」：场上每打空一次，左轮打桩机冷却 −1');
+Hooks.on('strikeResolved', c => {
+  if (!c.w.evadeCd || c.counter) return;
+  const cut = evadeCdCut(c.att), w = c.att.weapons.find(x => x.name === c.w.name) || c.w;
+  if (cut >= w.cd) w.cdLeft = 0; else if (cut > 0) w.cdLeft = Math.max(0, w.cdLeft - cut);
+}, '响介「赌徒的直觉」：开场冷却减完后，多打空的次数减武器本身的冷却');
+
 /* 测试接口：角色机制的函数（tests/moon.js 等用；window.__game 归规则对话，所以单独挂一个） */
 window.__chars = {autoWeapon:u => autoWeapon(u), echoWeapon:u => echoWeapon(u), attackTilesOf, pickOf, setPick:k => { FEENA_PICK = k; }, canSwitchPick, chainStepOf, effMov, zocRadius,
-  strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d)};
+  strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d), smokeHit, inSmoke, evadeN, evadeCdCut, get SMOKES(){ return SMOKES; }};

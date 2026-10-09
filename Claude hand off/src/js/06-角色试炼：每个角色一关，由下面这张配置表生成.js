@@ -27,11 +27,11 @@ const TRIALS = {
   W5:{e:['sniper','artillery','grunt','captain'], hint:'龙爪可以把敌人拉到身边。目标周围 2 格没有别的敌人时，正义让伤害 +25%：先把它们拆开再打。'},
   W6:{e:['raider','raider','raider','hound','hound'], hint:'移动 3 格以上再近战，暴击 +30（闪电伯爵）。Lv20 光束剑·横扫可以移动后使用，冲进人堆再扫。'},
   W7:{e:['fighter','fighter','drone','grunt','artillery'], hint:'一击脱离：攻击之后还能用剩下的移动力撤走。先近身打、再退回安全区。Lv20 被动「编队牵制」：3 格内敌机闪避 −10。'},
-  A1:{e:['beetle','tank','grunt','shield'], hint:'命中率低于 70% 时暴击 +30：打桩机命中不高，但一旦暴击就很痛。Lv20 切札是冲刺型地图炮。'},
-  A2:{e:['beamcoat','beamcoat','phase','phase','fighter'], hint:'光束涂层机抗光束、相转移装甲机抗实弹：按目标切换嚎叫发射器的光束 / 实弹模式。每个阶段第一次被打时闪避 +30（天然）。'},
-  A3:{e:['grunt','grunt','grunt','hound','hound','stealth'], cluster:true, hint:'溅射破坏者会波及相邻敌机。W 系列被侧击、背击时装甲不会被无视。'},
+  A1:{e:['grunt','raider','shield','beetle','berserker'], mates:['A2','A3'], hint:'响介是赌神：打空的攻击有一半改成 ×4 暴击。Lv20 大招左轮打桩机开场冷却 10 回合，但<b>场上每打空一次（敌我都算）冷却 −1</b>，减完开场冷却再减本身的冷却，最后每次行动都能用。让拉米亚放烟雾、艾克赛琳给他加暴击倍率，大家多打空。Lv30 六连全弹每段都能触发赌神。'},
+  A2:{e:['beamcoat','beamcoat','phase','phase','fighter'], mates:['A1'], hint:'好运加护：3 格内友军暴击倍率 +1（响介的赌神 ×4 → ×5），但命中 −20。光束涂层机抗光束、相转移装甲机抗实弹：按目标切换嚎叫发射器的光束 / 实弹模式。每个阶段第一次被打时闪避 +30（天然）。'},
+  A3:{e:['grunt','grunt','grunt','hound','hound','stealth'], cluster:true, mates:['A1'], hint:'烟雾弹：点地图放一块 3×3 烟雾，持续 3 回合；从烟雾里开火、或者打烟雾里的目标，命中 −30（敌我都算）。把烟雾丢在敌群上，敌人打不中、我们也打不中——响介的大招冷却会掉得飞快。拉米亚同时属于 ATX 和影世界。'},
   A4:{e:['berserker','raider','grunt','tank'], mates:['A5'], hint:'每回合第一次主动攻击伤害 +25%（热血）；替库斯哈援护挡刀。Lv20 被动「暗剑杀之心」：近战伤害 +20%、暴击 +10。'},
-  A5:{e:['mirror','phase','beamcoat','grunt'], mates:['A1','A4'], hurt:true, hint:'修理量 +50%，但饮料太难喝，喝完闪避 −10。龙雷闪是特殊伤害，无视光束 / 物理抗性。Lv20 被动「念动共鸣」：每个我方阶段开始时 3 格内友军回复 10%。'},
+  A5:{e:['mirror','phase','beamcoat','grunt'], mates:['A1','A4'], hurt:true, hint:'念动迷彩：3 格内敌机命中 −10。修理量 +50%，但饮料太难喝，喝完闪避 −10。龙雷闪是特殊伤害。Lv20 被动「念动共鸣」：每个我方阶段开始时 3 格内友军回复 10%。'},
   U7:{e:['venom','mirror','beamcoat','phase','skyfort'], hint:'Lv20 解锁λ力场护盾（4000，每个己方阶段回满），同时解锁隔空 λ 拳。λ 力场被完全击破 2 次后「λ 觉醒」：所有 λ 武器 0 CD，单分子刀升级为 λ 单分子刀（特殊伤害）。λ 驱动·散弹炮是特殊伤害，只会被护盾类效果抵消；λ 试作机和空中要塞都有护盾。Lv30 解锁「λ 驱动·极限放出」。'},
   U6:{e:['sniper','artillery','turret','captain'], wide:true, hint:'目标距离 6 格以上时命中、暴击 +20（狙击之王）。Lv20 超长距离狙击射程 5–14。'},
   U2:{e:['grunt','grunt','grunt','grunt','jammer'], mates:['U6','U1'], cluster:true, hint:'小队长光环让队友暴击 +10；导弹发射器会溅射。Lv20 被动「ECM 干扰」：4 格内敌机命中 −10。'},
@@ -80,6 +80,6 @@ ALLY_T.forEach(t => { LEVELS['trial_' + t.mech] = makeTrial(t); });
 /* 机体展示模式：按势力分组，每台机体一关（Lv20，敌人 Lv1） */
 for (const f of [...new Set(ALLY_T.map(t => t.tags.势力))]){
   const og = document.createElement('optgroup'); og.label = `机体展示 · ${f}`;
-  ALLY_T.filter(t => t.tags.势力 === f).forEach(t => { const o = document.createElement('option'); o.value = 'trial_' + t.mech; o.textContent = `${t.pilot}（${t.mech} · ${t.tags.战斗分类}）`; og.appendChild(o); });
+  ALLY_T.filter(t => inFaction(t, f)).forEach(t => { const o = document.createElement('option'); o.value = 'trial_' + t.mech; o.textContent = `${t.pilot}（${t.mech} · ${t.tags.战斗分类}）`; og.appendChild(o); });
   $('#levelSel').insertBefore(og, $('#levelSel optgroup[label="工具"]'));
 }

@@ -279,6 +279,7 @@ function draw(now){
     ctx.fillStyle = 'rgba(170,120,235,.22)';
     for (const k of ar.set) ctx.fillRect((k%N)*TS, ((k/N)|0)*TS, TS, TS);
   }
+  drawSmoke(ctx);   // v0.40.11 烟雾弹（17b）
   if (S.echoFlash){
     const age = (now - S.echoFlash.t0)/1000;
     if (age > 1.2) S.echoFlash = null;

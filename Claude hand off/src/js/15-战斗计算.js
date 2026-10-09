@@ -16,7 +16,7 @@ function hitRate(att, w, def, reaction, baseHit, opts = {}){
   eva = Math.max(0, eva - ZONE[zone].eva);
   if (w.special === 'funnel') eva = Math.round(eva / 2);
   const rage = (hasTrait(att,'hallelujah') && att.hp < att.maxHp/2 ? 20 : 0) + (hasTrait(att,'veda') && att.transformTurn === turn ? 30 : 0);
-  let h = (baseHit ?? w.hit) - (RM() && att.side === 'enemy' ? RM().ecm : 0) + Math.round(((att.aim ?? 160) - 160) / 2) + (abilOn(att, 'mook') && def.key && tierOfEnemy(def.key) === '杂兵' ? 20 : 0) + buffSum(att,'hit') + rage + gundamBonus(att) + tfx(att, 'hit', def, w, opts) - eva;
+  let h = (baseHit ?? w.hit) - (RM() && att.side === 'enemy' ? RM().ecm : 0) + Math.round(((att.aim ?? 160) - 160) / 2) + (abilOn(att, 'mook') && def.key && tierOfEnemy(def.key) === '杂兵' ? 20 : 0) + buffSum(att,'hit') + rage + gundamBonus(att) + tfx(att, 'hit', def, w, opts) - eva - smokeHit(att, def);   // v0.40.11 烟雾弹（17b）
   if (reaction === 'evade') h *= .5;
   return {hit: clamp(Math.round(h),0,100), raw: Math.round(h), eva, zone};
 }
@@ -60,7 +60,7 @@ function dmgCore(att, w, def, o = {}){
     const v = Math.max(-95, pos + neg);
     if (v){ W *= 1 + v/100; wn.push(`${wk.map(([k,x]) => `${x > 0 ? '弱点' : '抗性'}·${k} ${x > 0 ? '+' : ''}${x}%`).join('、')}`); }
   }
-  if (c.crit){ const x = o.critX || critMul(att); W *= x; wn.push(`暴击 ×${x}`); }
+  if (c.crit){ const x = o.critX ? o.critX + (att ? buffSum(att,'critX') : 0) : critMul(att); W *= x; wn.push(`暴击 ×${x}`); }
   W = Math.round(W);
   /* 装甲 */
   let A = 0;

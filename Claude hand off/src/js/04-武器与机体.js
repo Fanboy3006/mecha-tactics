@@ -1,4 +1,6 @@
 /* ---------- 武器与机体 ---------- */
+/* v0.40.11 双势力：拉米亚同时属于 ATX 和影世界（tags.副势力）。按势力判断的地方都用 inFaction */
+const inFaction = (t, f) => !!(t && t.tags) && (t.tags.势力 === f || t.tags.副势力 === f);
 const wp = o => Object.assign({range:[1,1], hit:100, critMod:0, stat:'射击', fire:'direct', dmgType:'物理', cd:0, uses:null, unlock:1, upgrades:[], afterMove:true, ignoreDef:false, special:null, power:0, desc:''}, o);
 const ALLY_T = [
   {pilot:'雷萨', mech:'B1', short:'B1', trait:'portalTrait', portal:{range:7, cost:25}, tags:{势力:'影世界', 远近分类:'近战', 战斗分类:'近卫'}, hp:5000, armor:1000, eva:15, mov:5, melee:160, shoot:100, awaken:140, flying:false, w:1, h:1, abilities:[], weapons:[
@@ -174,35 +176,40 @@ const ALLY_T = [
     wp({name:'机炮', power:900, fire:'direct', range:[1,2]}),
   ]},
   /* ---- ATX 小队（机战 OG） ---- */
-  {pilot:'响介', mech:'A1', short:'A1', mechName:'古铁', trait:'gambler', tags:{势力:'ATX', 远近分类:'近战', 战斗分类:'近卫'}, hp:6500, armor:1300, eva:5, mov:5, melee:170, shoot:120, flying:false, w:1, h:1, abilities:[], weapons:[
-    wp({name:'三连机炮', power:1200, fire:'direct', range:[1,3]}),
-    wp({name:'左轮打桩机', power:3200, stat:'格斗', fire:'melee', hit:90, critMod:10}),
-    wp({name:'方形钢弹', power:2800, stat:'格斗', fire:'melee', range:[1,2], hit:85}),
-    wp({name:'切札·全力冲刺', power:3700, statMul:1.2, v37:true, stat:'格斗', fire:'map', iff:true, afterMove:false, cd:3, unlock:20,
-        desc:'选 8 个方向之一，冲到第 5 格（必须是合法落点），攻击沿途 4 格内的敌机（敌我识别）。'}),
+  /* ===== ATX 小队（v0.40.11 角色对话按势力重设计，作者 10-08 定） =====
+     整队压低敌我双方的命中：拉米亚放烟雾弹、库斯哈念动迷彩、艾克赛琳给队友加暴击倍率（代价是命中 −20），
+     大家多打空，响介的「赌神」更容易触发；场上每打空一次，响介的大招左轮打桩机冷却永久 −1。
+     响介是精锐；艾克赛琳、拉米亚骨干；布鲁克林、库斯哈普通。拉米亚同时属于 ATX 和影世界。 */
+  {pilot:'响介', mech:'A1', short:'A1', mechName:'古铁', trait:'gambler', tags:{势力:'ATX', 远近分类:'近战', 战斗分类:'近卫'}, hp:6500, armor:1300, eva:5, mov:5, melee:170, shoot:120, defense:100, flying:false, w:1, h:1, abilities:['gamblerSense'], weapons:[
+    wp({name:'三连机炮', power:1500, fire:'direct', range:[1,3]}),
+    wp({name:'方形钢弹', power:2300, stat:'格斗', fire:'melee', range:[1,2], hit:85}),
+    wp({name:'左轮打桩机', power:4700, statMul:1.2, stat:'格斗', fire:'melee', range:[1,2], hit:70, critMod:20, cd:3, unlock:20, startCd:10, evadeCd:true,
+        desc:'大招。命中不高，但打空时「赌神」有一半几率改成 ×4 暴击。开场冷却 10 回合；场上每有一次攻击打空（敌我都算，反击也算），冷却永久 −1，先减开场冷却，再减本身的冷却，减到 0 后每次行动都能用。'}),
   ]},
-  {pilot:'艾克赛琳', mech:'A2', short:'A2', mechName:'白骑士', trait:'lucky', canFly:true, tags:{势力:'ATX', 远近分类:'远程', 战斗分类:'狙击'}, hp:4200, armor:200, eva:35, mov:6, melee:90, shoot:160, flying:true, w:1, h:1, abilities:[], weapons:[
+  {pilot:'艾克赛琳', mech:'A2', short:'A2', mechName:'白骑士', trait:'lucky', canFly:true, tags:{势力:'ATX', 远近分类:'远程', 战斗分类:'狙击'}, hp:4200, armor:200, eva:35, mov:6, melee:90, shoot:160, defense:75, flying:true, w:1, h:1, abilities:[], weapons:[
     wp({name:'嚎叫发射器·光束', power:2400, fire:'direct', range:[2,7], dmgType:'光束'}),
     wp({name:'嚎叫发射器·实弹', power:2400, fire:'direct', range:[2,7], desc:'和光束模式同一把武器，打光束抗性高的敌人时切换到这个。'}),
-    wp({name:'分裂导弹', power:1600, fire:'indirect', range:[2,6], uses:3}),
-    wp({name:'嚎叫发射器·全开', power:2550, statMul:1.2, v37:true, fire:'direct', range:[2,7], special:'lock', lockN:3, cd:2, unlock:20, dmgType:'光束',
+    wp({name:'好运加护', fire:'support', range:[0,3], buff:{critX:1, hit:-20}, cd:2, dmgType:'—',
+        desc:'3 格内的其他友军暴击倍率 +1（×2 → ×3；赌神 ×4 → ×5），但命中 −20，持续到下一个我方阶段开始。打不中也没关系：打空能喂响介的冷却。'}),
+    wp({name:'嚎叫发射器·全开', power:2550, statMul:1.2, fire:'direct', range:[2,7], special:'lock', lockN:3, cd:2, unlock:20, dmgType:'光束',
         upgrades:[{lv:30, lockN:4, note:'Lv30：最多锁定 4 台'}], desc:'多重锁定：在射程内选择最多 3 台敌机逐一攻击，目标不能反击、防御或回避。'}),
   ]},
-  {pilot:'拉米亚', mech:'A3', short:'A3', mechName:'安杰尔格', trait:'wSeries', canFly:true, tags:{势力:'ATX', 远近分类:'远程', 战斗分类:'尖兵'}, hp:4800, armor:500, eva:35, mov:7, melee:140, shoot:150, flying:true, w:1, h:1, abilities:[], weapons:[
-    wp({name:'牛舌步枪', power:2000, fire:'direct', range:[1,5], dmgType:'光束'}),
-    wp({name:'幻影剑', power:2400, stat:'格斗', fire:'melee', critMod:10, dmgType:'光束'}),
-    wp({name:'溅射破坏者', power:1800, fire:'direct', range:[1,4], special:'splash', cd:1, dmgType:'光束', desc:'溅射：与目标相邻的其他敌机受到本次伤害的 50%。'}),
-    wp({name:'幻影凤凰', power:4500, statMul:1.2, v37:true, fire:'direct', range:[2,6], critMod:20, cd:3, unlock:20, dmgType:'光束',
+  {pilot:'拉米亚', mech:'A3', short:'A3', mechName:'安杰尔格', trait:'wSeries', canFly:true, tags:{势力:'ATX', 副势力:'影世界', 远近分类:'远程', 战斗分类:'尖兵'}, hp:4800, armor:500, eva:35, mov:7, melee:140, shoot:150, defense:75, flying:true, w:1, h:1, abilities:[], weapons:[
+    wp({name:'牛舌步枪', power:1600, fire:'direct', range:[1,5], dmgType:'光束'}),
+    wp({name:'幻影剑', power:1800, stat:'格斗', fire:'melee', critMod:10, dmgType:'光束'}),
+    wp({name:'烟雾弹', fire:'map', shape:'box', size:3, range:[1,5], smoke:3, cd:3, dmgType:'—',
+        desc:'在 1–5 格内放一块 3×3 的烟雾（点哪格那格就是左上角），持续 3 回合：从烟雾里开火、或者打烟雾里的目标，命中 −30（敌我都算）。'}),
+    wp({name:'幻影凤凰', power:4500, statMul:1.2, fire:'direct', range:[2,6], critMod:20, cd:3, unlock:20, dmgType:'光束',
         upgrades:[{lv:30, again:true, note:'Lv30：击破目标后可以再攻击一次（不能移动）'}]}),
   ]},
-  {pilot:'布鲁克林', mech:'A4', short:'A4', mechName:'古兰森三型', trait:'hotBlood', tags:{势力:'ATX', 远近分类:'近战', 战斗分类:'重装'}, hp:9000, armor:1500, eva:5, mov:5, melee:160, shoot:110, flying:false, w:1, h:1, abilities:['guard'], weapons:[
-    wp({name:'回旋拳', power:1800, fire:'direct', range:[1,3]}),
-    wp({name:'计都罗睺剑', power:3000, stat:'格斗', fire:'melee'}),
+  {pilot:'布鲁克林', mech:'A4', short:'A4', mechName:'古兰森三型', trait:'hotBlood', tags:{势力:'ATX', 远近分类:'近战', 战斗分类:'重装'}, hp:9000, armor:1500, eva:5, mov:5, melee:160, shoot:110, defense:110, flying:false, w:1, h:1, abilities:['guard'], weapons:[
+    wp({name:'回旋拳', power:1400, fire:'direct', range:[1,3]}),
+    wp({name:'计都罗睺剑', power:2000, stat:'格斗', fire:'melee'}),
   ]},
-  {pilot:'库斯哈', mech:'A5', short:'A5', mechName:'龙虎王', trait:'juice', tags:{势力:'ATX', 远近分类:'远程', 战斗分类:'指挥'}, hp:6000, armor:800, eva:20, mov:5, melee:140, shoot:150, flying:false, w:1, h:1, abilities:[], weapons:[
-    wp({name:'念动治愈', fire:'heal', power:2800, range:[1,2], dmgType:'—', desc:'2 格内的一台友军回复 2800 × 射击÷100 的 HP。'}),
-    wp({name:'龙王破山剑', power:2800, stat:'格斗', fire:'melee'}),
-    wp({name:'龙雷闪', power:1800, fire:'indirect', range:[2,6], dmgType:'特殊', desc:'念动力攻击，特殊伤害。'}),
+  {pilot:'库斯哈', mech:'A5', short:'A5', mechName:'龙虎王', trait:'juice', tags:{势力:'ATX', 远近分类:'远程', 战斗分类:'指挥'}, hp:6000, armor:800, eva:20, mov:5, melee:140, shoot:150, defense:80, flying:false, w:1, h:1, abilities:['psyVeil'], weapons:[
+    wp({name:'念动治愈', fire:'heal', power:3000, range:[1,2], dmgType:'—', desc:'2 格内的一台友军回复 3000 × 射击÷100 的 HP。'}),
+    wp({name:'龙王破山剑', power:1800, stat:'格斗', fire:'melee'}),
+    wp({name:'龙雷闪', power:1000, fire:'indirect', range:[2,6], dmgType:'特殊', desc:'念动力攻击，特殊伤害。'}),
   ]},
   /* ---- 秘银·乌鲁兹小队（全金属狂潮；v0.26 起势力名「米斯里尔」改为「秘银」） ---- */
   {pilot:'宗介', mech:'U7', short:'U7', mechName:'强弩', trait:'pro', shield:4000, shieldLv:20, shieldName:'λ 力场', lambdaAwaken:2, awakenSwap:{'单分子刀':'隔空 λ 拳', '散弹炮':'λ 驱动·散弹炮'}, tags:{势力:'秘银', 远近分类:'远程', 战斗分类:'特种'}, hp:5000, armor:700, eva:30, mov:6, melee:150, shoot:155, awaken:130, flying:false, w:1, h:1, abilities:[], weapons:[
@@ -247,6 +254,8 @@ function cmdOnly(pilot, mech, mechName, faction, command){
    规则：普通档晋升只给属性 + 被动（PROMO_PASSIVE）；骨干和精锐 Lv20 多一个武装；
    Lv30 只有精锐再多一个、比 Lv20 武装更强的武装，同时精锐 / 骨干原本的 Lv20 武装提升一档（见 tierUp）。 */
 const PROMO_WEAPONS = {
+  A1:[wp({name:'左轮打桩机·六连全弹', power:1850, statMul:1.5, stat:'格斗', fire:'melee', range:[1,1], hit:75, critMod:20, special:'multi', hits:6, step:10, cd:4, unlock:30, startCd:10, evadeCd:true,
+      desc:'把左轮弹仓里的 6 发一口气打完：连续判定 6 段，首段命中 75，命中后 −10、未中后 +10；每段都可以单独暴击，打空的那段「赌神」有一半几率改成 ×4 暴击。冷却规则和左轮打桩机相同（场上每打空一次 −1）。'})],
   B1:[wp({name:'影界·万刃归一', power:2900, stat:'格斗+觉醒', fire:'map', shape:'burst', rad:3, iff:true, afterMove:false, cd:4, unlock:30, startCd:4, dmgType:'特殊',
       desc:'以自身为中心 3 格内的所有敌机受到特殊伤害（不伤友军）。门之力：攻击能力值 = 格斗 + 觉醒。配合「传送」先跳进敌阵中心再发动。'})],
   CB1:[wp({name:'GN 剑 III·量子跃迁斩', power:5000, stat:'格斗+觉醒', fire:'melee', range:[1,5], hit:110, cd:3, unlock:30, startCd:4, dmgType:'光束', again:true, noCounter:true,
@@ -270,7 +279,7 @@ const PROMO_WEAPONS = {
    大招倍率 statMul：Lv20 大招 ×1.2、Lv30 大招 ×1.5（大招随等级成长更快）；
    觉醒系大招（门之力、TRANS-AM、量子化、λ 驱动、满月）改用「属性 + 觉醒」，不再乘 statMul。觉醒初值：雷萨 140、Feena 150、刹那 130、宗介 130、洛克昂 110，其他 100。
    开场冷却 startCd：Lv20 大招默认 3；Lv30 大招 4；传送斩 2；被动（残月的余响、月华再生）0；增益类（八咫之守、马格纳克队支援）2。 */
-const NEW_FORMULA = ['B1','M1','M2','M3','M4','M5','CB1','S1','W1','U7'];   // v0.40.10 月球王国整体按新公式重写
+const NEW_FORMULA = ['B1','M1','M2','M3','M4','M5','A1','A2','A3','A4','A5','CB1','S1','W1','U7'];   // v0.40.11 ATX 整体按新公式重写   // v0.40.10 月球王国整体按新公式重写
 ALLY_T.forEach(t => {
   if (PROMO_WEAPONS[t.mech]) t.weapons.push(...PROMO_WEAPONS[t.mech]);
   if (NEW_FORMULA.includes(t.mech)) t.weapons.forEach(w => { w.v37 = true; });
@@ -294,7 +303,7 @@ ALLY_T.forEach(t => {
   /* v0.35.1 档位保底（作者：我方精锐 10 级就该是第一档，骨干也要部分加强）。
      按 Lv10 对第 1 层杂兵的平均伤害算：精锐保底约 6000、骨干约 4500（近卫有压制杂兵、Feena 另算，不在表里）。
      倍率 = 保底 ÷ 现值，最多 ×1.8；作用于该角色全部非地图炮武装（含 Lv20 / Lv30），保持档位成长。 */
-  const TIER_FLOOR = {CB4:1.19, A2:1.26, A3:1.32, B2:1.6, W4:1.12};
+  const TIER_FLOOR = {CB4:1.19, B2:1.6, W4:1.12};
   if (TIER_FLOOR[t.mech]) t.weapons.forEach(w => { if (w.power > 0 && w.fire !== 'map' && !w.v37) w.power = Math.round(w.power * TIER_FLOOR[t.mech]); });   // v0.40.4 拉克丝、宗介、希罗已按新公式重写，移出本表
   if (t.mech === 'CB1'){ t.canFly = true; t.critBase = 15; t.weapons.forEach(w => { if (w.fire !== 'map' && w.range[1] < 3) w.range = [w.range[0], 3]; }); }
   if (t.mech === 'B1') t.weapons.forEach(w => { if (w.unlock <= 1 && w.fire === 'melee') w.range = [w.range[0], 4]; });

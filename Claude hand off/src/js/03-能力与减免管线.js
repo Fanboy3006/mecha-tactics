@@ -8,6 +8,8 @@ const ABIL = {
   autoCast:{name:'月光共鸣（暂名）', desc:'不能主动使用武器，我方阶段每次行动结束后自动释放携带的技能。<b>只能携带一个技能</b>（出击前在编队里选，或第 1 回合行动前在指令面板切换）：月光祝福，或者残月的余响（Lv20 解锁；Lv30 起满月·月蚀冷却好时优先释放）。'},
   steadfast:{name:'不动如山', desc:'本回合没有移动时，装甲 +30%，援护次数 +1。'},
   fieldAid:{name:'战地急救', desc:'修理友军时，额外给对方防御 +15，持续到下一个我方阶段开始。'},
+  gamblerSense:{name:'赌徒的直觉', desc:'场上每有一次攻击打空（敌我都算，反击也算），左轮打桩机系列的冷却永久 −1：先减开场冷却（10 回合），再减武器本身的冷却，减到 0 后每次行动都能用。'},
+  psyVeil:{name:'念动迷彩', desc:'光环：3 格内的敌机命中 −10。'},
   ironField:{name:'铁壁领域', lv:20, desc:'（Lv20）本回合没有移动时，控制区从相邻 1 格扩大到 2 格。'},
   zanshin:{name:'残心', lv:20, desc:'（Lv20）月光狙击枪连射的命中惩罚从每次 −70 减为 −55；Lv30 起 −45。'},
   bind:{name:'拘束', desc:'被牵引锚命中的敌机防御 −20，持续到下一个我方阶段开始（拉过来就让队友打）。'},
@@ -110,6 +112,7 @@ const TRAIT_FX = {
   shihoOver:{dmg:(u,d,w,o) => d && distFrom(u, d, o) >= 4 ? (L30(u) ? 35 : 20) : 0},
   jetLink:{aura:{r:2, dmg:src => L30(src) ? 15 : 10}},
   suppress:{aura:{r:3, who:'foe', hit:src => L30(src) ? -15 : -10}},
+  psyVeil:{aura:{r:3, who:'foe', hit:() => -10}},   // v0.40.11 库斯哈
   dataLink:{aura:{r:4, hit:src => L30(src) ? 15 : 10, crit:src => L30(src) ? 10 : 5}},
   pinDown:{aura:{r:3, who:'foe', eva:src => L30(src) ? -15 : -10}},
   darkSword:{dmg:(u,d,w) => w && w.fire === 'melee' ? (L30(u) ? 35 : 20) : 0, crit:(u,d,w) => w && w.fire === 'melee' ? (L30(u) ? 15 : 10) : 0},
@@ -143,7 +146,7 @@ const foesNear = (u, r) => units.filter(e => e.side !== u.side && e.side !== 'ne
 const seedOn = u => u.hp < u.maxHp * .7 || foesNear(u, 2) >= 3;
 const trioN = u => units.filter(a => a !== u && a.side === u.side && a.hp > 0 && hasTrait(a,'trio') && distU(a, u) <= 3).length;
 const gamblerProc = u => hasTrait(u,'gambler') && Math.random() < .5;
-const critMul = u => hasTrait(u,'zero') ? 2.5 : 2;   // v0.37 暴击：武器威力 ×2（零式 ×2.5；赌神触发时 ×4）
+const critMul = u => (hasTrait(u,'zero') ? 2.5 : 2) + buffSum(u,'critX');   // v0.40.11 好运加护：暴击倍率 +1   // v0.37 暴击：武器威力 ×2（零式 ×2.5；赌神触发时 ×4）
 const hasStealth = t => abilOn(t,'stealth') || hasTrait(t,'hyperJammer') || (hasTrait(t,'ecs') && t.firedTurn !== turn);
 const noCounterVs = (att, w) => !!w && (w.noCounter || w.special === 'lock' || hasTrait(att,'hyperJammer'));
 /* 弱点 / 抗性：正数 = 弱点（生成阶段增伤），负数 = 抗性（百分比减免阶段，受破防削弱） */
