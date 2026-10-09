@@ -7803,7 +7803,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.40.22';
+const GAME_VERSION = 'v0.40.23';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
@@ -8226,22 +8226,23 @@ function setTheme(cue){
   SOUND.theme = cue;
   if (SOUND.scene === 'battle' && !over && performance.now() - SOUND.jingleAt >= 6000) bgm(sceneCue());
 }
+/* v0.40.23 作者 10-09：切得太频繁——只有放大招（Lv20 / Lv30 解锁的武器）时才切主题曲 */
+const isUltW = w => !!w && (w.unlock || 1) >= 20;
 function themeOnAttack(c){
   const t = themeOf(c.att);
-  if (t) setTheme(t);
-  else if (c.att && c.att.side === 'enemy' && !c.counter && phaseSide === 'enemy') setTheme(null);
+  if (t && isUltW(c.w)) setTheme(t);   // v0.40.23 切过去以后保持到本回合结束（下一个我方阶段开始）或被另一首主题曲替换，敌机出手、行动结束都不切回
 }
 let ATK_HOOK = false;
 const AUH = {
   attackStart: c => { ATK_HOOK = true; themeOnAttack(c); },
   strike: c => { if (!ATK_HOOK) themeOnAttack(c); },
-  actionEnd: c => { if (c.side === 'ally') setTheme(null); },
+  actionEnd: () => {},   // v0.40.23 行动结束不再切回
 };
 Hooks.on('attackStart', AUH.attackStart, '音频：出手时切主题曲');
 Hooks.on('strikeResolved', AUH.strike, '音频：出手时切主题曲（attackStart 接好前的替代）');
 Hooks.on('actionEnd', AUH.actionEnd, '音频：行动结束切回回合曲');
 AUH.phase = c => {
-  phaseSide = c.side; SOUND.scene = 'battle'; SOUND.theme = null;       // 阶段开始只会发生在战斗里（编队界面结束后）
+  phaseSide = c.side; SOUND.scene = 'battle'; if (c.side === 'ally') SOUND.theme = null;       // 阶段开始只会发生在战斗里；v0.40.23 主题曲只在新回合（我方阶段开始）时切回
   if (over || performance.now() - SOUND.jingleAt < 6000) return;
   bgm(sceneCue());
   if (c.side === 'ally' && deadline && deadline - turn <= 1) snd('warn', 0);
