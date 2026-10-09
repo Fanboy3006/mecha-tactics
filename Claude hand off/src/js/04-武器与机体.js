@@ -222,29 +222,33 @@ const ALLY_T = [
     wp({name:'隔空 λ 拳', power:2000, stat:'格斗+觉醒', fire:'melee', range:[1,3], cd:2, unlock:20, dmgType:'特殊', lambda:true,
         desc:'近战特殊攻击：隔着最多 3 格用 λ 力场打出的拳，不需要视线。特殊伤害，只会被护盾类效果抵消；攻击能力值 = 格斗 + 觉醒。'}),
   ]},
-  {pilot:'克鲁兹', mech:'U6', short:'U6', mechName:'M9·狙击', trait:'longShot', tags:{势力:'秘银', 远近分类:'远程', 战斗分类:'狙击'}, hp:3800, armor:200, eva:20, mov:5, melee:90, shoot:175, flying:false, w:1, h:1, abilities:[], weapons:[
-    wp({name:'76mm 狙击炮', power:3200, fire:'direct', range:[3,9], hit:120, afterMove:false}),
+  /* 克鲁兹 / 梅丽莎·毛 / 克鲁佐 / 杨（v0.40.13 角色对话按势力重设计，作者 10-08 定）
+     秘银只做一个三人联动：毛的特技「指挥网络」——以她为中心 5×5 内的敌机，克鲁兹的射击无视障碍物；
+     宗介每次攻击这些敌机，克鲁兹都会跟着支援射击（不占他每回合 1 次的援护攻击）。
+     宗介精锐；毛、克鲁兹骨干；克鲁佐、杨普通。五个人都不能飞。 */
+  {pilot:'克鲁兹', mech:'U6', short:'U6', mechName:'M9·狙击', trait:'longShot', tags:{势力:'秘银', 远近分类:'远程', 战斗分类:'狙击'}, hp:3800, armor:200, eva:20, mov:5, melee:90, shoot:175, defense:75, flying:false, w:1, h:1, abilities:[], weapons:[
+    wp({name:'76mm 狙击炮', power:2550, fire:'direct', range:[3,9], hit:120, afterMove:false}),
     wp({name:'突击步枪', power:1300, fire:'direct', range:[1,4]}),
     wp({name:'单分子刀', power:1200, stat:'格斗', fire:'melee'}),
-    wp({name:'超长距离狙击', power:3950, statMul:1.2, v37:true, fire:'direct', range:[5,14], hit:120, critMod:10, afterMove:false, cd:2, unlock:20,
+    wp({name:'超长距离狙击', power:3950, statMul:1.2, fire:'direct', range:[5,14], hit:120, critMod:10, afterMove:false, cd:2, unlock:20,
         upgrades:[{lv:30, again:true, note:'Lv30：击破目标后可以再攻击一次（不能移动）'}]}),
   ]},
-  {pilot:'梅丽莎·毛', mech:'U2', short:'U2', mechName:'M9·指挥', trait:'squadLead', tags:{势力:'秘银', 远近分类:'远程', 战斗分类:'指挥'}, hp:4800, armor:500, eva:25, mov:6, melee:120, shoot:145, flying:false, w:1, h:1, abilities:[], weapons:[
+  {pilot:'梅丽莎·毛', mech:'U2', short:'U2', mechName:'M9·指挥', trait:'maoNet', tags:{势力:'秘银', 远近分类:'远程', 战斗分类:'指挥'}, hp:4800, armor:500, eva:25, mov:6, melee:120, shoot:145, defense:85, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'突击步枪', power:1400, fire:'direct', range:[1,4]}),
-    wp({name:'导弹发射器', power:1800, fire:'indirect', range:[2,6], uses:4, special:'splash', desc:'溅射：与目标相邻的其他敌机受到本次伤害的 50%。'}),
-    wp({name:'单分子刀', power:1400, stat:'格斗', fire:'melee'}),
+    wp({name:'导弹发射器', power:1600, fire:'indirect', range:[2,6], uses:4, special:'splash', desc:'溅射：与目标相邻的其他敌机受到本次伤害的 50%。'}),
+    wp({name:'单分子刀', power:1300, stat:'格斗', fire:'melee'}),
+    wp({name:'标定射击', power:2400, statMul:1.2, fire:'direct', range:[2,6], cd:2, unlock:20, special:'markBreak',
+        desc:'给目标打上激光标定：命中后挂一层 −20% 破防（标记类），好让宗介和克鲁兹接着打。'}),
   ]},
-  {pilot:'克鲁佐', mech:'U1', short:'U1', mechName:'M9·猎鹰', trait:'falke', tags:{势力:'秘银', 远近分类:'近战', 战斗分类:'近卫'}, hp:5000, armor:600, eva:25, mov:6, melee:150, shoot:165, flying:false, w:1, h:1, abilities:[], weapons:[
-    wp({name:'狙击步枪', power:2800, fire:'direct', range:[2,8], hit:115}),
-    wp({name:'单分子刀', power:2400, stat:'格斗', fire:'melee', critMod:10}),
+  {pilot:'克鲁佐', mech:'U1', short:'U1', mechName:'M9·猎鹰', trait:'falke', tags:{势力:'秘银', 远近分类:'近战', 战斗分类:'近卫'}, hp:5000, armor:600, eva:25, mov:6, melee:150, shoot:165, defense:95, flying:false, w:1, h:1, abilities:[], weapons:[
+    wp({name:'单分子刀', power:2100, stat:'格斗', fire:'melee', range:[1,2], critMod:10}),
+    wp({name:'狙击步枪', power:1600, fire:'direct', range:[2,8], hit:115}),
     wp({name:'散弹枪', power:1300, fire:'direct', range:[1,2]}),
-    wp({name:'精确连射', power:1750, statMul:1.2, v37:true, fire:'direct', range:[2,8], special:'multi', hits:4, step:10, cd:2, unlock:20,
-        desc:'连续 4 段判定，首段命中 100，命中后 −10、未中后 +10；每段都扣装甲；大招：射击 ×1.2。'}),
   ]},
-  {pilot:'杨', mech:'U8', short:'U8', mechName:'M9·侦察', trait:'ecs', tags:{势力:'秘银', 远近分类:'远程', 战斗分类:'尖兵'}, hp:4000, armor:300, eva:30, mov:7, melee:120, shoot:130, flying:false, w:1, h:1, abilities:[], weapons:[
-    wp({name:'突击步枪', power:1300, fire:'direct', range:[1,4]}),
-    wp({name:'单分子刀', power:1500, stat:'格斗', fire:'melee'}),
-    wp({name:'反坦克导弹', power:2200, fire:'indirect', range:[2,5], uses:2}),
+  {pilot:'杨', mech:'U8', short:'U8', mechName:'M9·侦察', trait:'ecs', tags:{势力:'秘银', 远近分类:'远程', 战斗分类:'尖兵'}, hp:4000, armor:300, eva:30, mov:7, melee:120, shoot:130, defense:75, flying:false, w:1, h:1, abilities:[], weapons:[
+    wp({name:'突击步枪', power:1500, fire:'direct', range:[1,4]}),
+    wp({name:'单分子刀', power:1400, stat:'格斗', fire:'melee'}),
+    wp({name:'反坦克导弹', power:1900, fire:'indirect', range:[2,5], uses:2}),
   ]},
 ];
 function cmdOnly(pilot, mech, mechName, faction, command){
@@ -279,7 +283,7 @@ const PROMO_WEAPONS = {
    大招倍率 statMul：Lv20 大招 ×1.2、Lv30 大招 ×1.5（大招随等级成长更快）；
    觉醒系大招（门之力、TRANS-AM、量子化、λ 驱动、满月）改用「属性 + 觉醒」，不再乘 statMul。觉醒初值：雷萨 140、Feena 150、刹那 130、宗介 130、洛克昂 110，其他 100。
    开场冷却 startCd：Lv20 大招默认 3；Lv30 大招 4；传送斩 2；被动（残月的余响、月华再生）0；增益类（八咫之守、马格纳克队支援）2。 */
-const NEW_FORMULA = ['B1','M1','M2','M3','M4','M5','A1','A2','A3','A4','A5','CB1','S1','W1','U7'];   // v0.40.11 ATX 整体按新公式重写   // v0.40.10 月球王国整体按新公式重写
+const NEW_FORMULA = ['B1','M1','M2','M3','M4','M5','A1','A2','A3','A4','A5','U1','U2','U6','U7','U8','CB1','S1','W1'];   // v0.40.13 秘银整体按新公式重写   // v0.40.11 ATX 整体按新公式重写   // v0.40.10 月球王国整体按新公式重写
 ALLY_T.forEach(t => {
   if (PROMO_WEAPONS[t.mech]) t.weapons.push(...PROMO_WEAPONS[t.mech]);
   if (NEW_FORMULA.includes(t.mech)) t.weapons.forEach(w => { w.v37 = true; });

@@ -63,6 +63,7 @@ function placeSmoke(u, w, dir){
   log(`${fullName(u)}【${w.name}】在 (${dir.box[0]}, ${dir.box[1]}) 放下 ${w.size}×${w.size} 烟雾，持续到第 ${turn + w.smoke} 回合我方阶段开始：里外开火命中 −${SMOKE_HIT}`, null, u.side);
 }
 function drawSmoke(ctx){
+  drawMaoZone(ctx);   // 秘银：毛的指挥范围（20 只调 drawSmoke 一个入口）
   if (!SMOKES.length) return;
   ctx.fillStyle = 'rgba(200,205,215,.38)';
   for (const s of SMOKES) if (s.b === BATTLE_ID && turn < s.until) for (const k of s.set) ctx.fillRect((k%N)*TS, ((k/N)|0)*TS, TS, TS);
@@ -88,6 +89,35 @@ Hooks.on('strikeResolved', c => {
   if (cut >= w.cd) w.cdLeft = 0; else if (cut > 0) w.cdLeft = Math.max(0, w.cdLeft - cut);
 }, '响介「赌徒的直觉」：开场冷却减完后，多打空的次数减武器本身的冷却');
 
+/* ===== 秘银（v0.40.13） ===== */
+/* 梅丽莎·毛「指挥网络」（Lv10 特技）：以她为中心 5×5（切比雪夫距离 ≤ MAO_R）是指挥范围。范围内的敌机：
+   - 克鲁兹（MAO_LINK.sight）的直射无视障碍物（13 的 canHit 读 ignoresLos）；
+   - 宗介（MAO_LINK.striker）每次主动攻击它们、目标没被击破时，克鲁兹（MAO_LINK.support）跟着支援射击：
+     自动选期望伤害最高、射程够得着的武器，不弹窗，也不占他每回合 1 次的援护攻击（18 的 supportAttack 开头调 linkSupport）。 */
+const MAO_R = 2, MAO_LINK = {sight:['U6'], striker:'U7', support:'U6'};
+const maoUnits = side => units.filter(m => m.side === side && m.hp > 0 && hasTrait(m, 'maoNet'));
+const inMaoZone = (t, side) => maoUnits(side).some(m => tilesOf(t).some(([x, y]) => Math.max(Math.abs(x - m.x), Math.abs(y - m.y)) <= MAO_R));
+const ignoresLos = (u, t) => !!u && !!t && t.side !== u.side && MAO_LINK.sight.includes(u.mech) && inMaoZone(t, u.side);
+async function linkSupport(att, t){
+  if (att.mech !== MAO_LINK.striker || t.hp <= 0 || !inMaoZone(t, att.side)) return;
+  const s = units.find(k => k.mech === MAO_LINK.support && k.side === att.side && k.hp > 0 && !k.stunned && !k.disarmed);
+  if (!s) return;
+  const ws = s.weapons.filter(w => SUPPORT_FIRES.includes(w.fire) && !w.special?.match?.(/lock|gamble/) && !wStatus(s, w, {counter:true}) && canHit(s, w, t))
+    .map(w => ({w, f:forecast(s, w, t, null)})).sort((a, b) => b.f.exp - a.f.exp);
+  if (!ws.length){ log(`${fullName(s)}【指挥网络】${fullName(t)} 不在射程内，没能支援射击`, null, s.side); return; }
+  log(`${fullName(s)}【指挥网络】支援射击：用【${ws[0].w.name}】攻击 ${fullName(t)}（不占援护攻击次数）`, null, s.side);
+  await strike(s, ws[0].w, t, null);
+  refresh(); checkEnd();
+}
+function drawMaoZone(ctx){
+  for (const m of units) if (m.side === 'ally' && m.hp > 0 && hasTrait(m, 'maoNet')){
+    ctx.strokeStyle = 'rgba(110,220,230,.75)'; ctx.lineWidth = 2; ctx.setLineDash && ctx.setLineDash([4, 3]);
+    const x0 = Math.max(0, m.x - MAO_R), y0 = Math.max(0, m.y - MAO_R), x1 = Math.min(MW - 1, m.x + MAO_R), y1 = Math.min(MH - 1, m.y + MAO_R);
+    ctx.strokeRect(x0*TS + 1, y0*TS + 1, (x1 - x0 + 1)*TS - 2, (y1 - y0 + 1)*TS - 2);
+    ctx.setLineDash && ctx.setLineDash([]);
+  }
+}
+
 /* 测试接口：角色机制的函数（tests/moon.js 等用；window.__game 归规则对话，所以单独挂一个） */
 window.__chars = {autoWeapon:u => autoWeapon(u), echoWeapon:u => echoWeapon(u), attackTilesOf, pickOf, setPick:k => { FEENA_PICK = k; }, canSwitchPick, chainStepOf, effMov, zocRadius,
-  strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d), smokeHit, inSmoke, evadeN, evadeCdCut, get SMOKES(){ return SMOKES; }};
+  strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d), smokeHit, inSmoke, evadeN, evadeCdCut, get SMOKES(){ return SMOKES; }, inMaoZone, ignoresLos, linkSupport:(a, t) => linkSupport(a, t)};

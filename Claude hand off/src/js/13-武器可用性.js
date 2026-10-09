@@ -61,7 +61,7 @@ function canHit(u, w, t, ax=u.x, ay=u.y, face=null){
   if (!w.pat && (d < rg[0] || d > rg[1])) return false;
   if (!isSure(w) && (face ? !facOK(u, w, t, ax, ay, face) : !FACES.some(f => facOK(u, w, t, ax, ay, f)))) return false;
   if (d > 3 && t.side !== u.side && hasStealth(t)) return false;
-  if (w.fire === 'direct' && !losClear(u, ax, ay, t)) return false;
+  if (w.fire === 'direct' && !losClear(u, ax, ay, t) && !ignoresLos(u, t)) return false;   // v0.40.13 毛的指挥网络：克鲁兹打范围内的敌机无视障碍物（17b）
   return true;
 }
 const targetsFor = (u,w) => units.filter(e => e.side !== u.side && e.hp > 0 && canHit(u,w,e));

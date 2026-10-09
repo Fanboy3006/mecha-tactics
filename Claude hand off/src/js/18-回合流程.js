@@ -509,6 +509,8 @@ function askSupport(att, t, opts){
 }
 async function supportAttack(att, t, {guard = null, reaction = null} = {}){
   if (over || t.hp <= 0) return;
+  await linkSupport(att, t);   // v0.40.13 毛的指挥网络：宗介攻击范围内的敌机 → 克鲁兹自动支援射击（17b）
+  if (over || t.hp <= 0) return;
   const opts = supportOptions(att, t); if (!opts.length) return;
   const pick = att.side === 'ally' ? await askSupport(att, t, opts) : {s:opts[0].s, w:opts[0].ws[0].w};
   if (!pick || over) return;

@@ -48,6 +48,8 @@ const ABIL = {
   longShot:{name:'狙击之王', desc:'目标距离 6 格以上时，命中 +20、暴击 +20。'},
   squadLead:{name:'小队长', desc:'光环：3 格内其他友军暴击 +10。'},
   falke:{name:'冷血', desc:'侧击 / 背击时，伤害 +20%。'},
+  maoNet:{name:'指挥网络', desc:'以自己为中心 5×5 是指挥范围（地图上青色框）。范围内的敌机：克鲁兹的射击无视障碍物；宗介每次攻击它们，克鲁兹都会跟着支援射击（射程够就打，不占克鲁兹每回合 1 次的援护攻击）。'},
+  falkeHunt:{name:'猎鹰', lv:20, desc:'（Lv20）侧击 / 背击时命中 +15；Lv30 起 +25。'},
   ecs:{name:'ECS 隐形', desc:'本回合还没有攻击过（包括反击）时，3 格以外的敌机不能把它选为目标。'},
   iaiSnipe:{name:'居合', desc:'本回合没有移动时，直射命中 +15；用近战武器反击时，伤害 +30%。'},
   /* ---- 新能力（我方 / 敌方通用） ---- */
@@ -82,7 +84,7 @@ const ABIL = {
   superSoldier:{name:'超兵反射', lv:20, desc:'（Lv20）闪避 +15；Lv30 起 +25。'},
 };
 /* 普通档晋升被动挂在哪台机体上（月华再生本来就是被动武装，不在这里） */
-const PROMO_PASSIVE = {M2:'ironField', M4:'zanshin', S3:'lunaPower', S4:'shihoOver', S6:'jetLink', S7:'suppress', S8:'dataLink', W7:'pinDown', A4:'darkSword', A5:'psyRes', U2:'ecmAura', U8:'laserGuide', CB3:'superSoldier'};
+const PROMO_PASSIVE = {M2:'ironField', M4:'zanshin', S3:'lunaPower', S4:'shihoOver', S6:'jetLink', S7:'suppress', S8:'dataLink', W7:'pinDown', A4:'darkSword', A5:'psyRes', U1:'falkeHunt', U8:'laserGuide', CB3:'superSoldier'};
 const L30 = u => u.side === 'ally' && u.lv >= 30;
 /* 特技 / 能力的数值效果：hit / eva / crit / dmg（伤害%）/ red（减伤%）/ armorPct，可以是常数或函数 (自己, 对方, 武器, 选项)；aura 是光环 */
 const TRAIT_FX = {
@@ -105,6 +107,7 @@ const TRAIT_FX = {
   squadLead:{aura:{r:3, crit:10}},
   iaiSnipe:{hit:(u,d,w) => w && w.fire === 'direct' && !u.movedThisRound ? 15 : 0, dmg:(u,d,w,o) => o && o.counter && w && w.fire === 'melee' ? 30 : 0},
   falke:{dmg:(u,d,w,o) => o && (o.zone === 'side' || o.zone === 'back') ? 20 : 0},
+  falkeHunt:{hit:(u,d,w,o) => { if (!d || !w) return 0; const z = (o && o.zone) || zoneOf(u, d, o || {}); return z === 'side' || z === 'back' ? (L30(u) ? 25 : 15) : 0; }},   // v0.40.13 克鲁佐
   jamAura:{aura:{r:3, who:'foe', hit:-15}},
   commandAura:{aura:{r:3, hit:15, red:10}},
   berserk:{dmg:u => u.hp < u.maxHp/2 ? 30 : 0},

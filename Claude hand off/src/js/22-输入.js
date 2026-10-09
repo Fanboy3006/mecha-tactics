@@ -411,8 +411,8 @@ let RUN = null;
 const RM = () => (LV && LV.run && RUN) ? RUN.mods : null;
 const TIER = {
   B1:'S', A1:'S', CB1:'S', S1:'S', W1:'S', U7:'S', M1:'S',
-  B2:'A', M2:'A', M3:'A', CB2:'A', CB4:'A', S2:'A', S5:'A', W2:'A', W3:'A', W4:'A', W5:'A', W6:'A', A2:'A', A3:'A', U6:'A', U1:'A',
-  M4:'B', M5:'B', CB3:'B', S3:'B', S4:'B', S6:'B', S7:'B', S8:'B', W7:'B', A4:'B', A5:'B', U2:'B', U8:'B',
+  B2:'A', M2:'A', M3:'A', U2:'A', CB2:'A', CB4:'A', S2:'A', S5:'A', W2:'A', W3:'A', W4:'A', W5:'A', W6:'A', A2:'A', A3:'A', U6:'A',
+  M4:'B', M5:'B', CB3:'B', S3:'B', S4:'B', S6:'B', S7:'B', S8:'B', W7:'B', A4:'B', A5:'B', U1:'B', U8:'B',
 };
 const TIER_NAME = {S:'精锐', A:'骨干', B:'普通'};
 const PRICE = {S:{rec:5, p20:3, p30:4}, A:{rec:3, p20:2, p30:3}, B:{rec:0, p20:1, p30:2}};
