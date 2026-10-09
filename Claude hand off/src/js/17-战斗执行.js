@@ -13,7 +13,36 @@ function teleport(u, target, killedTiles){
   }
   if (dest){ fx('warp', {b:cpx(u), dur:300}); u.x = dest[0]; u.y = dest[1]; fx('warp', {b:cpx(u), out:true, dur:360}); log(`${fullName(u)} 传送至 (${dest[0]}, ${dest[1]})${killedTiles ? '，占据目标原位置' : ''}`, null, u.side); }
 }
-async function strike(att, w, def, reaction, {skipConsume=false, zone=null, counter=false} = {}){
+/* ---------- v0.40.22 出手事件与战斗演出接口（需求单 #11 美术、#12 音乐） ----------
+   - Hooks 'attackStart' {att, def, w, counter}：每次出手（含反击、援护、压制射击）在结算之前发；地图炮在 mapAttack 开头发一次（def 为 null）。
+   - 战斗演出（机战 A 式横版过场）：美术对话调 registerBattleScene(fn) 注册演出函数，fn(info) 返回 Promise。
+     每次单体出手调两次：info.phase = 'start'（出手前，还不知道结果）和 'result'（结算后，带 hit / dmg / crit / killed）；
+     地图炮、多重锁定、余响这类一次打多个的（skipConsume）不播，避免一串过场。伤害结算顺序不变。
+   - 开关：顶栏「演出」按钮（注册了演出函数才显示），记在浏览器里；演出中按空格 / Esc / 点击把 SCENE.skip 置为 true，演出函数应尽快结束（可以用 sceneWait(ms)）。 */
+const SCENE = {impl:null, on:true, skip:false, playing:false, last:null};
+try { SCENE.on = localStorage.getItem('mecha-tactics-scene') !== 'off'; } catch(e){}
+function registerBattleScene(fn){ SCENE.impl = fn; const b = document.querySelector('#btnScene'); if (b){ b.hidden = false; b.setAttribute('aria-pressed', String(SCENE.on)); } }
+const sceneWait = ms => new Promise(r => { const t0 = performance.now(); const tick = () => (SCENE.skip || performance.now() - t0 >= ms) ? r() : requestAnimationFrame(tick); tick(); });
+async function battleScene(info){
+  if (!SCENE.impl || !SCENE.on || SPEED < .2) return;   // 测试机器人用很低的 SPEED，不播
+  SCENE.playing = true; if (info.phase === 'start') SCENE.skip = false;
+  try { await SCENE.impl(info); } catch(e){ console.error('battleScene', e); }
+  SCENE.playing = false;
+}
+Hooks.on('strikeResolved', c => { SCENE.last = c; }, '演出：记下这一击的结果');
+document.addEventListener('keydown', e => { if (SCENE.playing && (e.key === ' ' || e.key === 'Escape')){ SCENE.skip = true; e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+document.addEventListener('pointerdown', () => { if (SCENE.playing) SCENE.skip = true; }, true);
+{ const b = document.querySelector('#btnScene'); if (b) b.onclick = () => { SCENE.on = !SCENE.on; b.setAttribute('aria-pressed', String(SCENE.on)); try { localStorage.setItem('mecha-tactics-scene', SCENE.on ? 'on' : 'off'); } catch(e){} }; }
+async function strike(att, w, def, reaction, opts = {}){
+  Hooks.emit('attackStart', {att, def, w, counter:!!opts.counter});
+  const solo = !opts.skipConsume;
+  if (solo) await battleScene({phase:'start', att, def, w, counter:!!opts.counter, reaction});
+  SCENE.last = null;
+  const hp0 = def.hp;
+  await strikeCore(att, w, def, reaction, opts);
+  if (solo){ const r = SCENE.last || {}; await battleScene({phase:'result', att, def, w, counter:!!opts.counter, reaction, hit:!!r.hit, dmg:r.dmg || 0, crit:!!r.crit, hp0, killed:def.hp <= 0}); }
+}
+async function strikeCore(att, w, def, reaction, {skipConsume=false, zone=null, counter=false} = {}){
   if (!skipConsume) consume(w);
   const after = () => {
     att.firedTurn = turn;
@@ -155,6 +184,7 @@ async function battle(att, w, def, reaction, cw, {guard=false} = {}){
   checkEnd();
 }
 async function mapAttack(u, w, dir){
+  Hooks.emit('attackStart', {att:u, def:null, w, counter:false});   // v0.40.22 需求单 #12
   consume(w);
   if (w.smoke){ placeSmoke(u, w, dir); refresh(); return; }   // v0.40.11 烟雾弹（17b）：不造成伤害
   log(`${fullName(u)}【${w.name}】${dir.burst ? '向周围' : dir.box ? `对 (${dir.box[0]}, ${dir.box[1]}) 起的 ${w.size}×${w.size} 区域` : `向 ${dir.arrow} `}发动${dir.land ? `，冲向 (${dir.land[0]}, ${dir.land[1]})` : ''}`, null, 'ally');

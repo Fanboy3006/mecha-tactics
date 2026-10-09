@@ -694,15 +694,19 @@ function drawUnitStatus(u){
   const barW = Math.max(W * 0.92, TS * 0.8), barX = px + W/2 - barW/2, barY = spriteTop + 1;
   const r = u.hp/u.maxHp;
   const segs = [{ratio: r, color: r > .5 ? '#5cc08a' : r > .25 ? '#e9a23b' : '#d9564b'}];
-  if (u.shield) segs.unshift({ratio: (u.shieldHp || 0) / u.shield, color: '#7fe6ff'});   // 护盾值（U7 的 λ 力场等）
+  // v0.40.22 需求单 #11：护盾值不再并进 HP 条，改成下面单独一条（λ 力场这类特殊护盾只画光圈，见 auraShield）
   // 机制接进来时往前面插段：装甲层、护盾值……例如
   //   if (u.shieldHp > 0) segs.unshift({ratio: u.shieldHp/u.shieldMax, color:'#7fe6ff'});
   ctx.fillStyle = 'rgba(0,0,0,.68)'; ctx.fillRect(barX-1, barY-1, barW+2, 5);
   segBar(barX, barY, barW, 3, segs);
+  if (u.shield > 0 && (u.shieldHp || 0) > 0 && !auraShield(u)){   // 第二条血条：护盾（青色细条，在 HP 条下面）
+    ctx.fillStyle = 'rgba(0,0,0,.68)'; ctx.fillRect(barX-1, barY+4, barW+2, 4);
+    ctx.fillStyle = '#7fe6ff'; ctx.fillRect(barX, barY+5, barW * Math.max(0, Math.min(1, u.shieldHp / u.shield)), 2);
+  }
 
   /* 蓄力 / 充能进度：贴着血条下面一条细线，没有该状态就不画 */
   if (u.charge != null){
-    const cw = barW * 0.72, cx0 = px + W/2 - cw/2, cy0 = barY + 5;
+    const cw = barW * 0.72, cx0 = px + W/2 - cw/2, cy0 = barY + (u.shield > 0 && (u.shieldHp || 0) > 0 && !auraShield(u) ? 9 : 5);
     ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(cx0, cy0, cw, 2);
     ctx.fillStyle = '#ffe08a'; ctx.fillRect(cx0, cy0, cw * Math.max(0, Math.min(1, u.charge)), 2);
   }
@@ -766,6 +770,7 @@ function drawUnitStatus(u){
 
 /* 多段条：把 [{ratio,color}] 从左到右依次画出来，用细缝分隔。
  * 只传一段时和原来的单条 HP 条完全一样。 */
+const auraShield = u => /λ/.test(u.shieldName || '');   // v0.40.22 特殊护盾（λ 力场）：画光圈、不画第二条血条
 function segBar(x, y, w, h, segs){
   const n = segs.length;
   if (!n) return;
@@ -883,7 +888,7 @@ function drawUnitLinks(){
 /* ---- 第 7 层：机体附加（光罩 / 光环） ---- */
 function drawUnitAura(u){
   /* u.shield 是护盾上限，u.shieldHp 才是剩余值；打空后光罩消失，己方阶段开始回满时再出现 */
-  if (u.shield > 0 && u.shieldHp > 0) auraRing(u, 'shield', u.shieldColor || '#7fe6ff');
+  if (u.shield > 0 && u.shieldHp > 0 && auraShield(u)) auraRing(u, 'shield', u.shieldColor || '#7fe6ff');   // v0.40.22 只有 λ 力场这类特殊护盾画光圈
 }
 
 /* 单位之间的连线列表。机制接进来时往这里 push：

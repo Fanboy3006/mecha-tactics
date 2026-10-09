@@ -264,6 +264,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
       <button id="btnNames" aria-pressed="false">机体名</button>
       <button id="btnGrid" aria-pressed="false">网格</button>
       <button id="btnSound" aria-pressed="true" title="背景音乐和音效（M 键也可以切换）">声音</button>
+      <button id="btnScene" aria-pressed="true" title="战斗演出（演出中按空格 / Esc / 点击快进）" hidden>演出</button>
       <button id="btnRestart">重开本战</button>
       <button id="btnEnd" class="primary">结束回合</button>
     </div>
@@ -3774,7 +3775,36 @@ function teleport(u, target, killedTiles){
   }
   if (dest){ fx('warp', {b:cpx(u), dur:300}); u.x = dest[0]; u.y = dest[1]; fx('warp', {b:cpx(u), out:true, dur:360}); log(`${fullName(u)} 传送至 (${dest[0]}, ${dest[1]})${killedTiles ? '，占据目标原位置' : ''}`, null, u.side); }
 }
-async function strike(att, w, def, reaction, {skipConsume=false, zone=null, counter=false} = {}){
+/* ---------- v0.40.22 出手事件与战斗演出接口（需求单 #11 美术、#12 音乐） ----------
+   - Hooks 'attackStart' {att, def, w, counter}：每次出手（含反击、援护、压制射击）在结算之前发；地图炮在 mapAttack 开头发一次（def 为 null）。
+   - 战斗演出（机战 A 式横版过场）：美术对话调 registerBattleScene(fn) 注册演出函数，fn(info) 返回 Promise。
+     每次单体出手调两次：info.phase = 'start'（出手前，还不知道结果）和 'result'（结算后，带 hit / dmg / crit / killed）；
+     地图炮、多重锁定、余响这类一次打多个的（skipConsume）不播，避免一串过场。伤害结算顺序不变。
+   - 开关：顶栏「演出」按钮（注册了演出函数才显示），记在浏览器里；演出中按空格 / Esc / 点击把 SCENE.skip 置为 true，演出函数应尽快结束（可以用 sceneWait(ms)）。 */
+const SCENE = {impl:null, on:true, skip:false, playing:false, last:null};
+try { SCENE.on = localStorage.getItem('mecha-tactics-scene') !== 'off'; } catch(e){}
+function registerBattleScene(fn){ SCENE.impl = fn; const b = document.querySelector('#btnScene'); if (b){ b.hidden = false; b.setAttribute('aria-pressed', String(SCENE.on)); } }
+const sceneWait = ms => new Promise(r => { const t0 = performance.now(); const tick = () => (SCENE.skip || performance.now() - t0 >= ms) ? r() : requestAnimationFrame(tick); tick(); });
+async function battleScene(info){
+  if (!SCENE.impl || !SCENE.on || SPEED < .2) return;   // 测试机器人用很低的 SPEED，不播
+  SCENE.playing = true; if (info.phase === 'start') SCENE.skip = false;
+  try { await SCENE.impl(info); } catch(e){ console.error('battleScene', e); }
+  SCENE.playing = false;
+}
+Hooks.on('strikeResolved', c => { SCENE.last = c; }, '演出：记下这一击的结果');
+document.addEventListener('keydown', e => { if (SCENE.playing && (e.key === ' ' || e.key === 'Escape')){ SCENE.skip = true; e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+document.addEventListener('pointerdown', () => { if (SCENE.playing) SCENE.skip = true; }, true);
+{ const b = document.querySelector('#btnScene'); if (b) b.onclick = () => { SCENE.on = !SCENE.on; b.setAttribute('aria-pressed', String(SCENE.on)); try { localStorage.setItem('mecha-tactics-scene', SCENE.on ? 'on' : 'off'); } catch(e){} }; }
+async function strike(att, w, def, reaction, opts = {}){
+  Hooks.emit('attackStart', {att, def, w, counter:!!opts.counter});
+  const solo = !opts.skipConsume;
+  if (solo) await battleScene({phase:'start', att, def, w, counter:!!opts.counter, reaction});
+  SCENE.last = null;
+  const hp0 = def.hp;
+  await strikeCore(att, w, def, reaction, opts);
+  if (solo){ const r = SCENE.last || {}; await battleScene({phase:'result', att, def, w, counter:!!opts.counter, reaction, hit:!!r.hit, dmg:r.dmg || 0, crit:!!r.crit, hp0, killed:def.hp <= 0}); }
+}
+async function strikeCore(att, w, def, reaction, {skipConsume=false, zone=null, counter=false} = {}){
   if (!skipConsume) consume(w);
   const after = () => {
     att.firedTurn = turn;
@@ -3916,6 +3946,7 @@ async function battle(att, w, def, reaction, cw, {guard=false} = {}){
   checkEnd();
 }
 async function mapAttack(u, w, dir){
+  Hooks.emit('attackStart', {att:u, def:null, w, counter:false});   // v0.40.22 需求单 #12
   consume(w);
   if (w.smoke){ placeSmoke(u, w, dir); refresh(); return; }   // v0.40.11 烟雾弹（17b）：不造成伤害
   log(`${fullName(u)}【${w.name}】${dir.burst ? '向周围' : dir.box ? `对 (${dir.box[0]}, ${dir.box[1]}) 起的 ${w.size}×${w.size} 区域` : `向 ${dir.arrow} `}发动${dir.land ? `，冲向 (${dir.land[0]}, ${dir.land[1]})` : ''}`, null, 'ally');
@@ -5519,15 +5550,19 @@ function drawUnitStatus(u){
   const barW = Math.max(W * 0.92, TS * 0.8), barX = px + W/2 - barW/2, barY = spriteTop + 1;
   const r = u.hp/u.maxHp;
   const segs = [{ratio: r, color: r > .5 ? '#5cc08a' : r > .25 ? '#e9a23b' : '#d9564b'}];
-  if (u.shield) segs.unshift({ratio: (u.shieldHp || 0) / u.shield, color: '#7fe6ff'});   // 护盾值（U7 的 λ 力场等）
+  // v0.40.22 需求单 #11：护盾值不再并进 HP 条，改成下面单独一条（λ 力场这类特殊护盾只画光圈，见 auraShield）
   // 机制接进来时往前面插段：装甲层、护盾值……例如
   //   if (u.shieldHp > 0) segs.unshift({ratio: u.shieldHp/u.shieldMax, color:'#7fe6ff'});
   ctx.fillStyle = 'rgba(0,0,0,.68)'; ctx.fillRect(barX-1, barY-1, barW+2, 5);
   segBar(barX, barY, barW, 3, segs);
+  if (u.shield > 0 && (u.shieldHp || 0) > 0 && !auraShield(u)){   // 第二条血条：护盾（青色细条，在 HP 条下面）
+    ctx.fillStyle = 'rgba(0,0,0,.68)'; ctx.fillRect(barX-1, barY+4, barW+2, 4);
+    ctx.fillStyle = '#7fe6ff'; ctx.fillRect(barX, barY+5, barW * Math.max(0, Math.min(1, u.shieldHp / u.shield)), 2);
+  }
 
   /* 蓄力 / 充能进度：贴着血条下面一条细线，没有该状态就不画 */
   if (u.charge != null){
-    const cw = barW * 0.72, cx0 = px + W/2 - cw/2, cy0 = barY + 5;
+    const cw = barW * 0.72, cx0 = px + W/2 - cw/2, cy0 = barY + (u.shield > 0 && (u.shieldHp || 0) > 0 && !auraShield(u) ? 9 : 5);
     ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(cx0, cy0, cw, 2);
     ctx.fillStyle = '#ffe08a'; ctx.fillRect(cx0, cy0, cw * Math.max(0, Math.min(1, u.charge)), 2);
   }
@@ -5591,6 +5626,7 @@ function drawUnitStatus(u){
 
 /* 多段条：把 [{ratio,color}] 从左到右依次画出来，用细缝分隔。
  * 只传一段时和原来的单条 HP 条完全一样。 */
+const auraShield = u => /λ/.test(u.shieldName || '');   // v0.40.22 特殊护盾（λ 力场）：画光圈、不画第二条血条
 function segBar(x, y, w, h, segs){
   const n = segs.length;
   if (!n) return;
@@ -5708,7 +5744,7 @@ function drawUnitLinks(){
 /* ---- 第 7 层：机体附加（光罩 / 光环） ---- */
 function drawUnitAura(u){
   /* u.shield 是护盾上限，u.shieldHp 才是剩余值；打空后光罩消失，己方阶段开始回满时再出现 */
-  if (u.shield > 0 && u.shieldHp > 0) auraRing(u, 'shield', u.shieldColor || '#7fe6ff');
+  if (u.shield > 0 && u.shieldHp > 0 && auraShield(u)) auraRing(u, 'shield', u.shieldColor || '#7fe6ff');   // v0.40.22 只有 λ 力场这类特殊护盾画光圈
 }
 
 /* 单位之间的连线列表。机制接进来时往这里 push：
@@ -7781,7 +7817,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.40.21';
+const GAME_VERSION = 'v0.40.22';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
@@ -8245,7 +8281,7 @@ else {
 /* 测试 / 调试用（音乐对话） */
 window.__audio = {themeOf, setTheme, get theme(){ return SOUND.theme; }, on:AUH};   // on.attackStart / strike / actionEnd / phase：只跑音频这边的处理
 
-window.__game = {get HANGAR(){ return HANGAR; }, passageDlg, addTicket, randTicket, get CMD_ENABLED(){ return CMD_ENABLED; }, wStatus, startWait, readyTurnOf, cutCd, startCdOf, get BATTLE_ID(){ return BATTLE_ID; }, RELAYS, deployTiles, startDeploy, doDeploy, doRetreat, doRelay, canRetreat, canRelay, makeUnit, levelUp, reach, zocSet, moveWatched, bestCounter, legalFaces, get phaseNo(){ return phaseNo; }, damageCalc, dispPow, atkStat, wPow, get map(){ return map; }, RELICS, gainRelic(id){ if (RUN && RELICS[id]){ RUN.relics = RUN.relics || []; if (!RUN.relics.includes(id)) RUN.relics.push(id); } return RUN ? RUN.relics : null; }, AIM_BY_CLASS, guardReach, recCost, tierOf, FACTIONS, ticketOk, ticketName, get sound(){ return {on:SOUND.on, scene:SOUND.scene, cue:AU && AU.state().cue}; }, get RUN(){ return RUN; }, STAGES, buildStage, rlogRecord, rlogText, openRunLogs, enterLayer, checkEnd, moveDist, runClickNode, runBattle, moveTargets, partTargets, get level(){ return level; }, get units(){ return units; }, data:{ALLY_T, ENEMY_T, ABIL, COMMANDS, TRIALS, FIRE}, get roster(){ return roster; }, get LV(){ return LV; }, get turn(){ return turn; }, get over(){ return over; }, setSpeed(v){ SPEED = v; }, startLevel, toggleLock, execCommand, attackables, bestWeaponFor, select, weaponUsable, get S(){ return S; }, orderMeteor, resolveMeteors, get CMD(){ return CMD; }, setTurn(t){ turn = t; }, pushUnit, get walls(){ return walls; }, echoArea, finish, zoneOf, battle, onTile, onAction, endTurn, cheatLevel, choosePick, mapDirs, losClear, canHit, forecast, get editor(){ return {ED, store:edStore()}; }, get art(){ return MI; }, unitSprite, iconIdOf,
+window.__game = {get HANGAR(){ return HANGAR; }, registerBattleScene, get SCENE(){ return SCENE; }, passageDlg, addTicket, randTicket, get CMD_ENABLED(){ return CMD_ENABLED; }, wStatus, startWait, readyTurnOf, cutCd, startCdOf, get BATTLE_ID(){ return BATTLE_ID; }, RELAYS, deployTiles, startDeploy, doDeploy, doRetreat, doRelay, canRetreat, canRelay, makeUnit, levelUp, reach, zocSet, moveWatched, bestCounter, legalFaces, get phaseNo(){ return phaseNo; }, damageCalc, dispPow, atkStat, wPow, get map(){ return map; }, RELICS, gainRelic(id){ if (RUN && RELICS[id]){ RUN.relics = RUN.relics || []; if (!RUN.relics.includes(id)) RUN.relics.push(id); } return RUN ? RUN.relics : null; }, AIM_BY_CLASS, guardReach, recCost, tierOf, FACTIONS, ticketOk, ticketName, get sound(){ return {on:SOUND.on, scene:SOUND.scene, cue:AU && AU.state().cue}; }, get RUN(){ return RUN; }, STAGES, buildStage, rlogRecord, rlogText, openRunLogs, enterLayer, checkEnd, moveDist, runClickNode, runBattle, moveTargets, partTargets, get level(){ return level; }, get units(){ return units; }, data:{ALLY_T, ENEMY_T, ABIL, COMMANDS, TRIALS, FIRE}, get roster(){ return roster; }, get LV(){ return LV; }, get turn(){ return turn; }, get over(){ return over; }, setSpeed(v){ SPEED = v; }, startLevel, toggleLock, execCommand, attackables, bestWeaponFor, select, weaponUsable, get S(){ return S; }, orderMeteor, resolveMeteors, get CMD(){ return CMD; }, setTurn(t){ turn = t; }, pushUnit, get walls(){ return walls; }, echoArea, finish, zoneOf, battle, onTile, onAction, endTurn, cheatLevel, choosePick, mapDirs, losClear, canHit, forecast, get editor(){ return {ED, store:edStore()}; }, get art(){ return MI; }, unitSprite, iconIdOf,
   /* 给工具用：全部单位模板（含未出场的），tools/roster.mjs 靠它检查图标覆盖率。roster 已被玩家编队占用，所以叫 templates */
   get templates(){ return {allies: ALLY_T, enemies: ENEMY_T, forms: FORMS, debris: DEBRIS_T}; },
   get levels(){ return LEVELS; }};
