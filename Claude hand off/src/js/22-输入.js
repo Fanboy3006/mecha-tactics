@@ -126,6 +126,7 @@ async function onAction(a){
   else if (a === 'cmd-go'){ if (execCommand()) S.mode = 'idle'; refresh(); }
   else if (a === 'portal'){ S.portalTiles = portalTiles(u); S.mode = 'portal'; refresh(); }
   else if (a === 'portal-back'){ S.mode = 'moving'; refresh(); }
+  else if (a === 'transam'){ if (activateTA(u)){ if (S.mode === 'moving') S.reach = reach(u); } refresh(); }   // v0.40.16 天人（17b）
   else if (a === 'fly'){
     u.flying = !u.flying;
     log(`${fullName(u)} ${u.flying ? '起飞' : '落地'}`, null, 'ally');
@@ -189,7 +190,7 @@ async function onAction(a){
     if (!over && u.hp > 0) await finish(u); else if (!over){ clearSel(); refresh(); }
   }
 }
-const dashLimit = u => abilOn(u,'dash') ? 1 + (abilOn(u,'followUp') ? 1 : 0) : 0;
+const dashLimit = u => abilOn(u,'dash') ? 1 + (abilOn(u,'followUp') ? 1 : 0) + taDash(u) : 0;   // v0.40.16 刹那 TRANS-AM：DASH 上限 +1
 /* v0.26 援护范围 = 援护者的移动力覆盖范围：援护者能在本回合移动范围内走到被攻击者旁边，就能援护（援护时不实际移动） */
 function guardReach(m, p){
   if (distU(m, p) <= 1) return true;
@@ -412,7 +413,7 @@ const RM = () => (LV && LV.run && RUN) ? RUN.mods : null;
 const TIER = {
   B1:'S', A1:'S', CB1:'S', S1:'S', W1:'S', U7:'S', M1:'S',
   B2:'A', M2:'A', M3:'A', U2:'A', CB2:'A', CB4:'A', S2:'A', S5:'A', W2:'A', W3:'A', W4:'A', W5:'A', W6:'A', A2:'A', A3:'A', U6:'A',
-  M4:'B', M5:'B', CB3:'B', S3:'B', S4:'B', S6:'B', S7:'B', S8:'B', W7:'B', A4:'B', A5:'B', U1:'B', U8:'B',
+  M4:'B', M5:'B', CB3:'B', CB5:'B', S3:'B', S4:'B', S6:'B', S7:'B', S8:'B', W7:'B', A4:'B', A5:'B', U1:'B', U8:'B',
 };
 const TIER_NAME = {S:'精锐', A:'骨干', B:'普通'};
 const PRICE = {S:{rec:5, p20:3, p30:4}, A:{rec:3, p20:2, p30:3}, B:{rec:0, p20:1, p30:2}};

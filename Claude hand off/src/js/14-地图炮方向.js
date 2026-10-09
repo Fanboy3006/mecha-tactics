@@ -22,7 +22,7 @@ function mapDirs(u, w){
   }
   return DIR8.filter(Boolean).map(([dx,dy,arrow]) => {
     if (shape === 'line'){
-      const len = wv(u, w, 'len'), width = wv(u, w, 'width') || 1, path = [];
+      const len = wv(u, w, 'len'), width = Math.max(wv(u, w, 'width') || 1, taWidth(u, w)), path = [];   // v0.40.16 提耶利亚 TRANS-AM：高压全弹宽 3 格
       for (let k=1; k<=len; k++){
         const cx = u.x+dx*k, cy = u.y+dy*k;
         path.push([cx,cy]);

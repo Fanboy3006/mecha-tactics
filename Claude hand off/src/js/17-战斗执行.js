@@ -262,8 +262,9 @@ function pullUnit(att, def, n){
   if (moved) log(`${fullName(def)} 被拉近 ${moved} 格`, null, att.side);
 }
 function collide(u, other, what){
-  const hit = x => { x.hp = Math.max(0, x.hp - 800); addFloat(x, '800', '#ffb38a'); if (x.hp <= 0) destroy(x, null); };
-  log(`${fullName(u)} 撞上${what}，${other ? '双方' : ''}受到 800 碰撞伤害`, null, 'sys');
+  const cd = collideDmg();   // v0.40.16 阿雷路亚 TRANS-AM 中翻倍（17b）
+  const hit = x => { x.hp = Math.max(0, x.hp - cd); addFloat(x, String(cd), '#ffb38a'); if (x.hp <= 0) destroy(x, null); };
+  log(`${fullName(u)} 撞上${what}，${other ? '双方' : ''}受到 ${cd} 碰撞伤害`, null, 'sys');
   hit(u); if (other) hit(other);
 }
 function wallTiles(u, cx, cy){
@@ -293,6 +294,7 @@ function transformUnit(u, cx, cy){
   u.armor = f.armor; u.eva = f.eva; u.mov = f.mov;
   u.weapons = f.weapons.map(w => ({...w, usesLeft:w.uses, cdLeft:0}));
   log(`${fullName(u)} 脱装，变身为【${f.name}】：外装甲在前方化为 GN 墙（${ts.length} 格，持续到第 ${turn + 2} 回合我方阶段开始），换装光束剑和光束手枪`, null, 'ally');
+  purgeStun(u);   // v0.40.16 脱装那回合：5×5 内敌机全部眩晕一回合（17b）
 }
 function supportTargets(u, w){
   const r = effRange(u, w)[1];

@@ -16,6 +16,7 @@ function cutCd(u, n = 1){
 }
 function wStatus(u, w, {moved=false, counter=false} = {}){
   if (u.lv < w.unlock) return `Lv${w.unlock} 解锁`;
+  if (w.taOnly && !taActive(u)) return 'TRANS-AM 中才能用';   // v0.40.16 天人（17b）
   const sw = startWait(u, w) > 0 ? `第 ${readyTurnOf(u, w)} 回合起` : '';
   if (hasTrait(u,'autoCast') && !counter) return `${sw}行动结束后自动释放`;
   if (w.fire === 'passive') return `被动 · ${sw}行动结束后自动释放`;
@@ -24,7 +25,7 @@ function wStatus(u, w, {moved=false, counter=false} = {}){
   if (w.cdLeft > 0) return `冷却中（${w.cdLeft}）`;
   if (startWait(u, w) > 0) return `开场冷却 · 第 ${readyTurnOf(u, w)} 回合可用`;
   if (counter && w.fire === 'map') return '不能用于反击';
-  if (!counter && moved && !w.afterMove) return '移动后不可用';
+  if (!counter && moved && !w.afterMove && !(w.taMove && taActive(u))) return '移动后不可用';   // v0.40.16 洛克昂 TRANS-AM 中狙击步枪可以移动后用
   return null;
 }
 function wv(u, w, key){ let v = w[key]; for (const up of w.upgrades) if (u.lv >= up.lv && up[key] != null) v = up[key]; return v; }

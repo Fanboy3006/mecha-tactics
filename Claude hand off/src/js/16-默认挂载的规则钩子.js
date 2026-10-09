@@ -14,12 +14,13 @@ Hooks.on('phaseStart', c => {
 }, 'GN 力场壁：到期后在我方阶段开始时消失');
 Hooks.on('strikeResolved', c => {
   if (!c.hit || c.def.hp <= 0 || c.w.special !== 'push') return;
-  pushUnit(c.att, c.def, c.w.push);
+  PUSH_SRC = c.att; pushUnit(c.att, c.def, taPushN(c.att, c.w)); PUSH_SRC = null;   // v0.40.16 阿雷路亚 TRANS-AM：推 4 格、碰撞伤害翻倍（17b）
 }, 'GN 冲撞：命中后推开目标');
 Hooks.on('strikeResolved', c => {
   if (!c.hit || c.def.hp <= 0 || c.w.special !== 'markBreak' || hasTrait(c.def,'wSeries')) return;
-  c.def.debuffs.push({pct:20, src:c.w.name});
-  log(`${fullName(c.def)} 被【${c.w.name}】标记：破防 −20%（合计 −${Math.min(100, breakSum(c.def))}%）`, null, c.att.side);
+  const mp = markPct(c.att, c.w);   // v0.40.16 洛克昂 TRANS-AM：标记破防加倍（17b）
+  c.def.debuffs.push({pct:mp, src:c.w.name});
+  log(`${fullName(c.def)} 被【${c.w.name}】标记：破防 −${mp}%（合计 −${Math.min(100, breakSum(c.def))}%）`, null, c.att.side);
 }, 'TRANS-AM 狙击：命中后直接挂一层背面破防');
 Hooks.on('strikeResolved', c => {
   if (c.hit || c.def.hp <= 0 || c.def.noEvade) return;

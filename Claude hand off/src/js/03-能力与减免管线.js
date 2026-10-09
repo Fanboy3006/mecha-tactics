@@ -8,6 +8,9 @@ const ABIL = {
   autoCast:{name:'月光共鸣（暂名）', desc:'不能主动使用武器，我方阶段每次行动结束后自动释放携带的技能。<b>只能携带一个技能</b>（出击前在编队里选，或第 1 回合行动前在指令面板切换）：月光祝福，或者残月的余响（Lv20 解锁；Lv30 起满月·月蚀冷却好时优先释放）。'},
   steadfast:{name:'不动如山', desc:'本回合没有移动时，装甲 +30%，援护次数 +1。'},
   fieldAid:{name:'战地急救', desc:'修理友军时，额外给对方防御 +15，持续到下一个我方阶段开始。'},
+  transAm:{name:'TRANS-AM', lv:10, desc:'（Lv10）移动前在指令面板开启，不占行动：从开启那回合起 3 个回合，所有武器威力 ×1.3、移动 +2、闪避 +15，并获得每台机体自己的 TRANS-AM 效果；结束后那 1 回合移动 −2（性能下降），之后冷却 10 回合。'},
+  gnField:{name:'GN 力场', desc:'防御姿态（包括援护防御）时，防御值再 +30。'},
+  gnArmsGuard:{name:'GN 武装·护卫', lv:20, desc:'（Lv20）援护防御次数 +1；Lv30 起 +2。'},
   gamblerSense:{name:'赌徒的直觉', desc:'场上每有一次攻击打空（敌我都算，反击也算），左轮打桩机系列的冷却永久 −1：先减开场冷却（10 回合），再减武器本身的冷却，减到 0 后每次行动都能用。'},
   psyVeil:{name:'念动迷彩', desc:'光环：3 格内的敌机命中 −10。'},
   ironField:{name:'铁壁领域', lv:20, desc:'（Lv20）本回合没有移动时，控制区从相邻 1 格扩大到 2 格。'},
@@ -84,7 +87,7 @@ const ABIL = {
   superSoldier:{name:'超兵反射', lv:20, desc:'（Lv20）闪避 +15；Lv30 起 +25。'},
 };
 /* 普通档晋升被动挂在哪台机体上（月华再生本来就是被动武装，不在这里） */
-const PROMO_PASSIVE = {M2:'ironField', M4:'zanshin', S3:'lunaPower', S4:'shihoOver', S6:'jetLink', S7:'suppress', S8:'dataLink', W7:'pinDown', A4:'darkSword', A5:'psyRes', U1:'falkeHunt', U8:'laserGuide', CB3:'superSoldier'};
+const PROMO_PASSIVE = {CB5:'gnArmsGuard', M2:'ironField', M4:'zanshin', S3:'lunaPower', S4:'shihoOver', S6:'jetLink', S7:'suppress', S8:'dataLink', W7:'pinDown', A4:'darkSword', A5:'psyRes', U1:'falkeHunt', U8:'laserGuide', CB3:'superSoldier'};
 const L30 = u => u.side === 'ally' && u.lv >= 30;
 /* 特技 / 能力的数值效果：hit / eva / crit / dmg（伤害%）/ red（减伤%）/ armorPct，可以是常数或函数 (自己, 对方, 武器, 选项)；aura 是光环 */
 const TRAIT_FX = {
@@ -115,7 +118,9 @@ const TRAIT_FX = {
   shihoOver:{dmg:(u,d,w,o) => d && distFrom(u, d, o) >= 4 ? (L30(u) ? 35 : 20) : 0},
   jetLink:{aura:{r:2, dmg:src => L30(src) ? 15 : 10}},
   suppress:{aura:{r:3, who:'foe', hit:src => L30(src) ? -15 : -10}},
-  psyVeil:{aura:{r:3, who:'foe', hit:() => -10}},   // v0.40.11 库斯哈
+  psyVeil:{aura:{r:3, who:'foe', hit:() => -10}},
+  transAm:{eva:u => taActive(u) ? 15 : 0, hit:(u,d,w) => taActive(u) && u.mech === 'CB1' && w && /^GN 剑/.test(w.name) ? 20 : 0},   // v0.40.16 天人（17b）
+  gnField:{red:(u,a,w,c) => c && c.reaction === 'defend' ? 30 : 0},   // v0.40.11 库斯哈
   dataLink:{aura:{r:4, hit:src => L30(src) ? 15 : 10, crit:src => L30(src) ? 10 : 5}},
   pinDown:{aura:{r:3, who:'foe', eva:src => L30(src) ? -15 : -10}},
   darkSword:{dmg:(u,d,w) => w && w.fire === 'melee' ? (L30(u) ? 35 : 20) : 0, crit:(u,d,w) => w && w.fire === 'melee' ? (L30(u) ? 15 : 10) : 0},

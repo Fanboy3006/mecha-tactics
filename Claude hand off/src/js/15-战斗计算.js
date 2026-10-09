@@ -33,7 +33,7 @@ function critRate(w, att, def, opts = {}){
    精锐 / 骨干 Lv30：原本 Lv20 解锁的武装提升一档 = 威力 ×1.3（辅助类武装的增益数值 ×1.5）。
    武装自己写了 Lv30 威力（upgrades 里的 power）时以那个为准，不再叠加。 */
 const tierUp = (u, w) => !!u && u.side === 'ally' && w.unlock === 20 && u.lv >= 30 && (TIER[u.mech] === 'S' || TIER[u.mech] === 'A') && !(w.upgrades || []).some(x => x.power != null);
-const wPow = (u, w) => Math.round(wv(u, w, 'power') * (tierUp(u, w) ? 1.3 : 1));
+const wPow = (u, w) => Math.round(wv(u, w, 'power') * (tierUp(u, w) ? 1.3 : 1) * taPowMul(u));   // v0.40.16 TRANS-AM 威力 ×1.3（17b）
 /* ---------- v0.37 伤害公式（作者 2026-10-07 定） ----------
    伤害 =（武器威力 − 装甲）×（1 +（攻击能力值 − 防御值）/ 100），命中后最少 10 点。
    - 武器威力：武器 / 晋升强化 × 弱点或抗性 × 暴击（×2；零式 ×2.5；赌神 ×4）；

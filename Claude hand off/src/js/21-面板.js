@@ -228,6 +228,7 @@ function canLand(u){ return tilesOf(u).every(([x,y]) => !TER[map[y][x]].groundBl
 function moveExtras(u){
   let h = '';
   if (u.portal && hasTrait(u,'portalTrait') && !u.moved) h += `<button class="btn" data-a="portal" ${u.backlash >= 100 ? 'disabled' : ''}>传送（反噬 ${u.backlash}/100）</button>`;
+  h += taButton(u);   // v0.40.16 TRANS-AM（17b）
   if (u.canFly) h += `<button class="btn" data-a="fly" ${u.flying && !canLand(u) ? 'disabled title="下方地形无法降落"' : ''}>${u.flying ? '落地' : '起飞'}</button>`;
   return h;
 }

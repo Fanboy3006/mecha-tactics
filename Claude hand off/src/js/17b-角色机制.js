@@ -33,7 +33,7 @@ const CHAIN_MAX = 8;
 const chainStepOf = (u, w) => abilOn(u, 'zanshin') ? (L30(u) ? 45 : 55) : (w.chainStep || 70);
 
 /* 移动力增减（重力网的减速等），reach() 默认用它 */
-const effMov = u => Math.max(1, u.mov + buffSum(u, 'mov'));
+const effMov = u => Math.max(1, u.mov + buffSum(u, 'mov') + taMovAdd(u));   // v0.40.16 加上 TRANS-AM
 
 /* 阿布拉德 Lv20「铁壁领域」：本回合没有移动时，控制区扩大到 2 格（11-移动.js 的 zocSet 读它） */
 const zocRadius = o => abilOn(o, 'ironField') && !o.movedThisRound ? 2 : 1;
@@ -63,7 +63,8 @@ function placeSmoke(u, w, dir){
   log(`${fullName(u)}【${w.name}】在 (${dir.box[0]}, ${dir.box[1]}) 放下 ${w.size}×${w.size} 烟雾，持续到第 ${turn + w.smoke} 回合我方阶段开始：里外开火命中 −${SMOKE_HIT}`, null, u.side);
 }
 function drawSmoke(ctx){
-  drawMaoZone(ctx);   // 秘银：毛的指挥范围（20 只调 drawSmoke 一个入口）
+  drawMaoZone(ctx);
+  for (const u of units) if (u.hp > 0 && taActive(u)){ ctx.strokeStyle = 'rgba(255,90,122,.85)'; ctx.lineWidth = 2; ctx.strokeRect(u.x*TS + 2, u.y*TS + 2, u.w*TS - 4, u.h*TS - 4); }   // TRANS-AM 红框   // 秘银：毛的指挥范围（20 只调 drawSmoke 一个入口）
   if (!SMOKES.length) return;
   ctx.fillStyle = 'rgba(200,205,215,.38)';
   for (const s of SMOKES) if (s.b === BATTLE_ID && turn < s.until) for (const k of s.set) ctx.fillRect((k%N)*TS, ((k/N)|0)*TS, TS, TS);
@@ -118,6 +119,53 @@ function drawMaoZone(ctx){
   }
 }
 
+/* ===== 天人（v0.40.16） ===== */
+/* TRANS-AM（Lv10，能力 transAm）：移动前在指令面板开启，不占行动。
+   从开启那回合起 TA_LEN 个回合（turn < taEnd）：武器威力 ×1.3（15 的 wPow）、移动 +2（effMov）、闪避 +15（03 TRAIT_FX）、各机体专属效果；
+   结束后那 1 回合（turn === taEnd）移动 −2；从结束起冷却 TA_CD 回合。按 BATTLE_ID 区分，换场就重置。 */
+const TA_LEN = 3, TA_CD = 10;
+const taOn = u => !!u && u.taB === BATTLE_ID;
+const taActive = u => taOn(u) && turn < u.taEnd;
+const taAfter = u => taOn(u) && turn === u.taEnd;
+const taReadyTurn = u => taOn(u) ? u.taEnd + TA_CD : 0;
+const canTA = u => !!u && u.side === 'ally' && abilOn(u, 'transAm') && !u.moved && !u.acted && !taActive(u) && turn >= taReadyTurn(u);
+function activateTA(u){
+  if (!canTA(u)) return false;
+  u.taB = BATTLE_ID; u.taEnd = turn + TA_LEN;
+  fx('pulse', {b:cpx(u), r:TS*2, color:'#ff5a7a', dur:600});
+  log(`${fullName(u)}【TRANS-AM】启动！到第 ${u.taEnd - 1} 回合结束：武器威力 ×1.3、移动 +2、闪避 +15`, null, 'ally');
+  return true;
+}
+function taButton(u){
+  if (!u || u.side !== 'ally' || !u.abilities.includes('transAm')) return '';
+  if (!abilOn(u, 'transAm')) return `<button class="btn" disabled>TRANS-AM（Lv10 解锁）</button>`;
+  if (taActive(u)) return `<button class="btn" disabled>TRANS-AM 中（到第 ${u.taEnd - 1} 回合）</button>`;
+  if (taOn(u) && turn < taReadyTurn(u)) return `<button class="btn" disabled>TRANS-AM 冷却（第 ${taReadyTurn(u)} 回合可用）</button>`;
+  return `<button class="btn" data-a="transam" ${canTA(u) ? '' : 'disabled'} title="不占行动；持续 ${TA_LEN} 回合，之后 1 回合移动 −2，冷却 ${TA_CD} 回合">TRANS-AM 启动</button>`;
+}
+const taPowMul = u => taActive(u) ? 1.3 : 1;
+const taMovAdd = u => taActive(u) ? 2 : (taAfter(u) ? -2 : 0);
+/* 每台机体的专属效果：刹那 GN 剑命中 +20（03）、DASH +1；洛克昂狙击步枪移动后可用（13）、标记破防 ×2；阿雷路亚推 4 格、碰撞 ×2；提耶利亚高压全弹宽 3 格 */
+const taDash = u => taActive(u) && u.mech === 'CB1' ? 1 : 0;
+const markPct = (att, w) => taActive(att) && att.mech === 'CB2' ? 40 : 20;
+const taPushN = (att, w) => taActive(att) && att.mech === 'CB3' ? Math.max(4, w.push || 0) : w.push;
+let PUSH_SRC = null;
+const collideDmg = () => PUSH_SRC && taActive(PUSH_SRC) && PUSH_SRC.mech === 'CB3' ? 1600 : 800;
+const taWidth = (u, w) => taActive(u) && u.mech === 'CB4' ? 3 : 1;
+
+/* 提耶利亚：脱装成纳德雷的那一刻，以自己为中心 5×5 内的敌机全部眩晕一回合（下一个敌方阶段不能行动、之前也不能反击 / 回避 / 防御）。
+   脱装一场只能一次，相当于 CD 99。 */
+const PURGE_R = 2;
+function purgeStun(u){
+  const hit = units.filter(e => e.side !== u.side && e.side !== 'neutral' && e.hp > 0 && tilesOf(e).some(([x, y]) => Math.max(Math.abs(x - u.x), Math.abs(y - u.y)) <= PURGE_R));
+  hit.forEach(e => { e.stunned = true; addFloat(e, '眩晕', '#c9a8ff'); });
+  fx('pulse', {b:cpx(u), r:TS*3, color:'#c9a8ff', dur:600});
+  log(`${fullName(u)} 脱装的冲击：5×5 内 ${hit.length} 台敌机眩晕一回合${hit.length ? '（' + hit.map(fullName).join('、') + '）' : ''}`, null, 'ally');
+}
+
+/* 拉塞「GN 武装·护卫」（Lv20）：援护防御次数 +1（Lv30 +2）。16 在敌方阶段开始时重置次数，这里在它之后加上 */
+Hooks.on('phaseStart', c => { if (c.side === 'enemy') units.forEach(u => { if (u.side === 'ally' && abilOn(u, 'gnArmsGuard')) u.guardLeft += L30(u) ? 2 : 1; }); }, '拉塞「GN 武装·护卫」：援护防御次数 +1');
+
 /* 测试接口：角色机制的函数（tests/moon.js 等用；window.__game 归规则对话，所以单独挂一个） */
 window.__chars = {autoWeapon:u => autoWeapon(u), echoWeapon:u => echoWeapon(u), attackTilesOf, pickOf, setPick:k => { FEENA_PICK = k; }, canSwitchPick, chainStepOf, effMov, zocRadius,
-  strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d), smokeHit, inSmoke, evadeN, evadeCdCut, get SMOKES(){ return SMOKES; }, inMaoZone, ignoresLos, linkSupport:(a, t) => linkSupport(a, t)};
+  strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d), smokeHit, inSmoke, evadeN, evadeCdCut, get SMOKES(){ return SMOKES; }, inMaoZone, ignoresLos, linkSupport:(a, t) => linkSupport(a, t), activateTA, taActive, taAfter, canTA, purgeStun, collideDmg};

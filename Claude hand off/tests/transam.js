@@ -1,0 +1,97 @@
+/* v0.40.16 天人重设计（角色对话）：TRANS-AM（Lv10，3 回合，结束后 1 回合移动 −2，冷却 10）；各人专属效果；提耶利亚脱装 5×5 眩晕；拉塞（CB5） */
+const { chromium } = require('playwright');
+const fs = require('fs');
+(async () => {
+  const b = await chromium.launch();
+  let bad = 0; const check = (label, ok, extra = '') => { if (!ok) bad++; console.log(`${ok ? '✓' : '✗'} ${label} ${extra}`); };
+  const errs = [];
+  const p = await b.newPage({viewport:{width:1400,height:900}}); p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => d.dismiss());
+  await p.route('**/*', r => r.abort());
+  await p.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>[hidden]{display:none!important}</style></head><body>${fs.readFileSync(__dirname + '/../src/artifact-fragment.html','utf8')}</body></html>`);
+  await p.waitForTimeout(300);
+  await p.evaluate(() => window.__game.startLevel('trial_CB1')); await p.waitForTimeout(400);
+  const r = await p.evaluate(async () => {
+    const g = window.__game, C = window.__chars, D = g.data, us = g.units, out = {};
+    for (let y = 0; y < g.map.length; y++) for (let x = 0; x < g.map[y].length; x++) g.map[y][x] = 'plain';
+    us.length = 0; g.setSpeed(0.01); g.setTurn(1);
+    const A = (m, x, y, lv = 20, face = 'right') => { const u = g.makeUnit(D.ALLY_T.find(t => t.mech === m), 'ally', x, y); for (let i = 1; i < lv; i++) g.levelUp(u); u.facing = face; us.push(u); return u; };
+    const E = (k, x, y, face = 'left') => { const u = g.makeUnit(D.ENEMY_T[k], 'enemy', x, y); u.facing = face; us.push(u); return u; };
+    out.tier = ['CB1','CB2','CB3','CB4','CB5'].map(m => g.tierOf(m)).join('');
+    out.fly = D.ALLY_T.filter(t => t.tags.势力 === '天人').every(t => t.canFly);
+    out.lasseNoTA = !D.ALLY_T.find(t => t.mech === 'CB5').abilities.includes('transAm');
+    // Lv9 不能开
+    const low = A('CB1', 3, 3, 9); out.lv9 = !C.canTA(low); us.length = 0;
+    const se = A('CB1', 3, 6), foe = E('shield', 4, 6);
+    const sword = se.weapons.find(w => w.name === 'GN 剑（剑模式）'), seven = se.weapons.find(w => w.name.startsWith('七剑'));
+    const p0 = g.wPow(se, sword), mov0 = C.effMov ? C.effMov(se) : se.mov, hit0 = g.forecast(se, sword, foe, null).hit;
+    out.sevenLocked = g.wStatus(se, seven) === 'TRANS-AM 中才能用';
+    out.on = C.activateTA(se);
+    out.pow = [p0, g.wPow(se, sword)];
+    out.mov = [mov0, C.effMov(se)];
+    out.hit = [hit0, g.forecast(se, sword, foe, null).hit];
+    out.sevenOpen = g.wStatus(se, seven) !== 'TRANS-AM 中才能用';
+    out.again = C.canTA(se);
+    g.setTurn(3); out.t3 = C.taActive(se);
+    g.setTurn(4); out.t4 = !C.taActive(se) && C.taAfter(se) && C.effMov(se) === se.mov - 2;
+    g.setTurn(13); out.cd13 = !C.canTA(se);
+    g.setTurn(14); se.moved = false; se.acted = false; out.cd14 = C.canTA(se);
+    g.setTurn(1);
+    // 洛克昂：TRANS-AM 中狙击步枪移动后可用；破防 40%
+    us.length = 0;
+    const lo = A('CB2', 3, 6), t2 = E('fortress', 9, 5); t2.hp = t2.maxHp = 999999;
+    const rifle = lo.weapons.find(w => w.name === 'GN 狙击步枪');
+    out.rifle0 = g.wStatus(lo, rifle, {moved:true}); C.activateTA(lo); out.rifle1 = g.wStatus(lo, rifle, {moved:true});
+    const tas = lo.weapons.find(w => w.name === 'TRANS-AM 狙击'); tas.cdLeft = 0;
+    const R = Math.random; Math.random = () => 0; await C.strike(lo, tas, t2); Math.random = R;
+    out.mark = t2.debuffs.map(d => d.pct);
+    // 阿雷路亚：推 4 格
+    us.length = 0;
+    const al = A('CB3', 3, 6), t3 = E('grunt', 4, 6); t3.hp = t3.maxHp = 999999;
+    C.activateTA(al); const push = al.weapons.find(w => w.name === 'GN 冲撞');
+    Math.random = () => 0; await C.strike(al, push, t3); Math.random = R;
+    out.pushTo = t3.x;
+    // 提耶利亚：高压全弹宽 3；脱装眩晕
+    us.length = 0;
+    const ti = A('CB4', 6, 6), n1 = E('grunt', 8, 7), n2 = E('grunt', 4, 4), far = E('grunt', 10, 6);
+    const hv = ti.weapons.find(w => w.name.includes('高压全弹'));
+    const w0 = g.mapDirs(ti, hv).find(d => d.dx === 1 && d.dy === 0).path.length; C.activateTA(ti);
+    out.width = [w0, g.mapDirs(ti, hv).find(d => d.dx === 1 && d.dy === 0).path.length];
+    C.purgeStun(ti);
+    out.stun = [n1.stunned, n2.stunned, !!far.stunned];
+    // 拉塞：援护次数 +1；援护防御时 GN 力场防御 +30
+    us.length = 0;
+    const la = A('CB5', 3, 6), e5 = E('fortress', 6, 6); for (let i = 1; i < 20; i++) g.levelUp(e5);
+    out.lasseFly = la.flying === true && la.w === 2;
+    const d0 = g.damageCalc(e5, e5.weapons[1], la, {}).dmg, d1 = g.damageCalc(e5, e5.weapons[1], la, {reaction:'defend'}).dmg;
+    const lb = g.makeUnit(D.ALLY_T.find(t => t.mech === 'CB4'), 'ally', 3, 9); for (let i = 1; i < 20; i++) g.levelUp(lb); us.push(lb);
+    const db0 = g.damageCalc(e5, e5.weapons[1], lb, {}).dmg, db1 = g.damageCalc(e5, e5.weapons[1], lb, {reaction:'defend'}).dmg;
+    out.field = [d0 - d1, db0 - db1, d0, db0];
+    return out;
+  });
+  check('档位：刹那精锐，洛克昂 / 提耶利亚骨干，阿雷路亚 / 拉塞普通', r.tier === 'SABAB', r.tier);
+  check('天人全员能飞', r.fly === true);
+  check('拉塞不能开 TRANS-AM', r.lasseNoTA === true);
+  check('Lv9 还不能开 TRANS-AM', r.lv9 === true);
+  check('七剑平时不能用', r.sevenLocked === true);
+  check('开启 TRANS-AM', r.on === true);
+  check('威力 ×1.3', Math.abs(r.pow[1] / r.pow[0] - 1.3) < .01, JSON.stringify(r.pow));
+  check('移动 +2', r.mov[1] === r.mov[0] + 2, JSON.stringify(r.mov));
+  check('刹那 GN 剑命中 +20（加闪避等其他因素后至少不降）', r.hit[1] >= r.hit[0], JSON.stringify(r.hit));
+  check('七剑在 TRANS-AM 中能用', r.sevenOpen === true);
+  check('开着的时候不能再开', r.again === false);
+  check('第 3 回合仍在 TRANS-AM 中', r.t3 === true);
+  check('第 4 回合结束，移动 −2', r.t4 === true);
+  check('冷却 10 回合：第 13 回合还不能开', r.cd13 === true);
+  check('第 14 回合可以再开', r.cd14 === true);
+  check('洛克昂：平时狙击步枪移动后不能用', r.rifle0 === '移动后不可用', r.rifle0);
+  check('洛克昂：TRANS-AM 中狙击步枪移动后能用', r.rifle1 === null, String(r.rifle1));
+  check('洛克昂：TRANS-AM 狙击的破防 −40%', r.mark.includes(40), JSON.stringify(r.mark));
+  check('阿雷路亚：TRANS-AM 中冲撞推 4 格', r.pushTo === 8, r.pushTo);
+  check('提耶利亚：TRANS-AM 中高压全弹宽 3 格', r.width[1] === r.width[0] * 3 || r.width[1] > r.width[0] * 2, JSON.stringify(r.width));
+  check('提耶利亚：脱装时 5×5 内的敌机眩晕，外面的不受影响', r.stun[0] && r.stun[1] && !r.stun[2], JSON.stringify(r.stun));
+  check('拉塞：2×2、飞行', r.lasseFly === true);
+  check('拉塞：防御姿态时比普通重装多减伤（GN 力场 +30）', r.field[0] > r.field[1], JSON.stringify(r.field));
+  console.log('ERRS', JSON.stringify(errs));
+  await b.close();
+  process.exit(bad || errs.length ? 1 : 0);
+})();

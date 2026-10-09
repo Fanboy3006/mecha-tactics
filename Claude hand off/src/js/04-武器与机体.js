@@ -54,30 +54,36 @@ const ALLY_T = [
     wp({name:'重力网', power:900, fire:'map', shape:'box', size:2, range:[2,6], iff:true, cd:2, unlock:20, slow:2,
         desc:'在 2–6 格内选一块 2×2 区域（点哪格，那格就是左上角），区域内的敌机受到攻击，并且到下一个我方阶段开始前移动力 −2。'}),
   ]},
-  {pilot:'刹那', mech:'CB1', short:'CB1', trait:'gundam', tags:{势力:'天人', 远近分类:'近战', 战斗分类:'近卫'}, hp:4800, armor:700, eva:30, mov:6, melee:170, shoot:120, awaken:130, flying:false, w:1, h:1, abilities:['followUp'], weapons:[
+  {pilot:'刹那', mech:'CB1', short:'CB1', trait:'gundam', tags:{势力:'天人', 远近分类:'近战', 战斗分类:'近卫'}, hp:4800, armor:700, eva:30, mov:6, melee:170, shoot:120, awaken:130, flying:false, w:1, h:1, abilities:['followUp','transAm'], weapons:[
     wp({name:'GN 剑（剑模式）', power:2300, stat:'格斗', fire:'melee', dmgType:'光束'}),
     wp({name:'GN 长短刃', power:2000, stat:'格斗', fire:'melee', critMod:20, dmgType:'光束'}),
     wp({name:'GN 剑（步枪模式）', power:1600, fire:'direct', range:[1,3], dmgType:'光束'}),
-    wp({name:'七剑·TRANS-AM 乱舞', power:1400, statMul:1.2, stat:'格斗', fire:'melee', hit:95, special:'multi', hits:7, step:10, unlock:20, cd:2, dmgType:'光束',
+    wp({name:'七剑·TRANS-AM 乱舞', power:1400, statMul:1.2, taOnly:true, stat:'格斗', fire:'melee', hit:95, special:'multi', hits:7, step:10, unlock:20, cd:2, dmgType:'光束',
         upgrades:[],
         desc:'连续 7 段判定，首段命中 95，命中后 −10、未中后 +10；每段都扣装甲（装甲对多段很有效）；大招：格斗 ×1.2。'}),
   ]},
-  {pilot:'洛克昂', mech:'CB2', short:'CB2', trait:'overflowCrit', tags:{势力:'天人', 远近分类:'远程', 战斗分类:'狙击'}, hp:4000, armor:300, eva:10, mov:4, melee:80, shoot:160, awaken:110, flying:false, w:1, h:1, abilities:['gnShield'], weapons:[
-    wp({name:'GN 狙击步枪', power:3000, fire:'direct', range:[3,7], hit:130, afterMove:false, dmgType:'光束'}),
-    wp({name:'GN 光束手枪', power:900, fire:'direct', range:[1,2], hit:130, dmgType:'光束', desc:'洛克昂唯一可以移动后使用的武器（自卫用）。'}),
-    wp({name:'GN 导弹', power:1800, fire:'indirect', range:[2,5], hit:130, afterMove:false, uses:2}),
-    wp({name:'TRANS-AM 狙击', power:3150, stat:'射击+觉醒', v37:true, fire:'direct', range:[4,9], hit:130, afterMove:false, cd:2, unlock:20, special:'markBreak', dmgType:'光束',
+  {pilot:'洛克昂', mech:'CB2', short:'CB2', trait:'overflowCrit', canFly:true, tags:{势力:'天人', 远近分类:'远程', 战斗分类:'狙击'}, hp:4000, armor:300, eva:10, mov:4, melee:80, shoot:160, awaken:110, defense:75, flying:false, w:1, h:1, abilities:['gnShield','transAm'], weapons:[
+    wp({name:'GN 狙击步枪', power:2650, fire:'direct', range:[3,7], hit:130, afterMove:false, dmgType:'光束', taMove:true, desc:'TRANS-AM 中可以移动后使用。'}),
+    wp({name:'GN 光束手枪', power:1100, fire:'direct', range:[1,2], hit:130, dmgType:'光束'}),
+    wp({name:'GN 导弹', power:1700, fire:'indirect', range:[2,5], hit:130, afterMove:false, uses:2}),
+    wp({name:'TRANS-AM 狙击', power:3150, stat:'射击+觉醒', taOnly:true, fire:'direct', range:[4,9], hit:130, afterMove:false, cd:2, unlock:20, special:'markBreak', dmgType:'光束',
         upgrades:[{lv:30, range:[4,12], again:true, note:'Lv30：射程 4–12，击破目标后可以再攻击一次（不能移动）'}],
-        desc:'命中后直接挂一层背面破防（−20%），不管从哪个方向打。TRANS-AM：攻击能力值 = 射击 + 觉醒。'}),
+        desc:'只有 TRANS-AM 中能用。命中后直接挂一层破防（TRANS-AM 中 −40%），不管从哪个方向打。攻击能力值 = 射击 + 觉醒。'}),
   ]},
-  {pilot:'阿雷路亚', mech:'CB3', short:'CB3', trait:'hallelujah', canFly:true, tags:{势力:'天人', 远近分类:'近战', 战斗分类:'特种'}, hp:4500, armor:500, eva:25, mov:6, melee:140, shoot:130, flying:false, w:1, h:1, abilities:[], weapons:[
-    wp({name:'GN 冲撞', power:1200, stat:'格斗', fire:'melee', special:'push', push:2,
-        desc:'命中后把目标沿攻击方向推开 2 格。撞到单位、障碍或地图边缘时停下，双方各受 800 碰撞伤害；地面单位被推进裂谷直接坠毁。'}),
-    wp({name:'GN 冲锋枪', power:1400, fire:'direct', range:[1,3]}),
+  {pilot:'阿雷路亚', mech:'CB3', short:'CB3', trait:'hallelujah', canFly:true, tags:{势力:'天人', 远近分类:'近战', 战斗分类:'特种'}, hp:4500, armor:500, eva:25, mov:6, melee:140, shoot:130, defense:85, flying:false, w:1, h:1, abilities:['transAm'], weapons:[
+    wp({name:'GN 冲撞', power:1150, stat:'格斗', fire:'melee', special:'push', push:2,
+        desc:'命中后把目标沿攻击方向推开 2 格（TRANS-AM 中 4 格）。撞到单位、障碍或地图边缘时停下，双方各受 800 碰撞伤害（TRANS-AM 中 1600）；地面单位被推进裂谷直接坠毁。'}),
+    wp({name:'GN 冲锋枪', power:1300, fire:'direct', range:[1,3]}),
   ]},
-  {pilot:'提耶利亚', mech:'CB4', short:'CB4', trait:'veda', tags:{势力:'天人', 远近分类:'远程', 战斗分类:'重装'}, hp:6000, armor:1200, eva:0, mov:4, melee:120, shoot:150, flying:false, w:1, h:1, abilities:[], transform:'nadleeh', weapons:[
-    wp({name:'GN 火箭筒', power:2600, fire:'direct', range:[2,6], dmgType:'光束'}),
+  {pilot:'提耶利亚', mech:'CB4', short:'CB4', trait:'veda', canFly:true, tags:{势力:'天人', 远近分类:'远程', 战斗分类:'重装'}, hp:6000, armor:1200, eva:0, mov:4, melee:120, shoot:150, defense:110, flying:false, w:1, h:1, abilities:['transAm'], transform:'nadleeh', weapons:[
+    wp({name:'GN 火箭筒', power:2200, fire:'direct', range:[2,6], dmgType:'光束'}),
     wp({name:'GN 加农炮', power:1600, fire:'direct', range:[1,3], dmgType:'光束'}),
+  ]},
+  /* 拉塞（v0.40.16 新角色，作者 10-08）：GN ARMOR TYPE-E，2×2 大型支援装甲，不能开 TRANS-AM */
+  {pilot:'拉塞', mech:'CB5', short:'CB5', mechName:'GN ARMOR TYPE-E', trait:'gnField', canFly:true, tags:{势力:'天人', 远近分类:'远程', 战斗分类:'重装'}, hp:11000, armor:1400, eva:5, mov:5, melee:130, shoot:150, defense:110, flying:true, w:2, h:2, abilities:[], weapons:[
+    wp({name:'GN 大型光束炮', power:2200, fire:'direct', range:[2,7], afterMove:false, dmgType:'光束'}),
+    wp({name:'GN 导弹', power:1500, fire:'indirect', range:[2,6], uses:4}),
+    wp({name:'GN 大型光束剑', power:2000, stat:'格斗', fire:'melee', range:[1,2], dmgType:'光束'}),
   ]},
   /* ================= v0.16 新势力 ================= */
   /* ---- 克莱因派（SEED） ---- */
@@ -283,7 +289,7 @@ const PROMO_WEAPONS = {
    大招倍率 statMul：Lv20 大招 ×1.2、Lv30 大招 ×1.5（大招随等级成长更快）；
    觉醒系大招（门之力、TRANS-AM、量子化、λ 驱动、满月）改用「属性 + 觉醒」，不再乘 statMul。觉醒初值：雷萨 140、Feena 150、刹那 130、宗介 130、洛克昂 110，其他 100。
    开场冷却 startCd：Lv20 大招默认 3；Lv30 大招 4；传送斩 2；被动（残月的余响、月华再生）0；增益类（八咫之守、马格纳克队支援）2。 */
-const NEW_FORMULA = ['B1','M1','M2','M3','M4','M5','A1','A2','A3','A4','A5','U1','U2','U6','U7','U8','CB1','S1','W1'];   // v0.40.13 秘银整体按新公式重写   // v0.40.11 ATX 整体按新公式重写   // v0.40.10 月球王国整体按新公式重写
+const NEW_FORMULA = ['CB2','CB3','CB4','CB5','B1','M1','M2','M3','M4','M5','A1','A2','A3','A4','A5','U1','U2','U6','U7','U8','CB1','S1','W1'];   // v0.40.13 秘银整体按新公式重写   // v0.40.11 ATX 整体按新公式重写   // v0.40.10 月球王国整体按新公式重写
 ALLY_T.forEach(t => {
   if (PROMO_WEAPONS[t.mech]) t.weapons.push(...PROMO_WEAPONS[t.mech]);
   if (NEW_FORMULA.includes(t.mech)) t.weapons.forEach(w => { w.v37 = true; });
@@ -307,7 +313,7 @@ ALLY_T.forEach(t => {
   /* v0.35.1 档位保底（作者：我方精锐 10 级就该是第一档，骨干也要部分加强）。
      按 Lv10 对第 1 层杂兵的平均伤害算：精锐保底约 6000、骨干约 4500（近卫有压制杂兵、Feena 另算，不在表里）。
      倍率 = 保底 ÷ 现值，最多 ×1.8；作用于该角色全部非地图炮武装（含 Lv20 / Lv30），保持档位成长。 */
-  const TIER_FLOOR = {CB4:1.19, B2:1.6, W4:1.12};
+  const TIER_FLOOR = {B2:1.6, W4:1.12};
   if (TIER_FLOOR[t.mech]) t.weapons.forEach(w => { if (w.power > 0 && w.fire !== 'map' && !w.v37) w.power = Math.round(w.power * TIER_FLOOR[t.mech]); });   // v0.40.4 拉克丝、宗介、希罗已按新公式重写，移出本表
   if (t.mech === 'CB1'){ t.canFly = true; t.critBase = 15; t.weapons.forEach(w => { if (w.fire !== 'map' && w.range[1] < 3) w.range = [w.range[0], 3]; }); }
   if (t.mech === 'B1') t.weapons.forEach(w => { if (w.unlock <= 1 && w.fire === 'melee') w.range = [w.range[0], 4]; });
@@ -317,8 +323,6 @@ const FORMS = {
   nadleeh:{name:'纳德雷', icon:'CB4N', armor:300, eva:35, mov:6, weapons:[
     wp({name:'GN 光束剑', power:2200, stat:'格斗', fire:'melee', dmgType:'光束'}),
     wp({name:'GN 光束手枪', power:1400, fire:'direct', range:[1,3], dmgType:'光束'}),
-    wp({name:'Trial System', fire:'device', special:'trial', range:[1,4], cd:3, unlock:20, dmgType:'—',
-        desc:'骇入 4 格内的一台敌机：它在下一个敌方阶段不能行动，在此之前也不能反击、不能回避或防御。'}),
   ]},
 };
 const DEBRIS_T = {pilot:'', mech:'陨石残骸', short:'岩', noEvade:true, hp:1000, armor:0, eva:0, mov:0, melee:0, shoot:0, flying:false, w:1, h:1, abilities:[], weapons:[]};
