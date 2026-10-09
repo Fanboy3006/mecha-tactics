@@ -264,8 +264,6 @@ function cmdOnly(pilot, mech, mechName, faction, command){
    规则：普通档晋升只给属性 + 被动（PROMO_PASSIVE）；骨干和精锐 Lv20 多一个武装；
    Lv30 只有精锐再多一个、比 Lv20 武装更强的武装，同时精锐 / 骨干原本的 Lv20 武装提升一档（见 tierUp）。 */
 const PROMO_WEAPONS = {
-  A1:[wp({name:'左轮打桩机·六连全弹', power:1850, statMul:1.5, stat:'格斗', fire:'melee', range:[1,1], hit:75, critMod:20, special:'multi', hits:6, step:10, cd:4, unlock:30, startCd:10, evadeCd:true,
-      desc:'把左轮弹仓里的 6 发一口气打完：连续判定 6 段，首段命中 75，命中后 −10、未中后 +10；每段都可以单独暴击，打空的那段「赌神」有一半几率改成 ×4 暴击。冷却规则和左轮打桩机相同（场上每打空一次 −1）。'})],
   B1:[wp({name:'影界·万刃归一', power:2900, stat:'格斗+觉醒', fire:'map', shape:'burst', rad:3, iff:true, afterMove:false, cd:4, unlock:30, startCd:4, dmgType:'特殊',
       desc:'以自身为中心 3 格内的所有敌机受到特殊伤害（不伤友军）。门之力：攻击能力值 = 格斗 + 觉醒。配合「传送」先跳进敌阵中心再发动。'})],
   CB1:[wp({name:'GN 剑 III·量子跃迁斩', power:5000, stat:'格斗+觉醒', fire:'melee', range:[1,5], hit:110, cd:3, unlock:30, startCd:4, dmgType:'光束', again:true, noCounter:true,

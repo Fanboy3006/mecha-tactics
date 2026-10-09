@@ -71,7 +71,7 @@ function drawSmoke(ctx){
 }
 
 /* 响介·赌徒的直觉：场上每有一次攻击打空（敌我都算，反击也算；必中的地图炮 / 被动不会打空），
-   带 evadeCd 的武器（左轮打桩机系列）冷却永久 −1：先用 cutCd 减开场冷却和当前冷却，
+   带 evadeCd 的武器（左轮打桩机）冷却永久 −1：先用 cutCd 减开场冷却和当前冷却，
    开场冷却 EVADE_START 次减完后，多出来的次数减武器本身的冷却，减到 0 = 用完不进冷却。 */
 const EVADE_START = 10;
 const evadeN = u => u.evB === BATTLE_ID ? (u.evN || 0) : 0;

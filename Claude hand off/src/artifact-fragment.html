@@ -1799,7 +1799,7 @@ const ABIL = {
   transAm:{name:'TRANS-AM', lv:10, desc:'（Lv10）移动前在指令面板开启，不占行动：从开启那回合起 3 个回合，所有武器威力 ×1.3、移动 +2、闪避 +15，并获得每台机体自己的 TRANS-AM 效果；结束后那 1 回合移动 −2（性能下降），之后冷却 10 回合。'},
   gnField:{name:'GN 力场', desc:'防御姿态（包括援护防御）时，防御值再 +30。'},
   gnArmsGuard:{name:'GN 武装·护卫', lv:20, desc:'（Lv20）援护防御次数 +1；Lv30 起 +2。'},
-  gamblerSense:{name:'赌徒的直觉', desc:'场上每有一次攻击打空（敌我都算，反击也算），左轮打桩机系列的冷却永久 −1：先减开场冷却（10 回合），再减武器本身的冷却，减到 0 后每次行动都能用。'},
+  gamblerSense:{name:'赌徒的直觉', desc:'场上每有一次攻击打空（敌我都算，反击也算），左轮打桩机的冷却永久 −1：先减开场冷却（10 回合），再减武器本身的冷却，减到 0 后每次行动都能用。'},
   psyVeil:{name:'念动迷彩', desc:'光环：3 格内的敌机命中 −10。'},
   ironField:{name:'铁壁领域', lv:20, desc:'（Lv20）本回合没有移动时，控制区从相邻 1 格扩大到 2 格。'},
   zanshin:{name:'残心', lv:20, desc:'（Lv20）月光狙击枪连射的命中惩罚从每次 −70 减为 −55；Lv30 起 −45。'},
@@ -2302,8 +2302,6 @@ function cmdOnly(pilot, mech, mechName, faction, command){
    规则：普通档晋升只给属性 + 被动（PROMO_PASSIVE）；骨干和精锐 Lv20 多一个武装；
    Lv30 只有精锐再多一个、比 Lv20 武装更强的武装，同时精锐 / 骨干原本的 Lv20 武装提升一档（见 tierUp）。 */
 const PROMO_WEAPONS = {
-  A1:[wp({name:'左轮打桩机·六连全弹', power:1850, statMul:1.5, stat:'格斗', fire:'melee', range:[1,1], hit:75, critMod:20, special:'multi', hits:6, step:10, cd:4, unlock:30, startCd:10, evadeCd:true,
-      desc:'把左轮弹仓里的 6 发一口气打完：连续判定 6 段，首段命中 75，命中后 −10、未中后 +10；每段都可以单独暴击，打空的那段「赌神」有一半几率改成 ×4 暴击。冷却规则和左轮打桩机相同（场上每打空一次 −1）。'})],
   B1:[wp({name:'影界·万刃归一', power:2900, stat:'格斗+觉醒', fire:'map', shape:'burst', rad:3, iff:true, afterMove:false, cd:4, unlock:30, startCd:4, dmgType:'特殊',
       desc:'以自身为中心 3 格内的所有敌机受到特殊伤害（不伤友军）。门之力：攻击能力值 = 格斗 + 觉醒。配合「传送」先跳进敌阵中心再发动。'})],
   CB1:[wp({name:'GN 剑 III·量子跃迁斩', power:5000, stat:'格斗+觉醒', fire:'melee', range:[1,5], hit:110, cd:3, unlock:30, startCd:4, dmgType:'光束', again:true, noCounter:true,
@@ -2952,7 +2950,7 @@ const TRIALS = {
   W5:{e:['sniper','artillery','grunt','captain'], hint:'龙爪可以把敌人拉到身边。目标周围 2 格没有别的敌人时，正义让伤害 +25%：先把它们拆开再打。'},
   W6:{e:['raider','raider','raider','hound','hound'], hint:'移动 3 格以上再近战，暴击 +30（闪电伯爵）。Lv20 光束剑·横扫可以移动后使用，冲进人堆再扫。'},
   W7:{e:['fighter','fighter','drone','grunt','artillery'], hint:'一击脱离：攻击之后还能用剩下的移动力撤走。先近身打、再退回安全区。Lv20 被动「编队牵制」：3 格内敌机闪避 −10。'},
-  A1:{e:['grunt','raider','shield','beetle','berserker'], mates:['A2','A3'], hint:'响介是赌神：打空的攻击有一半改成 ×4 暴击。Lv20 大招左轮打桩机开场冷却 10 回合，但<b>场上每打空一次（敌我都算）冷却 −1</b>，减完开场冷却再减本身的冷却，最后每次行动都能用。让拉米亚放烟雾、艾克赛琳给他加暴击倍率，大家多打空。Lv30 六连全弹每段都能触发赌神。'},
+  A1:{e:['grunt','raider','shield','beetle','berserker'], mates:['A2','A3'], hint:'响介是赌神：打空的攻击有一半改成 ×4 暴击。Lv20 大招左轮打桩机开场冷却 10 回合，但<b>场上每打空一次（敌我都算）冷却 −1</b>，减完开场冷却再减本身的冷却，最后每次行动都能用。让拉米亚放烟雾、艾克赛琳给他加暴击倍率，大家多打空。左轮打桩机一次 12–16 段，打空的每一段都能触发赌神。'},
   A2:{e:['beamcoat','beamcoat','phase','phase','fighter'], mates:['A1'], hint:'好运加护：3 格内友军暴击倍率 +1（响介的赌神 ×4 → ×5），但命中 −20。光束涂层机抗光束、相转移装甲机抗实弹：按目标切换嚎叫发射器的光束 / 实弹模式。每个阶段第一次被打时闪避 +30（天然）。'},
   A3:{e:['grunt','grunt','grunt','hound','hound','stealth'], cluster:true, mates:['A1'], hint:'烟雾弹：点地图放一块 3×3 烟雾，持续 3 回合；从烟雾里开火、或者打烟雾里的目标，命中 −30（敌我都算）。把烟雾丢在敌群上，敌人打不中、我们也打不中——响介的大招冷却会掉得飞快。拉米亚同时属于 ATX 和影世界。'},
   A4:{e:['berserker','raider','grunt','tank'], mates:['A5'], hint:'每回合第一次主动攻击伤害 +25%（热血）；替库斯哈援护挡刀。Lv20 被动「暗剑杀之心」：近战伤害 +20%、暴击 +10。'},
@@ -4016,7 +4014,7 @@ function drawSmoke(ctx){
 }
 
 /* 响介·赌徒的直觉：场上每有一次攻击打空（敌我都算，反击也算；必中的地图炮 / 被动不会打空），
-   带 evadeCd 的武器（左轮打桩机系列）冷却永久 −1：先用 cutCd 减开场冷却和当前冷却，
+   带 evadeCd 的武器（左轮打桩机）冷却永久 −1：先用 cutCd 减开场冷却和当前冷却，
    开场冷却 EVADE_START 次减完后，多出来的次数减武器本身的冷却，减到 0 = 用完不进冷却。 */
 const EVADE_START = 10;
 const evadeN = u => u.evB === BATTLE_ID ? (u.evN || 0) : 0;
@@ -7474,7 +7472,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.40.17';
+const GAME_VERSION = 'v0.40.18';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
