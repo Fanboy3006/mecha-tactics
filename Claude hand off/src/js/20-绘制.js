@@ -13,6 +13,9 @@ function buildTerrain(){
   terrainCanvas = document.createElement('canvas');
   terrainCanvas.width = MW*TS*dpr*SC; terrainCanvas.height = MH*TS*dpr*SC;
   const g = terrainCanvas.getContext('2d'); g.setTransform(dpr*SC,0,0,dpr*SC,0,0);
+  /* 美术 10-08：像素地块（Ninja Adventure CC0 + 自绘深渊）。素材还没加载完时先用下面的旧画法，加载完自动重画一次。 */
+  if (MP && MP.ready()){ buildPixelTerrain(g); return; }
+  if (MP && !MP._terrainWait){ MP._terrainWait = true; MP.onReady(() => { if (map && map.length) buildTerrain(); }); }
   const r = mulberry32(seed ^ 0x9e37);
   for (let y=0;y<MH;y++) for (let x=0;x<MW;x++){
     const t = map[y][x], px = x*TS, py = y*TS;
@@ -27,6 +30,56 @@ function buildTerrain(){
     if (t === 'water'){ g.strokeStyle = COL.wave; g.lineWidth = 1.2;
       for (const oy of [8,15]){ g.beginPath(); g.moveTo(px+4,py+oy); g.quadraticCurveTo(px+8,py+oy-3,px+11,py+oy); g.quadraticCurveTo(px+14,py+oy+3,px+18,py+oy); g.stroke(); } }
   }
+}
+/* ---------- 像素地块（美术 10-08） ----------
+ * 每格 16px 的地块先拼到一张小画布上，再整张放大到地图尺寸（不平滑，保持像素颗粒）。
+ * 裂谷 / 绝壁 / 水面按上下左右邻格自动拼边；2×2 的树林放一棵大树，2×2 的山放一块大岩。 */
+const MP = (typeof MechPixel !== 'undefined') ? MechPixel : null;
+function buildPixelTerrain(g){
+  const T = 16, A = MP.img.__atlas, atl = MP.data.atl, cols = MP.data.cols;
+  const off = document.createElement('canvas'); off.width = MW*T; off.height = MH*T;
+  const o = off.getContext('2d'); o.imageSmoothingEnabled = false;
+  const put = (name, x, y) => {
+    const e = atl[name]; if (!e) return;
+    const [i0, w, h] = e;
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++){
+      const idx = i0 + j*w + i;
+      o.drawImage(A, (idx % cols)*T, Math.floor(idx / cols)*T, T, T, (x+i)*T, (y+j)*T, T, T);
+    }
+  };
+  const at = (x, y) => (x < 0 || y < 0 || x >= MW || y >= MH) ? null : map[y][x];
+  const same = (x, y, t) => { const v = at(x, y); return v === null || v === t; };
+  const r = mulberry32(seed ^ 0x51a7);
+  const GR = ['grass0','grass0','grass0','grass1','grass2','grass3','grass4','grass5'];
+  for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) put(GR[Math.floor(r()*GR.length)], x, y);
+  const big = new Set();
+  for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++){
+    const t = map[y][x];
+    if (t === 'chasm'){
+      const W = same(x-1,y,t), E = same(x+1,y,t), N = same(x,y-1,t), S2 = same(x,y+1,t);
+      put('hole' + (!W ? 0 : !E ? 3 : 1 + (x&1)) + (!N ? 0 : !S2 ? 3 : 1 + (y&1)), x, y);
+    } else if (t === 'cliff'){
+      const W = same(x-1,y,t), E = same(x+1,y,t), N = same(x,y-1,t), S2 = same(x,y+1,t);
+      put('cliff' + ((!W && !E) ? 0 : !W ? 1 : !E ? 3 : 2) + (!N ? 0 : !S2 ? 2 : 1), x, y);
+    } else if (t === 'water'){
+      const W = same(x-1,y,t), E = same(x+1,y,t), N = same(x,y-1,t), S2 = same(x,y+1,t);
+      if (!W && !E && !N && !S2) put('water39', x, y);
+      else if (!W && !E) put('water3' + (!N ? 6 : !S2 ? 8 : 7), x, y);
+      else if (!N && !S2) put('water' + (!W ? 0 : !E ? 2 : 1) + '9', x, y);
+      else put('water' + (!W ? 0 : !E ? 2 : 1) + (!N ? 6 : !S2 ? 8 : 7), x, y);
+    } else if (t === 'abyss') put('abyss' + ((x + y) & 1), x, y);
+    else if (t === 'mountain') put('dirt', x, y);
+  }
+  // 树和岩石最后画（会盖到上一行一点点）
+  for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++){
+    const t = map[y][x]; if ((t !== 'forest' && t !== 'mountain') || big.has(y*MW+x)) continue;
+    if (at(x+1,y) === t && at(x,y+1) === t && at(x+1,y+1) === t && !big.has(y*MW+x+1)){
+      put(t === 'forest' ? (((x + y) & 1) ? 'treeA' : 'treeB') : 'boulder', x, y);
+      [0, 1, MW, MW+1].forEach(d => big.add(y*MW + x + d));
+    } else put(t === 'forest' ? 'bush' : ((x*7 + y*3) % 3 ? 'rock' : 'rockB'), x, y);
+  }
+  g.imageSmoothingEnabled = false;
+  g.drawImage(off, 0, 0, MW*TS, MH*TS);
 }
 /* 网格线和坐标数字：调试用，默认关闭（DSH 表现层）。 */
 function drawGrid(){
@@ -391,6 +444,8 @@ function palKeyOf(u){
 function roleOf(u){ return (u.tags && u.tags.战斗分类) || null; }
 /* 精灵的几何参数：以「逻辑像素」为单位，乘以 SC 就是屏幕尺寸 */
 function spriteSpec(u){
+  const pi = pixelInfo(u);
+  if (pi) return {fp: Math.max(u.w, u.h), box: pi.s * pi.unit, h: pi.s * pi.unit, pixel: true};
   const fp = Math.max(u.w, u.h);
   const box = TS * fp * (SPR_MUL[fp] || 1.3);            // 精灵宽度 = 图标盒边长
   return {fp, box, h: box * (1 + SPR_HEADROOM)};         // 画布比宽度高一点，留头顶余量
@@ -398,10 +453,14 @@ function spriteSpec(u){
 /* 精灵在画布上的落点（左上角），脚底正好落在格子下沿 */
 function spriteRect(u){
   const px = u.x*TS, py = u.y*TS, W = u.w*TS, H = u.h*TS;
+  const pi = pixelInfo(u);
+  if (pi){ const w = pi.cw * pi.unit, h = pi.ch * pi.unit; return {x: px + W/2 - w/2, y: py + H - h, w, h}; }
   const sp = spriteSpec(u);
   return {x: px + (W - sp.box)/2, y: py + H - sp.h, w: sp.box, h: sp.h};
 }
 function unitSprite(u){
+  const pi = pixelInfo(u);
+  if (pi) return pixelSprite(u, pi);
   if (!MI) return null;
   const id = iconIdOf(u);
   if (!id) return null;
@@ -419,6 +478,109 @@ function unitSprite(u){
     spriteCache.set(key, spr);
   }
   return spr;
+}
+/* ---------- 像素画精灵（美术 10-08：Q 版像素，接近机战 A） ----------
+ * 素材在 art/mech-icons.js 末尾的 MechPixel 段（art/pixel/build_pixel.py 生成）。
+ *   精锐 24px（带动态招牌特效）、骨干 20px（阿布拉德坦克 32px）、其余我方按「势力头 × 职业机身」16px、地面 1×1 敌人 16px；
+ *   飞行敌人、2×2 以上的敌人、2×2 的普通档、中立物体暂时还用原来的矢量图标。
+ * 朝向直接画在机体上：朝下 = 正面，朝上 = 背面，左右 = 侧面（朝左镜像）。
+ * 1 个精灵像素 ≈ PX_TARGET 个逻辑像素，按设备像素取整，保证颗粒锐利。 */
+const PX_TARGET = TS * 1.25 / 16;   // 16px 的精灵约占 1.25 格
+const PX_PAD = 8;                   // 精锐特效留的边（精灵像素）
+const PX_FAC = {影世界:'ying', 月球王国:'moon', 天人:'cb', 克莱因派:'clyne', 预防者:'prev', ATX:'atx', 秘银:'mith', 演习:'drill'};
+const PX_CLS = {近卫:'guard', 尖兵:'striker', 指挥:'command', 重装:'heavy', 狙击:'sniper', 特种:'special'};
+function pixelKey(u){
+  if (!MP || !MP.ready()) return null;
+  const S = MP.data.spr;
+  if (u.side === 'neutral') return null;
+  if (u.side === 'enemy') return (u.w === 1 && u.h === 1 && !u.flying) ? 'enemy_grunt' : null;
+  if (u.transformed && u.transform){ const f = FORMS[u.transform]; return f && S[f.icon] ? f.icon : null; }
+  if (S[u.mech]) return u.mech;
+  if (u.w > 1) return null;
+  const k = PX_FAC[u.tags && u.tags.势力] + '_' + PX_CLS[roleOf(u)];
+  return S[k] ? k : null;
+}
+function pixelInfo(u){
+  const key = pixelKey(u); if (!key) return null;
+  const d = MP.data.spr[key], s = d.s, k = Math.max(1, Math.round(PX_TARGET * SC * dpr));
+  const pad = d.fx ? PX_PAD : 0;
+  return {key, d, s, k, unit: k / (SC * dpr), pad, cw: s + pad*2, ch: s + pad + 1};
+}
+const pxGray = new Map();
+function pixelSprite(u, pi){
+  const now = performance.now();
+  const dir = u.facing || 'down', view = dir === 'down' ? 0 : dir === 'up' ? 2 : 1, flip = dir === 'left';
+  const still = reduceMotion || u.acted;
+  const bob = still ? 0 : Math.floor((now + u.uid*137) / 480) % 2;
+  const fx = pi.d.fx && !u.acted && !reduceMotion;
+  const ck = pi.key + '|' + view + flip + '|' + pi.k + '|' + bob + (u.acted ? 'a' : '');
+  if (!fx && pxGray.has(ck)) return pxGray.get(ck);
+  const c = (fx && u._pxc && u._pxc.width === pi.cw*pi.k && u._pxc.height === pi.ch*pi.k) ? u._pxc : document.createElement('canvas');
+  c.width = pi.cw*pi.k; c.height = pi.ch*pi.k;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.setTransform(pi.k, 0, 0, pi.k, 0, 0);
+  const x = pi.pad, y = pi.pad + 1 - bob, img = MP.img[pi.key], s = pi.s;
+  if (fx) pixelFX(g, pi.d.fx, dir, x, y, s, now, false);
+  if (flip){ g.save(); g.translate(x*2 + s, 0); g.scale(-1, 1); g.drawImage(img, view*s, 0, s, s, x, y, s, s); g.restore(); }
+  else g.drawImage(img, view*s, 0, s, s, x, y, s, s);
+  if (fx) pixelFX(g, pi.d.fx, dir, x, y, s, now, true);
+  if (u.acted){   // 已行动：去色压暗
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    const im = g.getImageData(0, 0, c.width, c.height), p = im.data;
+    for (let i = 0; i < p.length; i += 4){ const v = (p[i]*.3 + p[i+1]*.55 + p[i+2]*.15) * .62; p[i] = p[i+1] = p[i+2] = v; }
+    g.putImageData(im, 0, 0);
+  }
+  if (fx) u._pxc = c; else pxGray.set(ck, c);
+  return c;
+}
+/* 精锐的招牌特效（在精灵像素坐标里画）。front=false 画在机体后面，true 画在前面。 */
+function pixelFX(g, id, dir, x, y, S0, now, front){
+  const P = (c, a, b, w = 1, h = 1) => { g.fillStyle = c; g.fillRect(Math.round(a), Math.round(b), w, h); };
+  const cx = x + 12, cy = y + 12, t = now / 1000;
+  if (id === 'rasa'){
+    for (let i = 0; i < 6; i++){
+      const a = t*1.4 + i*Math.PI/3, ex = cx + Math.cos(a)*14, ey = cy + Math.sin(a)*7 - 2;
+      if ((Math.sin(a) > 0) !== front) continue;
+      P('#2a1840', ex-1, ey-1, 3, 3); P('#ff4fd0', ex, ey-1, 1, 3); P('#ffd9f4', ex, ey-1);
+    }
+  }
+  if (id === 'feena' && !front){
+    const hx = cx + (dir === 'right' ? -2 : dir === 'left' ? 2 : 0), hy = y + 6;
+    for (let a = -2.3; a <= 2.3; a += .07){
+      const ox = hx + Math.cos(a - Math.PI/2)*9, oy = hy + Math.sin(a - Math.PI/2)*9;
+      P('#fff7c9', ox, oy);
+    }
+    for (let i = 0; i < 4; i++){ const k = (t*0.6 + i/4) % 1; P(`rgba(220,240,255,${1-k})`, x + 3 + i*6, y + 22 - k*20); }
+  }
+  if (id === 'setsuna' && !front){
+    for (let i = 0; i < 10; i++){ const k = (t*0.9 + i/10) % 1;
+      const sx = cx + (dir === 'right' ? -7 : dir === 'left' ? 7 : (i%2 ? -4 : 4)) + Math.sin(i*1.7 + t*3)*2;
+      P(i%3 ? '#7dff9a' : '#d6ffe2', sx, y + 14 - k*16); }
+  }
+  if (id === 'lacus'){
+    for (let i = 0; i < 4; i++){
+      const a = t*1.1 + i*Math.PI/2, ex = cx + Math.cos(a)*15, ey = cy - 4 + Math.sin(a)*8;
+      if ((Math.sin(a) > 0) !== front) continue;
+      P('#141622', ex-1, ey-2, 3, 5); P('#ffb6d6', ex, ey-1, 1, 3); P('#ffffff', ex, ey-1);
+    }
+  }
+  if (id === 'heero' && front && (t % 1.6) < .4){
+    const fx0 = dir === 'down' ? x + 20 : dir === 'right' ? x + 24 : dir === 'left' ? x - 1 : null, fy = dir === 'down' ? y + 1 : y + 13;
+    if (fx0 !== null){ P('#ffffff', fx0 - 1, fy, 3, 1); P('#ffffff', fx0, fy - 1, 1, 3); }
+  }
+  if (id === 'kyosuke' && (dir === 'up') === front){
+    const fl = Math.floor(now / 70) % 3;
+    const xs = (dir === 'down' || dir === 'up') ? [x+3, x+19] : dir === 'right' ? [x+4] : [x+18];
+    for (const fx0 of xs){ P('#ffe066', fx0, y + 9, 2, 1 + fl); P('#ff8a3d', fx0, y + 10 + fl, 2, 1); }
+  }
+  if (id === 'sousuke' && front){
+    const p = (Math.sin(t*2.4) + 1) / 2, R = 13 + p;
+    g.globalAlpha = .45 + p*.4;
+    for (let i = 0; i < 6; i++){
+      const a0 = i*Math.PI/3 + Math.PI/6, a1 = a0 + Math.PI/3;
+      for (let s2 = 0; s2 <= 1; s2 += .05) P('#ffe9a8', cx + Math.cos(a0)*R*(1-s2) + Math.cos(a1)*R*s2, cy + 1 + (Math.sin(a0)*R*(1-s2) + Math.sin(a1)*R*s2)*.8);
+    }
+    g.globalAlpha = 1;
+  }
 }
 /* 圆角矩形路径（不依赖 ctx.roundRect） */
 function rrectPath(g, x, y, w, h, r){
