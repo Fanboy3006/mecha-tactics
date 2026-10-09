@@ -286,12 +286,17 @@ function showFormation(done){
   let cmd = mem && !fixed ? mem.cmd : null;
   if (fixed && !cmdCands.length){ done(roster); return; }
   const groups = [...new Set(roster.map(u => u.tags.势力))];
-  // 肉鸽：每台出击机体选 2 个武装，Lv20 大招最多 1 个
+  // 肉鸽出击武装（v0.40.9 作者 10-08：限制太多不好玩）：普通武装全部带上，只限制大招（Lv20 / Lv30 解锁）每台最多带 1 个
   const LO = LV.loadout ? {...LV.loadout.init} : null;
   const isUlt = w => w.unlock >= 20;
   const loChoices = u => u.weapons.filter(w => u.lv >= w.unlock && !(LV.loadout.hide && LV.loadout.hide(u, w)));
-  const loDefault = u => { const ws = loChoices(u), ult = ws.filter(isUlt), base = ws.filter(w => !isUlt(w)); return [...ult.slice(0,1), ...base].slice(0, 2).map(w => w.name); };
-  const loOf = u => { if (!LO[u.mech] || !LO[u.mech].every(n => loChoices(u).some(w => w.name === n))) LO[u.mech] = loDefault(u); return LO[u.mech]; };
+  const loNorm = (u, names) => {   // names 没给 = 默认带第一个大招；给了就沿用其中的大招（可以一个都不带）
+    const ws = loChoices(u), base = ws.filter(w => !isUlt(w)).map(w => w.name), ults = ws.filter(isUlt).map(w => w.name);
+    const ult = names ? names.find(n => ults.includes(n)) : ults[0];
+    return [...(ult ? [ult] : []), ...base];
+  };
+  const loDefault = u => loNorm(u);
+  const loOf = u => (LO[u.mech] = loNorm(u, LO[u.mech]));
   const card = (u, kind) => {
     const on = kind === 'cmd' ? cmd === u.mech : sel.has(u.mech);
     const dis = kind === 'dep' && !on && (sel.size >= cap || cmd === u.mech);
@@ -306,8 +311,8 @@ function showFormation(done){
     $('#endDlg').innerHTML = `<div class="eyebrow" style="color:var(--accent)">战前编队</div><h2>${fixed ? '选择指挥官' : `选择出击机体（${sel.size} / ${cap}）`}</h2>
       <p class="small">${fixed ? '这一关的出场机体是固定的。' : `${LV.hangar ? `选首发（场上同时最多 ${cap} 台）；没选的队员都带进战斗、放在机库，战斗中可以在部署格派出。` : `这一关最多出击 ${cap} 台。`}点击机体切换是否出击。`}${LV.noCmd ? '' : '指挥官不会出场作战，而是在战场外下达指挥（最多一位，可以不设）。'}</p>
       ${deploy}
-      ${LO ? `<div class="fgroup"><i style="--fc:var(--accent)"></i>出击武装：每台最多 2 个，其中 Lv20 大招最多 1 个（反击也只能用带上的武装）</div>
-        ${roster.filter(u => sel.has(u.mech) || (LV.hangar && pool.includes(u) && cmd !== u.mech)).map(u => { const cur = loOf(u); return `<div class="rv-row"><span class="nm" style="flex:0 0 120px">${u.short} ${u.pilot}${LV.hangar ? (sel.has(u.mech) ? ' · 首发' : ' · 机库') : ''}</span><span style="display:flex;flex-wrap:wrap;gap:4px">${loChoices(u).map(w => `<button class="rv-btn ${cur.includes(w.name) ? 'on' : ''}" data-lo="${u.mech}|${w.name}" title="${FIRE[w.fire]}${w.desc ? ' · ' + w.desc.replace(/"/g, '') : ''}">${isUlt(w) ? '★ ' : ''}${w.name}</button>`).join('')}</span></div>`; }).join('') || '<p class="small">先选出击机体。</p>'}
+      ${LO ? `<div class="fgroup"><i style="--fc:var(--accent)"></i>出击武装：普通武装全部带上；★ 大招每台最多带 1 个，点一下切换（反击也只能用带上的武装）</div>
+        ${roster.filter(u => sel.has(u.mech) || (LV.hangar && pool.includes(u) && cmd !== u.mech)).map(u => { const cur = loOf(u); return `<div class="rv-row"><span class="nm" style="flex:0 0 120px">${u.short} ${u.pilot}${LV.hangar ? (sel.has(u.mech) ? ' · 首发' : ' · 机库') : ''}</span><span style="display:flex;flex-wrap:wrap;gap:4px">${loChoices(u).map(w => `<button class="rv-btn ${cur.includes(w.name) ? 'on' : ''}" ${isUlt(w) ? `data-lo="${u.mech}|${w.name}"` : 'disabled'} title="${FIRE[w.fire]}${w.desc ? ' · ' + w.desc.replace(/"/g, '') : ''}">${isUlt(w) ? '★ ' : ''}${w.name}</button>`).join('')}</span></div>`; }).join('') || '<p class="small">先选出击机体。</p>'}
         ${LV.loadout.note ? `<p class="small">${LV.loadout.note}</p>` : ''}` : ''}
       ${LV.noCmd ? '' : `<div class="fgroup"><i style="--fc:var(--accent)"></i>指挥官（可选）</div>
       <div class="fgrid"><button class="fm cmd ${cmd ? '' : 'on'}" style="--fc:#888" data-cmd=""><b>不设指挥官</b><small>全部机体作战</small></button>${cmdCands.map(u => card(u, 'cmd')).join('')}</div>
@@ -319,13 +324,10 @@ function showFormation(done){
     if ($('#btnFormClear')) $('#btnFormClear').onclick = () => { sel.clear(); render(); };
     $('#endDlg').querySelectorAll('[data-lo]').forEach(b => b.onclick = () => {
       const [m, name] = b.dataset.lo.split('|'), u = roster.find(x => x.mech === m), cur = loOf(u).slice(), w = u.weapons.find(x => x.name === name);
+      if (!isUlt(w)) return;   // 普通武装总是带上
       const i = cur.indexOf(name);
       if (i >= 0) cur.splice(i, 1);
-      else {
-        if (isUlt(w)){ const j = cur.findIndex(n => isUlt(u.weapons.find(x => x.name === n))); if (j >= 0) cur.splice(j, 1); }
-        if (cur.length >= 2) cur.shift();
-        cur.push(name);
-      }
+      else { const j = cur.findIndex(n => isUlt(u.weapons.find(x => x.name === n))); if (j >= 0) cur.splice(j, 1); cur.unshift(name); }
       LO[m] = cur; render();
     });
     $('#btnForm').onclick = () => {

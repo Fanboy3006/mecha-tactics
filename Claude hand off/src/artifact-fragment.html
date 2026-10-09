@@ -2007,7 +2007,7 @@ function shieldBroken(u){
   if (u.lambdaAwaken && !u.awakened && u.shieldBreaks >= u.lambdaAwaken){
     u.awakened = true;
     if (LV && LV.run && u.awakenSwap){
-      // 肉鸽：带上的普通武器变成对应的 λ 武器（仍然算 2 个武装），λ 武器 0 CD
+      // 肉鸽：带上的普通武器变成对应的 λ 武器，λ 武器 0 CD
       const T = ALLY_T.find(t => t.mech === u.mech);
       u.weapons = u.weapons.map(w => { const to = u.awakenSwap[w.name], tw = to && T.weapons.find(x => x.name === to); return tw ? {...tw, cd:0, cdLeft:0, usesLeft:tw.uses} : w; });
     } else u.weapons.forEach(w => { if (w.awaken) Object.assign(w, w.awaken); if (w.lambda){ w.cd = 0; w.cdLeft = 0; } });
@@ -4133,12 +4133,17 @@ function showFormation(done){
   let cmd = mem && !fixed ? mem.cmd : null;
   if (fixed && !cmdCands.length){ done(roster); return; }
   const groups = [...new Set(roster.map(u => u.tags.势力))];
-  // 肉鸽：每台出击机体选 2 个武装，Lv20 大招最多 1 个
+  // 肉鸽出击武装（v0.40.9 作者 10-08：限制太多不好玩）：普通武装全部带上，只限制大招（Lv20 / Lv30 解锁）每台最多带 1 个
   const LO = LV.loadout ? {...LV.loadout.init} : null;
   const isUlt = w => w.unlock >= 20;
   const loChoices = u => u.weapons.filter(w => u.lv >= w.unlock && !(LV.loadout.hide && LV.loadout.hide(u, w)));
-  const loDefault = u => { const ws = loChoices(u), ult = ws.filter(isUlt), base = ws.filter(w => !isUlt(w)); return [...ult.slice(0,1), ...base].slice(0, 2).map(w => w.name); };
-  const loOf = u => { if (!LO[u.mech] || !LO[u.mech].every(n => loChoices(u).some(w => w.name === n))) LO[u.mech] = loDefault(u); return LO[u.mech]; };
+  const loNorm = (u, names) => {   // names 没给 = 默认带第一个大招；给了就沿用其中的大招（可以一个都不带）
+    const ws = loChoices(u), base = ws.filter(w => !isUlt(w)).map(w => w.name), ults = ws.filter(isUlt).map(w => w.name);
+    const ult = names ? names.find(n => ults.includes(n)) : ults[0];
+    return [...(ult ? [ult] : []), ...base];
+  };
+  const loDefault = u => loNorm(u);
+  const loOf = u => (LO[u.mech] = loNorm(u, LO[u.mech]));
   const card = (u, kind) => {
     const on = kind === 'cmd' ? cmd === u.mech : sel.has(u.mech);
     const dis = kind === 'dep' && !on && (sel.size >= cap || cmd === u.mech);
@@ -4153,8 +4158,8 @@ function showFormation(done){
     $('#endDlg').innerHTML = `<div class="eyebrow" style="color:var(--accent)">战前编队</div><h2>${fixed ? '选择指挥官' : `选择出击机体（${sel.size} / ${cap}）`}</h2>
       <p class="small">${fixed ? '这一关的出场机体是固定的。' : `${LV.hangar ? `选首发（场上同时最多 ${cap} 台）；没选的队员都带进战斗、放在机库，战斗中可以在部署格派出。` : `这一关最多出击 ${cap} 台。`}点击机体切换是否出击。`}${LV.noCmd ? '' : '指挥官不会出场作战，而是在战场外下达指挥（最多一位，可以不设）。'}</p>
       ${deploy}
-      ${LO ? `<div class="fgroup"><i style="--fc:var(--accent)"></i>出击武装：每台最多 2 个，其中 Lv20 大招最多 1 个（反击也只能用带上的武装）</div>
-        ${roster.filter(u => sel.has(u.mech) || (LV.hangar && pool.includes(u) && cmd !== u.mech)).map(u => { const cur = loOf(u); return `<div class="rv-row"><span class="nm" style="flex:0 0 120px">${u.short} ${u.pilot}${LV.hangar ? (sel.has(u.mech) ? ' · 首发' : ' · 机库') : ''}</span><span style="display:flex;flex-wrap:wrap;gap:4px">${loChoices(u).map(w => `<button class="rv-btn ${cur.includes(w.name) ? 'on' : ''}" data-lo="${u.mech}|${w.name}" title="${FIRE[w.fire]}${w.desc ? ' · ' + w.desc.replace(/"/g, '') : ''}">${isUlt(w) ? '★ ' : ''}${w.name}</button>`).join('')}</span></div>`; }).join('') || '<p class="small">先选出击机体。</p>'}
+      ${LO ? `<div class="fgroup"><i style="--fc:var(--accent)"></i>出击武装：普通武装全部带上；★ 大招每台最多带 1 个，点一下切换（反击也只能用带上的武装）</div>
+        ${roster.filter(u => sel.has(u.mech) || (LV.hangar && pool.includes(u) && cmd !== u.mech)).map(u => { const cur = loOf(u); return `<div class="rv-row"><span class="nm" style="flex:0 0 120px">${u.short} ${u.pilot}${LV.hangar ? (sel.has(u.mech) ? ' · 首发' : ' · 机库') : ''}</span><span style="display:flex;flex-wrap:wrap;gap:4px">${loChoices(u).map(w => `<button class="rv-btn ${cur.includes(w.name) ? 'on' : ''}" ${isUlt(w) ? `data-lo="${u.mech}|${w.name}"` : 'disabled'} title="${FIRE[w.fire]}${w.desc ? ' · ' + w.desc.replace(/"/g, '') : ''}">${isUlt(w) ? '★ ' : ''}${w.name}</button>`).join('')}</span></div>`; }).join('') || '<p class="small">先选出击机体。</p>'}
         ${LV.loadout.note ? `<p class="small">${LV.loadout.note}</p>` : ''}` : ''}
       ${LV.noCmd ? '' : `<div class="fgroup"><i style="--fc:var(--accent)"></i>指挥官（可选）</div>
       <div class="fgrid"><button class="fm cmd ${cmd ? '' : 'on'}" style="--fc:#888" data-cmd=""><b>不设指挥官</b><small>全部机体作战</small></button>${cmdCands.map(u => card(u, 'cmd')).join('')}</div>
@@ -4166,13 +4171,10 @@ function showFormation(done){
     if ($('#btnFormClear')) $('#btnFormClear').onclick = () => { sel.clear(); render(); };
     $('#endDlg').querySelectorAll('[data-lo]').forEach(b => b.onclick = () => {
       const [m, name] = b.dataset.lo.split('|'), u = roster.find(x => x.mech === m), cur = loOf(u).slice(), w = u.weapons.find(x => x.name === name);
+      if (!isUlt(w)) return;   // 普通武装总是带上
       const i = cur.indexOf(name);
       if (i >= 0) cur.splice(i, 1);
-      else {
-        if (isUlt(w)){ const j = cur.findIndex(n => isUlt(u.weapons.find(x => x.name === n))); if (j >= 0) cur.splice(j, 1); }
-        if (cur.length >= 2) cur.shift();
-        cur.push(name);
-      }
+      else { const j = cur.findIndex(n => isUlt(u.weapons.find(x => x.name === n))); if (j >= 0) cur.splice(j, 1); cur.unshift(name); }
       LO[m] = cur; render();
     });
     $('#btnForm').onclick = () => {
@@ -7034,7 +7036,7 @@ async function runBattle(kind, code){
     waves: waves.map((w, i) => ({at:w.at, lv, label:`第 ${i+1} 波`, enemies:w.enemies})),
     onSpawn: e => { e.facing = 'left'; if (affix) affix.fn(e); relicApplyFoe(e, units.filter(u => u.side === 'ally')); },
     loadout:{init:RUN.loadouts || {}, save:lo => { RUN.loadouts = {...lo}; }, hide:(u, w) => !!(u.awakenSwap && Object.values(u.awakenSwap).includes(w.name)),
-      note:'★ 是 Lv20 大招。宗介 U7 的 λ 武器不能直接带：λ 觉醒后，带上的单分子刀会变成隔空 λ 拳、散弹炮变成 λ 驱动·散弹炮（仍算 2 个武装）。'},
+      note:'★ 是 Lv20 大招。宗介 U7 的 λ 武器不能直接带：λ 觉醒后，带上的单分子刀会变成隔空 λ 拳、散弹炮变成 λ 驱动·散弹炮。'},
     ...(obj === 'survive' ? {victory:{type:'survive', turns:SURVIVE_TURNS}, goalText:`坚守 ${SURVIVE_TURNS} 回合（撑到第 ${SURVIVE_TURNS + 1} 回合我方阶段）。敌人每 2 回合从右侧增援，打不完也没关系`,
           respawn:{every:2, lv, list:t => [...tierPick(Math.random, null, '杂兵', 2 + st.layer), ...(t >= 5 ? tierPick(Math.random, null, '精锐', 1) : [])]}}
       : obj === 'targets' ? {victory:{type:'targets'}, goalText:`斩首：击破所有标 ★ 的头目（${enemies.filter(e => e.target).length} 台）。杂兵${st.layer >= 2 ? '每回合' : '每 2 回合'}增援`,
@@ -7184,7 +7186,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.40.8';
+const GAME_VERSION = 'v0.40.9';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){

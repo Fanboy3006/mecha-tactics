@@ -219,7 +219,7 @@ function shieldBroken(u){
   if (u.lambdaAwaken && !u.awakened && u.shieldBreaks >= u.lambdaAwaken){
     u.awakened = true;
     if (LV && LV.run && u.awakenSwap){
-      // 肉鸽：带上的普通武器变成对应的 λ 武器（仍然算 2 个武装），λ 武器 0 CD
+      // 肉鸽：带上的普通武器变成对应的 λ 武器，λ 武器 0 CD
       const T = ALLY_T.find(t => t.mech === u.mech);
       u.weapons = u.weapons.map(w => { const to = u.awakenSwap[w.name], tw = to && T.weapons.find(x => x.name === to); return tw ? {...tw, cd:0, cdLeft:0, usesLeft:tw.uses} : w; });
     } else u.weapons.forEach(w => { if (w.awaken) Object.assign(w, w.awaken); if (w.lambda){ w.cd = 0; w.cdLeft = 0; } });

@@ -186,7 +186,7 @@ async function runBattle(kind, code){
     waves: waves.map((w, i) => ({at:w.at, lv, label:`第 ${i+1} 波`, enemies:w.enemies})),
     onSpawn: e => { e.facing = 'left'; if (affix) affix.fn(e); relicApplyFoe(e, units.filter(u => u.side === 'ally')); },
     loadout:{init:RUN.loadouts || {}, save:lo => { RUN.loadouts = {...lo}; }, hide:(u, w) => !!(u.awakenSwap && Object.values(u.awakenSwap).includes(w.name)),
-      note:'★ 是 Lv20 大招。宗介 U7 的 λ 武器不能直接带：λ 觉醒后，带上的单分子刀会变成隔空 λ 拳、散弹炮变成 λ 驱动·散弹炮（仍算 2 个武装）。'},
+      note:'★ 是 Lv20 大招。宗介 U7 的 λ 武器不能直接带：λ 觉醒后，带上的单分子刀会变成隔空 λ 拳、散弹炮变成 λ 驱动·散弹炮。'},
     ...(obj === 'survive' ? {victory:{type:'survive', turns:SURVIVE_TURNS}, goalText:`坚守 ${SURVIVE_TURNS} 回合（撑到第 ${SURVIVE_TURNS + 1} 回合我方阶段）。敌人每 2 回合从右侧增援，打不完也没关系`,
           respawn:{every:2, lv, list:t => [...tierPick(Math.random, null, '杂兵', 2 + st.layer), ...(t >= 5 ? tierPick(Math.random, null, '精锐', 1) : [])]}}
       : obj === 'targets' ? {victory:{type:'targets'}, goalText:`斩首：击破所有标 ★ 的头目（${enemies.filter(e => e.target).length} 台）。杂兵${st.layer >= 2 ? '每回合' : '每 2 回合'}增援`,
