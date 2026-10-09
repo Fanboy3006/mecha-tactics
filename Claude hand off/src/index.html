@@ -1850,7 +1850,7 @@ const ABIL = {
   longShot:{name:'狙击之王', desc:'目标距离 6 格以上时，命中 +20、暴击 +20。'},
   squadLead:{name:'小队长', desc:'光环：3 格内其他友军暴击 +10。'},
   falke:{name:'冷血', desc:'侧击 / 背击时，伤害 +20%。'},
-  maoNet:{name:'指挥网络', desc:'以自己为中心 5×5 是指挥范围（地图上青色框）。范围内的敌机：克鲁兹的射击无视障碍物；宗介每次攻击它们，克鲁兹都会跟着支援射击（射程够就打，不占克鲁兹每回合 1 次的援护攻击）。'},
+  maoNet:{name:'指挥网络', desc:'以自己为中心 5×5 是指挥范围（地图上青色框）。范围内的敌机：克鲁兹的射击无视障碍物；宗介或毛自己每次攻击它们，克鲁兹都会跟着支援射击（射程够就打，不占克鲁兹每回合 1 次的援护攻击）。'},
   falkeHunt:{name:'猎鹰', lv:20, desc:'（Lv20）侧击 / 背击时命中 +15；Lv30 起 +25。'},
   ecs:{name:'ECS 隐形', desc:'本回合还没有攻击过（包括反击）时，3 格以外的敌机不能把它选为目标。'},
   iaiSnipe:{name:'居合', desc:'本回合没有移动时，直射命中 +15；用近战武器反击时，伤害 +30%。'},
@@ -2271,7 +2271,7 @@ const ALLY_T = [
   ]},
   /* 克鲁兹 / 梅丽莎·毛 / 克鲁佐 / 杨（v0.40.13 角色对话按势力重设计，作者 10-08 定）
      秘银只做一个三人联动：毛的特技「指挥网络」——以她为中心 5×5 内的敌机，克鲁兹的射击无视障碍物；
-     宗介每次攻击这些敌机，克鲁兹都会跟着支援射击（不占他每回合 1 次的援护攻击）。
+     宗介或毛自己每次攻击这些敌机，克鲁兹都会跟着支援射击（不占他每回合 1 次的援护攻击）。
      宗介精锐；毛、克鲁兹骨干；克鲁佐、杨普通。五个人都不能飞。 */
   {pilot:'克鲁兹', mech:'U6', short:'U6', mechName:'M9·狙击', trait:'longShot', tags:{势力:'秘银', 远近分类:'远程', 战斗分类:'狙击'}, hp:3800, armor:200, eva:20, mov:5, melee:90, shoot:175, defense:75, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'76mm 狙击炮', power:2550, fire:'direct', range:[3,9], hit:120, afterMove:false}),
@@ -2961,9 +2961,9 @@ const TRIALS = {
   A3:{e:['grunt','grunt','grunt','hound','hound','stealth'], cluster:true, mates:['A1'], hint:'烟雾弹：点地图放一块 3×3 烟雾，持续 3 回合；从烟雾里开火、或者打烟雾里的目标，命中 −30（敌我都算）。把烟雾丢在敌群上，敌人打不中、我们也打不中——响介的大招冷却会掉得飞快。拉米亚同时属于 ATX 和影世界。'},
   A4:{e:['berserker','raider','grunt','tank'], mates:['A5'], hint:'每回合第一次主动攻击伤害 +25%（热血）；替库斯哈援护挡刀。Lv20 被动「暗剑杀之心」：近战伤害 +20%、暴击 +10。'},
   A5:{e:['mirror','phase','beamcoat','grunt'], mates:['A1','A4'], hurt:true, hint:'念动迷彩：3 格内敌机命中 −10。修理量 +50%，但饮料太难喝，喝完闪避 −10。龙雷闪是特殊伤害。Lv20 被动「念动共鸣」：每个我方阶段开始时 3 格内友军回复 10%。'},
-  U7:{e:['venom','mirror','beamcoat','phase','skyfort'], mates:['U2','U6'], hint:'和毛、克鲁兹一起出击：毛身边 5×5（青色虚线框）里的敌人，宗介每攻击一次，克鲁兹都会自动支援射击。Lv20 解锁λ力场护盾（4000，每个己方阶段回满），同时解锁隔空 λ 拳。λ 力场被完全击破 2 次后「λ 觉醒」：所有 λ 武器 0 CD，单分子刀升级为 λ 单分子刀（特殊伤害）。λ 驱动·散弹炮是特殊伤害，只会被护盾类效果抵消；λ 试作机和空中要塞都有护盾。Lv30 解锁「λ 驱动·极限放出」。'},
-  U6:{e:['grunt','grunt','artillery','sniper'], mates:['U2','U7'], feat:'ridge', hint:'梅丽莎·毛（Lv10 起）身边 5×5 是指挥范围（青色虚线框）：范围里的敌人，克鲁兹的射击无视障碍物，隔着山脊也能打；宗介每打它们一次，克鲁兹都会跟着支援射击。目标距离 6 格以上时命中、暴击 +20（狙击之王）。'},
-  U2:{e:['grunt','grunt','raider','artillery','shield'], mates:['U7','U6'], feat:'ridge', hint:'指挥网络：毛身边 5×5（青色虚线框）里的敌人，克鲁兹打它们无视障碍物；宗介每次攻击它们，克鲁兹自动支援射击（不占援护攻击次数）。所以让毛压上去、把敌人框进来。Lv20 标定射击：命中后挂 −20% 破防。'},
+  U7:{e:['venom','mirror','beamcoat','phase','skyfort'], mates:['U2','U6'], hint:'和毛、克鲁兹一起出击：毛身边 5×5（青色虚线框）里的敌人，宗介或毛每攻击一次，克鲁兹都会自动支援射击。Lv20 解锁λ力场护盾（4000，每个己方阶段回满），同时解锁隔空 λ 拳。λ 力场被完全击破 2 次后「λ 觉醒」：所有 λ 武器 0 CD，单分子刀升级为 λ 单分子刀（特殊伤害）。λ 驱动·散弹炮是特殊伤害，只会被护盾类效果抵消；λ 试作机和空中要塞都有护盾。Lv30 解锁「λ 驱动·极限放出」。'},
+  U6:{e:['grunt','grunt','artillery','sniper'], mates:['U2','U7'], feat:'ridge', hint:'梅丽莎·毛（Lv10 起）身边 5×5 是指挥范围（青色虚线框）：范围里的敌人，克鲁兹的射击无视障碍物，隔着山脊也能打；宗介或毛每打它们一次，克鲁兹都会跟着支援射击。目标距离 6 格以上时命中、暴击 +20（狙击之王）。'},
+  U2:{e:['grunt','grunt','raider','artillery','shield'], mates:['U7','U6'], feat:'ridge', hint:'指挥网络：毛身边 5×5（青色虚线框）里的敌人，克鲁兹打它们无视障碍物；宗介或毛自己每次攻击它们，克鲁兹自动支援射击（不占援护攻击次数）。所以让毛压上去、把敌人框进来。Lv20 标定射击：命中后挂 −20% 破防。'},
   U1:{e:['grunt','raider','shield','artillery'], mates:['U2'], hint:'侧击 / 背击时伤害 +20%（冷血）；Lv20「猎鹰」侧击 / 背击命中再 +15。先让毛把敌人的注意力引过去，再绕到侧面或背后。'},
   U8:{e:['sniper','artillery','funnel','grunt'], mates:['U6'], hint:'这一回合还没开火时，3 格外的敌人选不中杨（ECS）。Lv20 被动「激光引导」：自己和 3 格内友军命中 +10。'},
 };
@@ -4035,14 +4035,14 @@ Hooks.on('strikeResolved', c => {
 /* ===== 秘银（v0.40.13） ===== */
 /* 梅丽莎·毛「指挥网络」（Lv10 特技）：以她为中心 5×5（切比雪夫距离 ≤ MAO_R）是指挥范围。范围内的敌机：
    - 克鲁兹（MAO_LINK.sight）的直射无视障碍物（13 的 canHit 读 ignoresLos）；
-   - 宗介（MAO_LINK.striker）每次主动攻击它们、目标没被击破时，克鲁兹（MAO_LINK.support）跟着支援射击：
+   - 宗介和毛自己（MAO_LINK.striker，作者 10-08 补充）每次主动攻击它们、目标没被击破时，克鲁兹（MAO_LINK.support）跟着支援射击：
      自动选期望伤害最高、射程够得着的武器，不弹窗，也不占他每回合 1 次的援护攻击（18 的 supportAttack 开头调 linkSupport）。 */
-const MAO_R = 2, MAO_LINK = {sight:['U6'], striker:'U7', support:'U6'};
+const MAO_R = 2, MAO_LINK = {sight:['U6'], striker:['U7','U2'], support:'U6'};
 const maoUnits = side => units.filter(m => m.side === side && m.hp > 0 && hasTrait(m, 'maoNet'));
 const inMaoZone = (t, side) => maoUnits(side).some(m => tilesOf(t).some(([x, y]) => Math.max(Math.abs(x - m.x), Math.abs(y - m.y)) <= MAO_R));
 const ignoresLos = (u, t) => !!u && !!t && t.side !== u.side && MAO_LINK.sight.includes(u.mech) && inMaoZone(t, u.side);
 async function linkSupport(att, t){
-  if (att.mech !== MAO_LINK.striker || t.hp <= 0 || !inMaoZone(t, att.side)) return;
+  if (!MAO_LINK.striker.includes(att.mech) || t.hp <= 0 || !inMaoZone(t, att.side)) return;
   const s = units.find(k => k.mech === MAO_LINK.support && k.side === att.side && k.hp > 0 && !k.stunned && !k.disarmed);
   if (!s) return;
   const ws = s.weapons.filter(w => SUPPORT_FIRES.includes(w.fire) && !w.special?.match?.(/lock|gamble/) && !wStatus(s, w, {counter:true}) && canHit(s, w, t))
@@ -7422,7 +7422,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.40.14';
+const GAME_VERSION = 'v0.40.15';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){

@@ -1,4 +1,4 @@
-/* v0.40.13 秘银重设计（角色对话）：毛「指挥网络」5×5——克鲁兹无视障碍物、宗介攻击时克鲁兹自动支援射击（不占援护次数）；档位；全员不能飞 */
+/* v0.40.13 秘银重设计（角色对话）：毛「指挥网络」5×5——克鲁兹无视障碍物、宗介或毛攻击时克鲁兹自动支援射击（不占援护次数）；档位；全员不能飞 */
 const { chromium } = require('playwright');
 const fs = require('fs');
 (async () => {
@@ -36,6 +36,8 @@ const fs = require('fs');
     const hp1 = far.hp; Math.random = () => 0; await C.linkSupport(sou, far); Math.random = R;
     out.noLinkFar = far.hp === hp1;
     const hp2 = foe.hp; await C.linkSupport(kurz, foe); out.onlySousuke = foe.hp === hp2;
+    const hp3 = foe.hp; Math.random = () => 0; await C.linkSupport(mao, foe); Math.random = R; out.maoLink = foe.hp < hp3;
+    const yang = A('U8', 9, 5), hp4 = foe.hp; await C.linkSupport(yang, foe); out.notOthers = foe.hp === hp4;
     // Lv10 前毛的特技没解锁
     us.length = 0;
     const m9 = A('U2', 10, 6, 9), f9 = E('grunt', 11, 6);
@@ -49,7 +51,9 @@ const fs = require('fs');
   check('克鲁兹打毛范围里的敌人无视障碍物', r.sight === true);
   check('宗介攻击范围里的敌人 → 克鲁兹自动支援射击，不占援护次数', r.link === true);
   check('范围外的敌人不触发', r.noLinkFar === true);
-  check('只有宗介的攻击会触发', r.onlySousuke === true);
+  check('克鲁兹自己的攻击不触发', r.onlySousuke === true);
+  check('毛自己攻击范围里的敌人也触发克鲁兹支援', r.maoLink === true);
+  check('其他人（杨）的攻击不触发', r.notOthers === true);
   check('毛 Lv10 前没有指挥网络', r.lv9 === true);
   console.log('ERRS', JSON.stringify(errs));
   await b.close();

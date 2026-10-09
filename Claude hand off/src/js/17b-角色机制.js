@@ -92,14 +92,14 @@ Hooks.on('strikeResolved', c => {
 /* ===== 秘银（v0.40.13） ===== */
 /* 梅丽莎·毛「指挥网络」（Lv10 特技）：以她为中心 5×5（切比雪夫距离 ≤ MAO_R）是指挥范围。范围内的敌机：
    - 克鲁兹（MAO_LINK.sight）的直射无视障碍物（13 的 canHit 读 ignoresLos）；
-   - 宗介（MAO_LINK.striker）每次主动攻击它们、目标没被击破时，克鲁兹（MAO_LINK.support）跟着支援射击：
+   - 宗介和毛自己（MAO_LINK.striker，作者 10-08 补充）每次主动攻击它们、目标没被击破时，克鲁兹（MAO_LINK.support）跟着支援射击：
      自动选期望伤害最高、射程够得着的武器，不弹窗，也不占他每回合 1 次的援护攻击（18 的 supportAttack 开头调 linkSupport）。 */
-const MAO_R = 2, MAO_LINK = {sight:['U6'], striker:'U7', support:'U6'};
+const MAO_R = 2, MAO_LINK = {sight:['U6'], striker:['U7','U2'], support:'U6'};
 const maoUnits = side => units.filter(m => m.side === side && m.hp > 0 && hasTrait(m, 'maoNet'));
 const inMaoZone = (t, side) => maoUnits(side).some(m => tilesOf(t).some(([x, y]) => Math.max(Math.abs(x - m.x), Math.abs(y - m.y)) <= MAO_R));
 const ignoresLos = (u, t) => !!u && !!t && t.side !== u.side && MAO_LINK.sight.includes(u.mech) && inMaoZone(t, u.side);
 async function linkSupport(att, t){
-  if (att.mech !== MAO_LINK.striker || t.hp <= 0 || !inMaoZone(t, att.side)) return;
+  if (!MAO_LINK.striker.includes(att.mech) || t.hp <= 0 || !inMaoZone(t, att.side)) return;
   const s = units.find(k => k.mech === MAO_LINK.support && k.side === att.side && k.hp > 0 && !k.stunned && !k.disarmed);
   if (!s) return;
   const ws = s.weapons.filter(w => SUPPORT_FIRES.includes(w.fire) && !w.special?.match?.(/lock|gamble/) && !wStatus(s, w, {counter:true}) && canHit(s, w, t))
