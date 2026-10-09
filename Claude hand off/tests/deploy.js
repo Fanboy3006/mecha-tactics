@@ -57,9 +57,9 @@ const fs = require('fs');
       const any = H()[0];
       out.relay = g.RELAYS.has(sc.uid) && !!any && g.deployTiles(any).some(q => Math.abs(q.x - sc.x) + Math.abs(q.y - sc.y) <= 2);
     }
-    // v0.39.2 全图部署（迪奥 W2 试玩）：部署格远多于普通机体，且不在敌方控制区
+    // v0.39.2 全图部署（迪奥 W2 试玩；v0.40.19 起流星小队五人都有，对照组要挑没有全图部署的机体）：部署格远多于普通机体，且不在敌方控制区
     const duo = g.makeUnit(g.data.ALLY_T.find(t => t.mech === 'W2'), 'ally', 0, 0); H().push(duo);
-    const dt = g.deployTiles(duo), nt = g.deployTiles(H().find(u => u !== duo && u.w === 1 && u.h === 1) || nxt), zs = g.zocSet(duo);
+    const dt = g.deployTiles(duo), nt = g.deployTiles(H().find(u => u !== duo && u.w === 1 && u.h === 1 && !u.abilities.includes('globalDeploy')) || nxt), zs = g.zocSet(duo);
     out.global = duo.abilities.includes('globalDeploy') && dt.length > nt.length * 3 && !dt.some(q => zs.has(q.y*40 + q.x));
     H().splice(H().indexOf(duo), 1);
     // 场上清空但机库有人：不判负

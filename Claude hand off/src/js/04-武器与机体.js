@@ -133,53 +133,45 @@ const ALLY_T = [
     wp({name:'光束步枪', power:1400, fire:'direct', range:[1,5], dmgType:'光束'}),
     wp({name:'光束军刀', power:1300, stat:'格斗', fire:'melee', dmgType:'光束'}),
   ]},
-  /* ---- 预防者（高达 W） ---- */
-  {pilot:'希罗', mech:'W1', short:'W1', mechName:'飞翼零式', trait:'zero', canFly:true, tags:{势力:'预防者', 远近分类:'远程', 战斗分类:'狙击'}, hp:5000, armor:600, eva:30, mov:7, melee:140, shoot:170, flying:true, w:1, h:1, abilities:[], weapons:[
+  /* ---- 流星小队（高达 W；v0.40.19 角色对话按势力重设计，作者 10-08 定：原「预防者」改名，杰克斯、诺茵暂时删除，五人、不要辅助） ----
+     五个驾驶员各自潜入、各自为战：全员「单独行动」（2 格内没有友军时伤害 +20%、闪避 +15），全员可以全图部署（24b 的 GLOBAL_DEPLOY）。
+     希罗精锐（ZERO 系统：命中、闪避 +15，暴击 ×2.5）；迪奥、特洛瓦、卡托尔、五飞骨干。五飞是拉人的角色（龙爪 1–4 格、拉近 3 格，配合「正义」一对一增伤）。 */
+  {pilot:'希罗', mech:'W1', short:'W1', mechName:'飞翼零式', trait:'zero', canFly:true, tags:{势力:'流星小队', 远近分类:'远程', 战斗分类:'狙击'}, hp:5000, armor:600, eva:30, mov:7, melee:140, shoot:170, flying:true, w:1, h:1, abilities:['loneWolf'], weapons:[
     wp({name:'光束军刀', power:2550, stat:'格斗', fire:'melee', dmgType:'光束'}),
     wp({name:'破坏步枪（单发）', power:3100, fire:'direct', range:[2,6], cd:1, dmgType:'光束'}),
     wp({name:'机枪', power:1200, fire:'direct', range:[1,2]}),
-    wp({name:'双联破坏步枪', power:3700, statMul:1.2, fire:'map', shape:'line', len:9, afterMove:false, cd:3, unlock:20, dmgType:'光束',
-        upgrades:[{lv:30, width:3, note:'Lv30：光束宽 3 格'}], desc:'选 8 个方向之一，直线 9 格内的所有单位（包括友军）受到攻击。自己不移动。'}),
+    wp({name:'双联破坏步枪', power:3700, statMul:1.2, fire:'map', shape:'line', len:6, width:3, afterMove:false, cd:3, unlock:20, dmgType:'光束',
+        desc:'选 8 个方向之一，宽 3 格、长 6 格（共 18 格，斜着放也连成一片）内的所有单位（包括友军）受到攻击。自己不移动。'}),
   ]},
-  {pilot:'迪奥', mech:'W2', short:'W2', mechName:'死神', trait:'hyperJammer', tags:{势力:'预防者', 远近分类:'近战', 战斗分类:'近卫'}, hp:4600, armor:500, eva:35, mov:6, melee:165, shoot:110, flying:false, w:1, h:1, abilities:[], weapons:[
-    wp({name:'光束镰刀', power:2900, stat:'格斗', fire:'melee', critMod:15, dmgType:'光束'}),
-    wp({name:'头部火神炮', power:800, fire:'direct', range:[1,2]}),
-    wp({name:'死神镰刀·斩首', power:3400, statMul:1.2, v37:true, stat:'格斗', fire:'melee', special:'execute', exec:25, cd:2, unlock:20, dmgType:'光束',
+  {pilot:'迪奥', mech:'W2', short:'W2', mechName:'死神', trait:'hyperJammer', tags:{势力:'流星小队', 远近分类:'近战', 战斗分类:'近卫'}, hp:4600, armor:500, eva:35, mov:6, melee:165, shoot:110, defense:95, flying:false, w:1, h:1, abilities:['loneWolf'], weapons:[
+    wp({name:'光束镰刀', power:2300, stat:'格斗', fire:'melee', range:[1,2], critMod:15, dmgType:'光束'}),
+    wp({name:'头部火神炮', power:1100, fire:'direct', range:[1,2]}),
+    wp({name:'死神镰刀·斩首', power:3400, statMul:1.2, stat:'格斗', fire:'melee', special:'execute', exec:25, cd:2, unlock:20, dmgType:'光束',
         upgrades:[{lv:30, exec:35, note:'Lv30：斩首线 35%'}], desc:'斩首：命中后如果目标剩余 HP 不超过最大 HP 的 25%，直接击破。'}),
   ]},
-  {pilot:'特洛瓦', mech:'W3', short:'W3', mechName:'重武装', trait:'silentBlade', tags:{势力:'预防者', 远近分类:'远程', 战斗分类:'重装'}, hp:5600, armor:800, eva:25, mov:5, melee:110, shoot:165, flying:false, w:1, h:1, abilities:[], weapons:[
-    wp({name:'双联加特林', power:500, fire:'direct', range:[1,4], special:'multi', hits:8, step:5,
-        desc:'连续 8 段判定，首段命中 100，命中后 −5、未中后 +5；每段 500 + 射击×5÷10，正常经过减免。'}),
+  {pilot:'特洛瓦', mech:'W3', short:'W3', mechName:'重武装', trait:'silentBlade', tags:{势力:'流星小队', 远近分类:'远程', 战斗分类:'重装'}, hp:5600, armor:800, eva:25, mov:5, melee:110, shoot:165, defense:110, flying:false, w:1, h:1, abilities:['loneWolf'], weapons:[
+    wp({name:'双联加特林', power:600, fire:'direct', range:[1,4], special:'multi', hits:8, step:5,
+        desc:'连续 8 段判定，首段命中 100，命中后 −5、未中后 +5；每段都扣装甲。'}),
     wp({name:'胸部加特林', power:1200, fire:'direct', range:[1,2]}),
     wp({name:'微型导弹', power:1600, fire:'indirect', range:[2,5], uses:3}),
     wp({name:'军刀', power:1200, stat:'格斗', fire:'melee'}),
-    wp({name:'全弹发射', power:3400, statMul:1.2, v37:true, fire:'map', shape:'burst', rad:3, iff:true, afterMove:false, uses:1, unlock:20,
+    wp({name:'全弹发射', power:3400, statMul:1.2, fire:'map', shape:'burst', rad:3, iff:true, afterMove:false, uses:1, unlock:20,
         upgrades:[{lv:30, rad:4, note:'Lv30：半径 4'}], desc:'以自身为中心，3 格内的所有敌机受到攻击（敌我识别）。每场 1 次。'}),
   ]},
-  {pilot:'卡托尔', mech:'W4', short:'W4', mechName:'沙漠', trait:'spaceHeart', tags:{势力:'预防者', 远近分类:'近战', 战斗分类:'指挥'}, hp:6000, armor:900, eva:20, mov:5, melee:140, shoot:120, flying:false, w:1, h:1, abilities:[], weapons:[
-    wp({name:'热能双刀', power:2500, stat:'格斗', fire:'melee'}),
+  {pilot:'卡托尔', mech:'W4', short:'W4', mechName:'沙漠', trait:'spaceHeart', tags:{势力:'流星小队', 远近分类:'近战', 战斗分类:'近卫'}, hp:6000, armor:900, eva:20, mov:5, melee:150, shoot:120, defense:95, flying:false, w:1, h:1, abilities:['loneWolf'], weapons:[
+    wp({name:'热能双刀', power:2300, stat:'格斗', fire:'melee', range:[1,2]}),
     wp({name:'光束机枪', power:1300, fire:'direct', range:[1,3], dmgType:'光束'}),
-    wp({name:'十字粉碎', power:3000, stat:'格斗', fire:'melee', critMod:10, cd:2}),
-    wp({name:'马格纳克队支援', fire:'support', range:[0,4], buff:{hit:10, dmg:15}, cd:2, unlock:20, startCd:2, dmgType:'—',
-        upgrades:[{lv:30, range:[0,6], note:'Lv30：范围 6'}], desc:'4 格内的其他友军命中 +10、伤害 +15%，持续到下一个我方阶段开始。'}),
+    wp({name:'十字粉碎', power:2800, stat:'格斗', fire:'melee', range:[1,2], critMod:10, cd:2}),
+    wp({name:'沙漠之心·十字连斩', power:4500, statMul:1.2, stat:'格斗', fire:'melee', range:[1,2], critMod:15, cd:2, unlock:20,
+        desc:'热能双刀交叉斩落的全力一击。'}),
   ]},
-  {pilot:'五飞', mech:'W5', short:'W5', mechName:'双头龙', trait:'justice', tags:{势力:'预防者', 远近分类:'近战', 战斗分类:'近卫'}, hp:5200, armor:800, eva:25, mov:6, melee:170, shoot:110, flying:false, w:1, h:1, abilities:[], weapons:[
-    wp({name:'光束偃月刀', power:2700, stat:'格斗', fire:'melee', dmgType:'光束'}),
-    wp({name:'龙爪', power:2000, stat:'格斗', fire:'melee', range:[1,2], special:'pull', pull:1,
-        desc:'命中后把目标向自己拉近 1 格（被挡住就不动）。'}),
-    wp({name:'火焰喷射器', power:1500, fire:'direct', range:[1,2]}),
-    wp({name:'双头龙·龙卷', power:1450, statMul:1.2, v37:true, stat:'格斗', fire:'melee', hit:95, special:'multi', hits:6, step:10, cd:2, unlock:20, dmgType:'光束',
+  {pilot:'五飞', mech:'W5', short:'W5', mechName:'双头龙', trait:'justice', tags:{势力:'流星小队', 远近分类:'近战', 战斗分类:'近卫'}, hp:5200, armor:800, eva:25, mov:6, melee:170, shoot:110, defense:95, flying:false, w:1, h:1, abilities:['loneWolf'], weapons:[
+    wp({name:'龙爪', power:1800, stat:'格斗', fire:'melee', range:[1,4], special:'pull', pull:3, upgrades:[{lv:20, range:[1,5], note:'Lv20：射程 1–5'}],
+        desc:'伸长的龙头把 4 格内的目标抓过来：命中后拉近最多 3 格（被挡住就停下）。把敌人从人堆里拖出来，再用「正义」一对一。'}),
+    wp({name:'光束偃月刀', power:2200, stat:'格斗', fire:'melee', range:[1,2], dmgType:'光束'}),
+    wp({name:'火焰喷射器', power:1400, fire:'direct', range:[1,2]}),
+    wp({name:'双头龙·龙卷', power:1450, statMul:1.2, stat:'格斗', fire:'melee', hit:95, special:'multi', hits:6, step:10, cd:2, unlock:20, dmgType:'光束',
         desc:'连续 6 段判定，首段命中 95，命中后 −10、未中后 +10；每段都扣装甲；大招：格斗 ×1.2。'}),
-  ]},
-  {pilot:'杰克斯', mech:'W6', short:'W6', mechName:'艾比安', trait:'lightning', canFly:true, tags:{势力:'预防者', 远近分类:'近战', 战斗分类:'特种'}, hp:5500, armor:700, eva:30, mov:7, melee:175, shoot:120, flying:true, w:1, h:1, abilities:[], weapons:[
-    wp({name:'光束剑', power:3200, stat:'格斗', fire:'melee', dmgType:'光束'}),
-    wp({name:'热能鞭', power:1800, stat:'格斗', fire:'melee', range:[1,3], critMod:-10}),
-    wp({name:'光束剑·横扫', power:2800, statMul:1.2, v37:true, stat:'格斗', fire:'map', shape:'burst', rad:2, iff:true, cd:2, unlock:20, dmgType:'光束',
-        desc:'以自身为中心，2 格内的所有敌机受到攻击（敌我识别）。可以移动后使用。'}),
-  ]},
-  {pilot:'诺茵', mech:'W7', short:'W7', mechName:'金牛座', trait:'hitAway', canFly:true, tags:{势力:'预防者', 远近分类:'远程', 战斗分类:'尖兵'}, hp:4200, armor:300, eva:35, mov:8, melee:110, shoot:135, flying:true, w:1, h:1, abilities:[], weapons:[
-    wp({name:'光束步枪', power:1500, fire:'direct', range:[1,5], dmgType:'光束'}),
-    wp({name:'机炮', power:900, fire:'direct', range:[1,2]}),
   ]},
   /* ---- ATX 小队（机战 OG） ---- */
   /* ===== ATX 小队（v0.40.11 角色对话按势力重设计，作者 10-08 定） =====
@@ -287,7 +279,7 @@ const PROMO_WEAPONS = {
    大招倍率 statMul：Lv20 大招 ×1.2、Lv30 大招 ×1.5（大招随等级成长更快）；
    觉醒系大招（门之力、TRANS-AM、量子化、λ 驱动、满月）改用「属性 + 觉醒」，不再乘 statMul。觉醒初值：雷萨 140、Feena 150、刹那 130、宗介 130、洛克昂 110，其他 100。
    开场冷却 startCd：Lv20 大招默认 3；Lv30 大招 4；传送斩 2；被动（残月的余响、月华再生）0；增益类（八咫之守、马格纳克队支援）2。 */
-const NEW_FORMULA = ['CB2','CB3','CB4','CB5','B1','M1','M2','M3','M4','M5','A1','A2','A3','A4','A5','U1','U2','U6','U7','U8','CB1','S1','W1'];   // v0.40.13 秘银整体按新公式重写   // v0.40.11 ATX 整体按新公式重写   // v0.40.10 月球王国整体按新公式重写
+const NEW_FORMULA = ['W2','W3','W4','W5','CB2','CB3','CB4','CB5','B1','M1','M2','M3','M4','M5','A1','A2','A3','A4','A5','U1','U2','U6','U7','U8','CB1','S1','W1'];   // v0.40.13 秘银整体按新公式重写   // v0.40.11 ATX 整体按新公式重写   // v0.40.10 月球王国整体按新公式重写
 ALLY_T.forEach(t => {
   if (PROMO_WEAPONS[t.mech]) t.weapons.push(...PROMO_WEAPONS[t.mech]);
   if (NEW_FORMULA.includes(t.mech)) t.weapons.forEach(w => { w.v37 = true; });
@@ -311,7 +303,7 @@ ALLY_T.forEach(t => {
   /* v0.35.1 档位保底（作者：我方精锐 10 级就该是第一档，骨干也要部分加强）。
      按 Lv10 对第 1 层杂兵的平均伤害算：精锐保底约 6000、骨干约 4500（近卫有压制杂兵、Feena 另算，不在表里）。
      倍率 = 保底 ÷ 现值，最多 ×1.8；作用于该角色全部非地图炮武装（含 Lv20 / Lv30），保持档位成长。 */
-  const TIER_FLOOR = {B2:1.6, W4:1.12};
+  const TIER_FLOOR = {B2:1.6};
   if (TIER_FLOOR[t.mech]) t.weapons.forEach(w => { if (w.power > 0 && w.fire !== 'map' && !w.v37) w.power = Math.round(w.power * TIER_FLOOR[t.mech]); });   // v0.40.4 拉克丝、宗介、希罗已按新公式重写，移出本表
   if (t.mech === 'CB1'){ t.canFly = true; t.critBase = 15; t.weapons.forEach(w => { if (w.fire !== 'map' && w.range[1] < 3) w.range = [w.range[0], 3]; }); }
   if (t.mech === 'B1') t.weapons.forEach(w => { if (w.unlock <= 1 && w.fire === 'melee') w.range = [w.range[0], 4]; });

@@ -18,7 +18,7 @@ function bar(lbl, v, m){
   const r = v/m;
   return `<div class="barrow"><span class="lbl">${lbl}</span><div class="track"><div class="fill ${r <= .25 ? 'low' : r <= .5 ? 'mid' : ''}" style="width:${Math.round(r*100)}%"></div></div><span class="num">${v}/${m}</span></div>`;
 }
-const FACTION_COL = {'影世界':'#8a6bd8', '月球王国':'#9fb7d8', '天人':'#4fc3a1', '克莱因派':'#e88fb4', '预防者':'#f2c14e', 'ATX':'#e9e7e2', '秘银':'#7d9a58'};   // 和 art/mech-icons.js 的 PAL 底色保持一致（v0.19 DSH 定稿）
+const FACTION_COL = {'影世界':'#8a6bd8', '月球王国':'#9fb7d8', '天人':'#4fc3a1', '克莱因派':'#e88fb4', '流星小队':'#f2c14e', 'ATX':'#e9e7e2', '秘银':'#7d9a58'};   // 和 art/mech-icons.js 的 PAL 底色保持一致（v0.19 DSH 定稿）
 const PT = {};
 const ptKey = m => 'mecha-tactics-portrait-' + m;
 function loadPortrait(m){

@@ -26,12 +26,12 @@ function mapDirs(u, w){
       for (let k=1; k<=len; k++){
         const cx = u.x+dx*k, cy = u.y+dy*k;
         path.push([cx,cy]);
-        if (width >= 3){ path.push([cx-dy, cy+dx]); path.push([cx+dy, cy-dx]); }
+        if (width >= 3){ if (dx && dy){ path.push([cx-dx, cy]); path.push([cx, cy-dy]); } else { path.push([cx-dy, cy+dx]); path.push([cx+dy, cy-dx]); } }   // v0.40.19 斜向宽 3：每步补上两侧相邻格，18 格连成一片（作者 10-08）
       }
       const inP = path.filter(([x,y]) => inb(x,y));
       return {dx, dy, arrow, path:inP, land:null, ok:inP.length > 0, hit:unitsOnTiles(inP, u, w)};
     }
-    const path = [1,2,3,4].map(k => [u.x+dx*k, u.y+dy*k]);
+    const path = [1,2,3,4].flatMap(k => dx && dy ? [[u.x+dx*k, u.y+dy*(k-1)], [u.x+dx*k, u.y+dy*k]] : [[u.x+dx*k, u.y+dy*k]]);   // v0.40.19 斜向冲刺：每步补一格，路径连成一片（作者 10-08）
     const land = [u.x+dx*5, u.y+dy*5];
     const ok = inb(...land) && canStand(u, ...land);
     return {dx, dy, arrow, path, land, ok, hit: ok ? unitsOnTiles(path, u, w) : []};

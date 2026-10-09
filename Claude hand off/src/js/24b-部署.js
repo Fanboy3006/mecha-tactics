@@ -9,7 +9,7 @@
 let HANGAR = [];
 const RELAYS = new Map();   // 尖兵 uid → {x, y}
 const RELAY_R = 2, RETREAT_R = 4;
-const GLOBAL_DEPLOY = ['W2'];   // 全图部署名单（试玩）。正式给谁由角色对话定
+const GLOBAL_DEPLOY = ['W1','W2','W3','W4','W5'];   // 全图部署名单：v0.40.19 角色对话定为流星小队五人（作者 10-08）
 ALLY_T.forEach(t => { if (GLOBAL_DEPLOY.includes(t.mech) && !t.abilities.includes('globalDeploy')) t.abilities.push('globalDeploy'); });
 const hangarOn = () => !!(LV && LV.hangar);
 const fieldAllies = () => units.filter(u => u.side === 'ally' && u.hp > 0 && !u.commandOnly);

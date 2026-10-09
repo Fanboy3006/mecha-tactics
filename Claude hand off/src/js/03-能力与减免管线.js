@@ -37,7 +37,8 @@ const ABIL = {
   zero:{name:'ZERO 系统', desc:'命中 +15、闪避 +15；暴击伤害倍率由 ×1.2 变为 ×1.5。'},
   hyperJammer:{name:'超级干扰器', desc:'3 格以外的敌机不能把它选为目标；敌机不能反击它的攻击。'},
   silentBlade:{name:'沉默之刃', desc:'反击造成的伤害 +30%。'},
-  spaceHeart:{name:'宇宙之心', desc:'光环：3 格内其他友军闪避 +10。'},
+  spaceHeart:{name:'宇宙之心', desc:'感知敌意：3 格内每有 1 台敌机，自己闪避 +5（最多 +20）。'},
+  loneWolf:{name:'单独行动', desc:'（流星小队）身边 2 格内没有其他友军时，伤害 +20%、闪避 +15。'},
   justice:{name:'正义', desc:'目标 2 格内没有其他敌机（一对一）时，伤害 +25%。'},
   lightning:{name:'闪电伯爵', desc:'本回合移动了 3 格以上后发动的近战攻击，暴击 +30。'},
   hitAway:{name:'一击脱离', desc:'主动攻击后，可以用本回合剩下的移动力继续移动。'},
@@ -87,7 +88,7 @@ const ABIL = {
   superSoldier:{name:'超兵反射', lv:20, desc:'（Lv20）闪避 +15；Lv30 起 +25。'},
 };
 /* 普通档晋升被动挂在哪台机体上（月华再生本来就是被动武装，不在这里） */
-const PROMO_PASSIVE = {CB5:'gnArmsGuard', M2:'ironField', M4:'zanshin', S3:'lunaPower', S4:'shihoOver', S6:'jetLink', S7:'suppress', S8:'dataLink', W7:'pinDown', A4:'darkSword', A5:'psyRes', U1:'falkeHunt', U8:'laserGuide', CB3:'superSoldier'};
+const PROMO_PASSIVE = {CB5:'gnArmsGuard', M2:'ironField', M4:'zanshin', S3:'lunaPower', S4:'shihoOver', S6:'jetLink', S7:'suppress', S8:'dataLink', A4:'darkSword', A5:'psyRes', U1:'falkeHunt', U8:'laserGuide', CB3:'superSoldier'};
 const L30 = u => u.side === 'ally' && u.lv >= 30;
 /* 特技 / 能力的数值效果：hit / eva / crit / dmg（伤害%）/ red（减伤%）/ armorPct，可以是常数或函数 (自己, 对方, 武器, 选项)；aura 是光环 */
 const TRAIT_FX = {
@@ -100,7 +101,8 @@ const TRAIT_FX = {
   trio:{hit:u => 10 * trioN(u), eva:u => 10 * trioN(u)},
   zero:{hit:15, eva:15},
   silentBlade:{dmg:(u,d,w,o) => o && o.counter ? 30 : 0},
-  spaceHeart:{aura:{r:3, eva:10}},
+  spaceHeart:{eva:u => Math.min(20, 5 * foesNear(u, 3))},   // v0.40.19 流星小队不要辅助：改成自己用
+  loneWolf:{dmg:u => isAlone(u) ? 20 : 0, eva:u => isAlone(u) ? 15 : 0},   // v0.40.19 流星小队（17b）
   justice:{dmg:(u,d) => d && !units.some(e => e !== d && e.side === d.side && e.hp > 0 && distU(e, d) <= 2) ? 25 : 0},
   lightning:{crit:(u,d,w) => w && w.fire === 'melee' && (u.lastMove || 0) >= 3 ? 30 : 0},
   lucky:{eva:u => u.luckyPhase !== phaseNo ? 30 : 0},

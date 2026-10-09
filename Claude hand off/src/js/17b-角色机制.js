@@ -166,6 +166,11 @@ function purgeStun(u){
 /* 拉塞「GN 武装·护卫」（Lv20）：援护防御次数 +1（Lv30 +2）。16 在敌方阶段开始时重置次数，这里在它之后加上 */
 Hooks.on('phaseStart', c => { if (c.side === 'enemy') units.forEach(u => { if (u.side === 'ally' && abilOn(u, 'gnArmsGuard')) u.guardLeft += L30(u) ? 2 : 1; }); }, '拉塞「GN 武装·护卫」：援护防御次数 +1');
 
+/* ===== 流星小队（v0.40.19） ===== */
+/* 单独行动：身边 2 格内没有其他（活着的）友军时成立。03 的 TRAIT_FX.loneWolf 读它（伤害 +20%、闪避 +15）。 */
+const LONE_R = 2;
+const isAlone = u => !!u && !units.some(a => a !== u && a.side === u.side && a.hp > 0 && distU(a, u) <= LONE_R);
+
 /* 测试接口：角色机制的函数（tests/moon.js 等用；window.__game 归规则对话，所以单独挂一个） */
 window.__chars = {autoWeapon:u => autoWeapon(u), echoWeapon:u => echoWeapon(u), attackTilesOf, pickOf, setPick:k => { FEENA_PICK = k; }, canSwitchPick, chainStepOf, effMov, zocRadius,
-  strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d), smokeHit, inSmoke, evadeN, evadeCdCut, get SMOKES(){ return SMOKES; }, inMaoZone, ignoresLos, linkSupport:(a, t) => linkSupport(a, t), activateTA, taActive, taAfter, canTA, purgeStun, collideDmg};
+  strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d), smokeHit, inSmoke, evadeN, evadeCdCut, get SMOKES(){ return SMOKES; }, inMaoZone, ignoresLos, linkSupport:(a, t) => linkSupport(a, t), activateTA, taActive, taAfter, canTA, purgeStun, collideDmg, isAlone};
