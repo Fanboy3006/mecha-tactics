@@ -82,7 +82,7 @@ function dmgCore(att, w, def, o = {}){
     for (const r of REDUCTIONS){
       if (r.stage !== 2 || !r.applies(c)) continue;
       const v = r.def(c); if (!v) continue;
-      D += v; dn.push(`${r.name} +${v}`);
+      D += v; dn.push(`${r.name} ${v < 0 ? "−" + (-v) : "+" + v}`);   // v0.40.11 负数显示成 −20（交接第 3 条）
       if (r.id === 'beamReflect' && (w.fire === 'direct' || w.fire === 'melee')) c.reflectPts = v;
     }
     if (c.defMul < 1 && D){ D = Math.round(D * c.defMul); dn.push(`破防 ×${+c.defMul.toFixed(2)}`); }

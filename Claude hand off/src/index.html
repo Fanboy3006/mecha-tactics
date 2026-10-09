@@ -3425,7 +3425,7 @@ function dmgCore(att, w, def, o = {}){
     for (const r of REDUCTIONS){
       if (r.stage !== 2 || !r.applies(c)) continue;
       const v = r.def(c); if (!v) continue;
-      D += v; dn.push(`${r.name} +${v}`);
+      D += v; dn.push(`${r.name} ${v < 0 ? "−" + (-v) : "+" + v}`);   // v0.40.11 负数显示成 −20（交接第 3 条）
       if (r.id === 'beamReflect' && (w.fire === 'direct' || w.fire === 'melee')) c.reflectPts = v;
     }
     if (c.defMul < 1 && D){ D = Math.round(D * c.defMul); dn.push(`破防 ×${+c.defMul.toFixed(2)}`); }
@@ -7321,7 +7321,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.40.10';
+const GAME_VERSION = 'v0.40.11';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){

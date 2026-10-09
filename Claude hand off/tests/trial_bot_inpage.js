@@ -35,6 +35,8 @@ window.__bot = async function(levelId, maxTurns, lv){
       };
       const best = S.reach.slice().sort((a,b) => score(b) - score(a))[0];
       g.onTile(best.x, best.y);
+      for (let k = 0; k < 200 && S.mode === 'busy'; k++) await new Promise(r => setTimeout(r, 25));   // v0.40.11 路上挨敌方压制射击时移动是异步的，等它走完
+      if (!g.units.includes(u) || u.hp <= 0) continue;
       if (S.mode !== 'menu'){ continue; }
       document.querySelector('#actionCard [data-a="attack"]') && document.querySelector('#actionCard [data-a="attack"]').click();
       let done = false;
