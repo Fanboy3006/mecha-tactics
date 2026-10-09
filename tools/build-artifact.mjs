@@ -10,9 +10,11 @@
  * 仓库根目录的单文件版（双击就能玩）照旧由 build-src.mjs 生成，不受影响。
  *
  * 用法：node tools/build-src.mjs && node tools/build-artifact.mjs
- * 发布：Artifact 发布 dist/artifact/index.html，files = {art.js, game.js}，url 用试玩页链接，不传 capabilities。
+ * 发布：Artifact 发布 dist/artifact/index.html，files = {art.js, game.js, music/*.mp3}，url 用试玩页链接，不传 capabilities。
+ *       music/ 是 Suno 曲子（音乐对话，10-09 起），曲子没变时可以不传（发布时没列出的文件会保留）。
  * ========================================================================== */
-import { readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync, rmSync } from 'fs';
+import vm from 'vm';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -41,10 +43,30 @@ if (m0 < 0 || m1 < m0) fail('找不到游戏主脚本');
 const game = s.slice(m0 + '<script>\n'.length, m1).replace(/\n+$/, '') + '\n';
 s = s.slice(0, m0) + '<script src="game.js"></script>' + s.slice(m1 + '</script>'.length);
 
+/* 3. 音乐（音乐对话，作者 10-09）：Suno 曲子（audio/local-music.js 里带 id 的）复制成 music/<id>.mp3，页面改从那里读。
+      作者本地的版权曲没有 id，不复制、不发布。 */
+const AUDIO_MARK = '<!-- ===== AUDIO BEGIN';
+const music = [];
+if (s.includes(AUDIO_MARK) && existsSync(join(ROOT, 'audio', 'local-music.js'))){
+  const box = {window: {}}; box.globalThis = box;
+  vm.runInNewContext(readFileSync(join(ROOT, 'audio', 'local-music.js'), 'utf8'), box);
+  const T = (box.MechAudio && box.MechAudio.TRACKS) || {};
+  rmSync(join(OUT, 'music'), {recursive: true, force: true});
+  mkdirSync(join(OUT, 'music'), {recursive: true});
+  for (const n in T){
+    if (!T[n].id) continue;
+    const src = join(ROOT, 'audio', T[n].file);
+    if (!existsSync(src)) fail(`缺少曲子 audio/${T[n].file}`);
+    copyFileSync(src, join(OUT, 'music', T[n].id + '.mp3')); music.push(T[n].id);
+  }
+  s = s.replace(AUDIO_MARK, `<script>window.MECHA_MUSIC_BASE = 'music/'; window.MECHA_MUSIC_FLAT = true;</script>\n` + AUDIO_MARK);
+}
+
 if (/<script>(?![\s\S]*<\/script>)/.test(s)) fail('页面里还有没拆干净的内联脚本');
 mkdirSync(OUT, {recursive: true});
 writeFileSync(join(OUT, 'index.html'), s, 'utf8');
 writeFileSync(join(OUT, 'art.js'), art, 'utf8');
 writeFileSync(join(OUT, 'game.js'), game, 'utf8');
 const kb = t => (Buffer.byteLength(t) / 1024).toFixed(0) + ' KB';
-console.log(`✓ dist/artifact：index.html ${kb(s)} · art.js ${kb(art)} · game.js ${kb(game)}`);
+console.log(`✓ dist/artifact：index.html ${kb(s)} · art.js ${kb(art)} · game.js ${kb(game)}` + (music.length ? ` · music/ ${music.length} 首` : ''));
+if (music.length) console.log('  发布时 files 再加：' + music.map(id => `music/${id}.mp3`).join('、'));

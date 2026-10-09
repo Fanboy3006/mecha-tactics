@@ -29,12 +29,15 @@ const check = (ok, label, got) => { if (!ok) bad++; console.log(`${ok ? '✓' : 
 
     /* 主题曲：直接发事件 */
     const themeOf = code => p.evaluate(c => { const t = window.__game.data.ALLY_T.find(t => t.mech === c); return window.__audio.themeOf({side:'ally', mech:c}); }, code);
-    check(await themeOf('W1') === 'theme:流星小队BGM', '希罗 → 流星小队BGM', await themeOf('W1'));
-    check(await themeOf('A1') === 'theme:ATX小队音乐', '响介 → ATX小队音乐', await themeOf('A1'));
-    check(await themeOf('A3') === 'theme:ATX小队音乐', '拉米亚（双势力）按主势力 → ATX', await themeOf('A3'));
-    check(await themeOf('B1') === 'theme:主角音乐', '雷萨 → 主角音乐', await themeOf('B1'));
-    check(await themeOf('B2') === 'theme:影世界音乐', '蕾卡 → 影世界音乐', await themeOf('B2'));
-    check(await themeOf('M1') === null, 'Feena（月球王国）没有主题曲', await themeOf('M1'));
+    check(await themeOf('W1') === 'theme:Suno 流星小队', '希罗 → Suno 流星小队', await themeOf('W1'));
+    check(await themeOf('A1') === 'theme:Suno ATX', '响介 → Suno ATX', await themeOf('A1'));
+    check(await themeOf('A3') === 'theme:Suno ATX', '拉米亚（双势力）按主势力 → ATX', await themeOf('A3'));
+    check(await themeOf('B1') === 'theme:Suno 主角', '雷萨 → Suno 主角', await themeOf('B1'));
+    check(await themeOf('B2') === 'theme:Suno 影世界', '蕾卡 → Suno 影世界', await themeOf('B2'));
+    check(await themeOf('M1') === 'theme:Suno 月王国', 'Feena → Suno 月王国（10-09 新）', await themeOf('M1'));
+    check(await themeOf('U7') === 'theme:Suno 秘银', '宗介 → Suno 秘银（10-09 新）', await themeOf('U7'));
+    check(await themeOf('S1') === 'theme:Suno ZAFT', '拉克丝（克莱因派）→ Suno ZAFT（10-09 新）', await themeOf('S1'));
+    check(await themeOf('CB1') === null, '刹那（天人）还没有主题曲', await themeOf('CB1'));
 
     const MAP = {strikeResolved:'strike', attackStart:'attackStart', actionEnd:'actionEnd', phaseStart:'phase'};
     const emit = (ev, c) => p.evaluate(([k, c]) => window.__audio.on[k](c), [MAP[ev], c]);
@@ -42,27 +45,27 @@ const check = (ok, label, got) => { if (!ok) bad++; console.log(`${ok ? '✓' : 
     await emit('strikeResolved', {att:ally('A1'), def:foe, w:BASIC, hit:true});
     await expect('普通武器出手不切（v0.40.23 只有大招才切）', 'allyPhase');
     await emit('strikeResolved', {att:ally('A1'), def:foe, w:ULT, hit:true});
-    await expect('我方阶段：响介出手', 'theme:ATX小队音乐');
+    await expect('我方阶段：响介出手', 'theme:Suno ATX');
     await emit('strikeResolved', {att:foe, def:ally('A1'), hit:true, counter:true});
-    await expect('敌机反击不切回', 'theme:ATX小队音乐');
+    await expect('敌机反击不切回', 'theme:Suno ATX');
     await emit('strikeResolved', {att:ally('W2'), def:foe, w:ULT, hit:true});
-    await expect('援护的迪奥出手 → 流星小队', 'theme:流星小队BGM');
+    await expect('援护的迪奥出手 → 流星小队', 'theme:Suno 流星小队');
     await emit('actionEnd', {unit:ally('A1'), side:'ally'});
-    await expect('行动结束不切回（v0.40.23）', 'theme:流星小队BGM');
-    await emit('strikeResolved', {att:ally('M1'), def:foe, hit:true});
-    await expect('Feena 出手不切', 'theme:流星小队BGM');
+    await expect('行动结束不切回（v0.40.23）', 'theme:Suno 流星小队');
+    await emit('strikeResolved', {att:ally('CB1'), def:foe, hit:true});
+    await expect('刹那（没有主题曲）出手不切', 'theme:Suno 流星小队');
     await emit('phaseStart', {side:'enemy', turn:1});
-    await expect('敌方阶段：主题曲保持到回合结束', 'theme:流星小队BGM');
+    await expect('敌方阶段：主题曲保持到回合结束', 'theme:Suno 流星小队');
     await emit('strikeResolved', {att:foe, def:ally('B1'), hit:true});
-    await expect('敌机出手不切回', 'theme:流星小队BGM');
+    await expect('敌机出手不切回', 'theme:Suno 流星小队');
     await emit('strikeResolved', {att:ally('B1'), def:foe, w:ULT, hit:true, counter:true});
-    await expect('另一首主题曲触发就换：雷萨大招反击 → 主角音乐', 'theme:主角音乐');
+    await expect('另一首主题曲触发就换：雷萨大招反击 → Suno 主角', 'theme:Suno 主角');
     await emit('phaseStart', {side:'ally', turn:2});
     await expect('新回合（我方阶段开始）切回', 'allyPhase');
     await emit('attackStart', {att:ally('W5'), def:foe, w:ULT});
-    await expect('attackStart 接好后用它（出手前就切）', 'theme:流星小队BGM');
+    await expect('attackStart 接好后用它（出手前就切）', 'theme:Suno 流星小队');
     await emit('strikeResolved', {att:ally('A1'), def:foe, w:ULT, hit:true});
-    await expect('有 attackStart 后 strikeResolved 不再切', 'theme:流星小队BGM');
+    await expect('有 attackStart 后 strikeResolved 不再切', 'theme:Suno 流星小队');
     await emit('phaseStart', {side:'ally', turn:3});
 
     await p.keyboard.press('m'); await expect('按 M 静音', null);
@@ -71,7 +74,7 @@ const check = (ok, label, got) => { if (!ok) bad++; console.log(`${ok ? '✓' : 
     await p.click('#btnForm', {timeout:800}).catch(() => {}); await p.waitForTimeout(400);
     await expect('试玩关（场上有重装要塞）', 'boss');
     await emit('attackStart', {att:ally('A1'), def:foe, w:ULT});
-    await expect('Boss 在场时主题曲照样切', 'theme:ATX小队音乐');
+    await expect('Boss 在场时主题曲照样切', 'theme:Suno ATX');
     await emit('phaseStart', {side:'ally', turn:2});
     await expect('新回合切回 Boss 曲', 'boss');
     await p.evaluate(() => { const g = window.__game, a = g.units; for (let i = a.length-1; i >= 0; i--) if (a[i].side === 'enemy') a.splice(i,1); g.checkEnd(); }); await p.waitForTimeout(300);
@@ -82,7 +85,7 @@ const check = (ok, label, got) => { if (!ok) bad++; console.log(`${ok ? '✓' : 
   }
 
   /* ---------- 第二部分：有作者的音乐文件时 ---------- */
-  const probe = path.join(ROOT, 'audio', '战斗音乐1.mp3');
+  const probe = path.join(ROOT, 'audio', 'SUNO', 'SUNO战斗音乐.mp3');
   if (!fs.existsSync(probe)){ console.log('（audio/ 下没有 mp3，跳过真播放测试——只在作者电脑上跑）'); }
   else {
     const p = await b.newPage({viewport:{width:1400,height:900}});
@@ -94,15 +97,33 @@ const check = (ok, label, got) => { if (!ok) bad++; console.log(`${ok ? '✓' : 
     await p.mouse.click(5, 5);
     await p.selectOption('#levelSel', 'tut1'); await p.waitForTimeout(1200);
     let s = await p.evaluate(() => MechAudio.state());
-    check(s.track === '战斗音乐1' && s.playing, '我方阶段在放 战斗音乐1', JSON.stringify(s));
+    check(s.track === 'Suno 我方回合' && s.playing, '我方阶段在放 Suno 我方回合', JSON.stringify(s));
     await p.evaluate(() => window.__audio.on.attackStart({att:{side:'ally', mech:'B2'}, def:{side:'enemy'}, w:{unlock:20}}));   // v0.40.23 起只有大招才切
     await p.waitForTimeout(1000);
     s = await p.evaluate(() => MechAudio.state());
-    check(s.track === '影世界音乐' && s.playing, '蕾卡放大招 → 影世界音乐', JSON.stringify(s));
+    check(s.track === 'Suno 影世界' && s.playing, '蕾卡放大招 → Suno 影世界', JSON.stringify(s));
     await p.evaluate(() => window.__audio.on.phase({side:'ally', turn:2}));
     await p.waitForTimeout(1000);
     s = await p.evaluate(() => MechAudio.state());
-    check(s.track === '战斗音乐1' && s.playing, '新回合 → 回到 战斗音乐1（接着刚才的位置）', JSON.stringify(s));
+    check(s.track === 'Suno 我方回合' && s.playing, '新回合 → 回到 Suno 我方回合（接着刚才的位置）', JSON.stringify(s));
+    console.log('ERRS', JSON.stringify(errs)); if (errs.length) bad++;
+    await p.close();
+  }
+  /* ---------- 第三部分：试玩页发布包（node tools/build-artifact.mjs 生成过才测） ---------- */
+  const dist = path.join(__dirname, '..', 'dist', 'artifact', 'index.html');
+  if (!fs.existsSync(path.join(path.dirname(dist), 'music', 'hero.mp3'))){ console.log('（没有 dist/artifact/music，跳过试玩页测试）'); }
+  else {
+    const p = await b.newPage({viewport:{width:1400,height:900}});
+    const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => d.accept());
+    await p.goto('file://' + dist.replace(/\\/g, '/'));
+    await p.waitForFunction(() => MechAudio.state().ready, null, {timeout:5000}).catch(() => {});
+    check(await p.evaluate(() => MechAudio.state().ready), '试玩页：读到了 music/ 下的 Suno 曲子');
+    await p.mouse.click(5, 5); await p.waitForTimeout(800);
+    let s = await p.evaluate(() => MechAudio.state());
+    check(s.track === 'Suno 主角' && s.playing, '试玩页：开场菜单在放 Suno 主角', JSON.stringify(s));
+    await p.evaluate(() => MechAudio.play('boss')); await p.waitForTimeout(800);
+    s = await p.evaluate(() => MechAudio.state());
+    check(s.track === 'Suno 我方回合' && s.playing, '试玩页：Boss 曲（本地版权曲，不发布）退到 Suno 我方回合', JSON.stringify(s));
     console.log('ERRS', JSON.stringify(errs)); if (errs.length) bad++;
     await p.close();
   }

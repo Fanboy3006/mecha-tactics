@@ -1,10 +1,10 @@
 /* ============================================================================
  * 本地音乐播放层 MechAudio（音乐对话维护，2026-10-08 起取代 DSH 的合成器）
  * ----------------------------------------------------------------------------
- * 作者试玩用自己电脑上的版权音乐：mp3 放在仓库 audio/ 下，.gitignore 已排除，
- * 不进仓库、不上传。页面从相对路径读它们：
- *   Claude hand off/src/index.html → ../../audio/<文件名>
- * 读不到（claude.ai 试玩页、GitHub Pages、测试环境）就整体不可用，声音按钮隐藏，游戏照常。
+ * 作者 10-09 起：主要曲子是作者用 Suno 生成的（audio/SUNO/，进仓库，试玩页也带）；
+ * 还没有 Suno 版的（战略、Boss）用作者本地的版权曲（audio/*.mp3，.gitignore 排除，不进仓库），读不到时退到 alt。
+ *   Claude hand off/src/index.html → ../../audio/<file>；试玩页 → music/<id>.mp3
+ * 一首都读不到（测试环境）就整体不可用，声音按钮隐藏，游戏照常。
  *
  * 接口和 DSH 的 MechAudio 一样（31d 的接线不用大改）：
  *   play(cue)  切到某个场景的曲子（淡出旧的、淡入新的，每首记住播到哪里，切回来接着放）
@@ -18,34 +18,47 @@
  * ========================================================================== */
 (function(){
   'use strict';
-  /* 曲目：文件名 + 实测响度（LUFS，ffmpeg ebur128）。音量按响度拉平到 REF，所以换曲子要重测 */
+  /* 曲目：文件（相对 audio/）+ 实测响度（LUFS，ffmpeg ebur128）+ id（试玩页发布用的英文文件名）。
+     音量按响度拉平到 REF，换曲子要重测。
+     作者 10-09：换成作者用 Suno 生成的曲子（audio/SUNO/，进仓库，试玩页也带）。
+     没有 id 的是作者本地的版权曲（不进仓库），读不到时退到 alt。 */
   const TRACKS = {
-    '主角音乐':     {file:'主角音乐.mp3',     lufs:-15.3},
-    '战略音乐1':    {file:'战略音乐1.mp3',    lufs:-15.5},
-    '战斗音乐1':    {file:'战斗音乐1.mp3',    lufs:-17.3},
-    '战斗音乐2':    {file:'战斗音乐2.mp3',    lufs:-15.9},
-    'BOSS BGM':     {file:'BOSS BGM.mp3',     lufs:-15.0},
-    '影世界音乐':   {file:'影世界音乐.mp3',   lufs:-8.4},
-    '流星小队BGM':  {file:'流星小队BGM.mp3',  lufs:-14.8},
-    'ATX小队音乐':  {file:'ATX小队音乐.mp3',  lufs:-17.2},
+    'Suno 主角':     {file:'SUNO/Suno 主角.mp3',      lufs:-13.4, id:'hero'},
+    'Suno 我方回合': {file:'SUNO/SUNO战斗音乐.mp3',   lufs:-13.9, id:'ally-phase'},
+    'Suno 敌方回合': {file:'SUNO/Suno 敌方回合.mp3',  lufs:-13.3, id:'enemy-phase'},
+    'Suno ATX':      {file:'SUNO/Suno ATX 小队.mp3',  lufs:-13.4, id:'atx'},
+    'Suno 流星小队': {file:'SUNO/Suno 流星小队1.mp3', lufs:-13.8, id:'meteor'},
+    'Suno 影世界':   {file:'SUNO/Suno 影世界1.mp3',   lufs:-14.3, id:'shadow'},
+    'Suno 月王国':   {file:'SUNO/SUNO 月王国.mp3',    lufs:-12.9, id:'moon'},
+    'Suno 秘银':     {file:'SUNO/SUNO 秘银小队.mp3',  lufs:-13.8, id:'mithril'},
+    'Suno ZAFT':     {file:'SUNO/SUNO ZAFT.mp3',      lufs:-14.9, id:'clyne'},
+    /* 还没有 Suno 版的，用作者本地的版权曲 */
+    '战略音乐1':     {file:'战略音乐1.mp3',  lufs:-15.5, alt:'Suno 主角'},
+    'BOSS BGM':      {file:'BOSS BGM.mp3',   lufs:-15.0, alt:'Suno 我方回合'},
   };
-  /* 场景 → 曲目（作者 10-08 定）。null = 静音（胜利 / 失败暂时没有曲子） */
+  /* 场景 → 曲目（作者 10-08 定，10-09 换 Suno）。null = 静音（胜利 / 失败暂时没有曲子） */
   const CUES = {
-    title:'主角音乐', mapStrategy:'战略音乐1',
-    allyPhase:'战斗音乐1', enemyPhase:'战斗音乐2', boss:'BOSS BGM',
+    title:'Suno 主角', mapStrategy:'战略音乐1',
+    allyPhase:'Suno 我方回合', enemyPhase:'Suno 敌方回合', boss:'BOSS BGM',
     victory:null, defeat:null,
   };
   /* 主题曲（作者 10-08：像机战一样；10-09：只有放大招才切，保持到本回合结束）。先查机体代号，再查主势力；什么时候切在 31d */
   const THEMES = {
-    unit:    {B1:'主角音乐'},                          // 雷萨
-    faction: {'流星小队':'流星小队BGM', 'ATX':'ATX小队音乐', '影世界':'影世界音乐'},
+    unit:    {B1:'Suno 主角'},                          // 雷萨
+    faction: {'流星小队':'Suno 流星小队', 'ATX':'Suno ATX', '影世界':'Suno 影世界',
+              '月球王国':'Suno 月王国', '秘银':'Suno 秘银', '克莱因派':'Suno ZAFT'},   // 天人还没有
   };
 
-  const BASE = (typeof window !== 'undefined' && window.MECHA_MUSIC_BASE) || '../../audio/';
+  /* 仓库里的页面（Claude hand off/src/index.html）从 ../../audio/ 读；试玩页由 build-artifact 设 MECHA_MUSIC_BASE = 'music/'、MECHA_MUSIC_FLAT = true，按 id 读 music/<id>.mp3 */
+  const W = typeof window !== 'undefined' ? window : {};
+  const BASE = W.MECHA_MUSIC_BASE || '../../audio/', FLAT = !!W.MECHA_MUSIC_FLAT;
   const REF = -17.5, MASTER = 0.8, FADE = 600;
   const gainOf = n => Math.min(1, Math.pow(10, (REF - TRACKS[n].lufs) / 20)) * MASTER;
-  const urlOf = n => { try { return new URL(BASE + TRACKS[n].file, document.baseURI).href; } catch(e){ return null; } };
-  const nameOf = cue => !cue ? null : cue.startsWith('theme:') ? cue.slice(6) : (CUES[cue] || null);
+  const urlOf = n => { const t = TRACKS[n]; if (FLAT && !t.id) return null; try { return new URL(BASE + (FLAT ? t.id + '.mp3' : t.file), document.baseURI).href; } catch(e){ return null; } };
+  /* 读不到的曲子（试玩页上的本地版权曲）退到 alt */
+  const bad = {};
+  const usable = n => { for (let k = 0; n && k < 5; k++){ if (!bad[n] && (!FLAT || TRACKS[n].id)) return n; n = TRACKS[n].alt || null; } return null; };
+  const nameOf = cue => usable(!cue ? null : cue.startsWith('theme:') ? cue.slice(6) : (CUES[cue] || null));
 
   const els = {};
   let avail = null, muted = false, unlocked = false, cue = null, cur = null;
@@ -57,6 +70,7 @@
     const u = urlOf(n); if (!u || typeof Audio === 'undefined') return null;
     const a = new Audio(); a.preload = 'auto'; a.loop = true; a.volume = 0; a.src = u;
     a._target = 0;
+    a.addEventListener('error', () => { bad[n] = true; if (cur === n){ cur = null; play(cue); } });
     return (els[n] = a);
   }
   /* 淡入淡出：每 30ms 把每个元素的音量往目标挪一步，到 0 就暂停（保留播放位置） */
@@ -101,7 +115,7 @@
 
   /* 探测：先载第一首战斗曲的元数据，读得到就算可用 */
   (function probe(){
-    const a = el('战斗音乐1');
+    const a = el('Suno 我方回合');
     if (!a){ setAvail(false); return; }
     a.addEventListener('loadedmetadata', () => setAvail(true), {once:true});
     a.addEventListener('error', () => setAvail(false), {once:true});
@@ -113,5 +127,5 @@
     document.addEventListener('pointerdown', u, true); document.addEventListener('keydown', u, true);
   }
 
-  globalThis.MechAudio = {local:true, play, stop, mute, unlock, sfx(){}, setVolume(){}, state, themeOf, hasCue: c => !!nameOf(c), onAvailable, TRACKS, CUES, THEMES};
+  globalThis.MechAudio = {local:true, play, stop, mute, unlock, sfx(){}, setVolume(){}, state, themeOf, hasCue: c => !!nameOf(c), onAvailable, TRACKS, CUES, THEMES, _bad: bad};
 })();
