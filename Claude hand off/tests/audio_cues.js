@@ -95,14 +95,14 @@ const check = (ok, label, got) => { if (!ok) bad++; console.log(`${ok ? '✓' : 
     await p.selectOption('#levelSel', 'tut1'); await p.waitForTimeout(1200);
     let s = await p.evaluate(() => MechAudio.state());
     check(s.track === '战斗音乐1' && s.playing, '我方阶段在放 战斗音乐1', JSON.stringify(s));
-    await p.evaluate(() => window.__audio.on.strike({att:{side:'ally', mech:'B2'}, def:{side:'enemy'}, hit:true}));
+    await p.evaluate(() => window.__audio.on.attackStart({att:{side:'ally', mech:'B2'}, def:{side:'enemy'}, w:{unlock:20}}));   // v0.40.23 起只有大招才切
     await p.waitForTimeout(1000);
     s = await p.evaluate(() => MechAudio.state());
-    check(s.track === '影世界音乐' && s.playing, '蕾卡出手 → 影世界音乐', JSON.stringify(s));
-    await p.evaluate(() => window.__audio.on.actionEnd({unit:{side:'ally', mech:'B2'}, side:'ally'}));
+    check(s.track === '影世界音乐' && s.playing, '蕾卡放大招 → 影世界音乐', JSON.stringify(s));
+    await p.evaluate(() => window.__audio.on.phase({side:'ally', turn:2}));
     await p.waitForTimeout(1000);
     s = await p.evaluate(() => MechAudio.state());
-    check(s.track === '战斗音乐1' && s.playing, '行动结束 → 回到 战斗音乐1（接着刚才的位置）', JSON.stringify(s));
+    check(s.track === '战斗音乐1' && s.playing, '新回合 → 回到 战斗音乐1（接着刚才的位置）', JSON.stringify(s));
     console.log('ERRS', JSON.stringify(errs)); if (errs.length) bad++;
     await p.close();
   }
