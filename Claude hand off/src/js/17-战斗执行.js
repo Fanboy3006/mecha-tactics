@@ -55,7 +55,8 @@ async function strike(att, w, def, reaction, {skipConsume=false, zone=null, coun
   if (w.special === 'multi'){
     const per = multiPer(att, w), rolls = [];
     let p = w.hit, total = 0, nh = 0;
-    for (let i=0;i<w.hits;i++){
+    const nHits = w.hitsMax ? w.hits + Math.floor(Math.random() * (w.hitsMax - w.hits + 1)) : w.hits;   // v0.40.17 段数随机（左轮打桩机 12–16）
+    for (let i=0;i<nHits;i++){
       const q = hitRate(att,w,def,reaction,p,zo).hit;
       const hitR = Math.random()*100 < q, god = !hitR && gamblerProc(att);
       if (hitR || god){
@@ -67,7 +68,7 @@ async function strike(att, w, def, reaction, {skipConsume=false, zone=null, coun
     if (nh){ for (let j=0;j<Math.min(nh,4);j++){ fx('slash', {b:cpx(def), color:'#9ff3ff', dur:160}); await sleep(70); } fx('burst', {b:cpx(def), seed:Math.random()}); }
     else fx('miss', {b:cpx(def), dur:350});
     addFloat(def, nh ? `${nh}×  ${total}` : 'MISS', nh ? '#ffffff' : '#c9d3dd');
-    log(`${fullName(att)}【${w.name}】→ ${fullName(def)}（${ZONE[z].name}）：${w.hits} 段命中 ${nh} 段，伤害 ${total}${w.ignoreDef ? '（无视减免）' : ''}`, rolls, att.side);
+    log(`${fullName(att)}【${w.name}】→ ${fullName(def)}（${ZONE[z].name}）：${nHits} 段命中 ${nh} 段，伤害 ${total}${w.ignoreDef ? '（无视减免）' : ''}`, rolls, att.side);
     after();
     Hooks.emit('strikeResolved', {att, def, w, hit:nh > 0, dmg:total, zone:z, counter});
     if (def.hp <= 0) destroy(def, att); else turnDef();

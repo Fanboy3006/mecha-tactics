@@ -189,8 +189,8 @@ const ALLY_T = [
   {pilot:'响介', mech:'A1', short:'A1', mechName:'古铁', trait:'gambler', tags:{势力:'ATX', 远近分类:'近战', 战斗分类:'近卫'}, hp:6500, armor:1300, eva:5, mov:5, melee:170, shoot:120, defense:100, flying:false, w:1, h:1, abilities:['gamblerSense'], weapons:[
     wp({name:'三连机炮', power:1500, fire:'direct', range:[1,3]}),
     wp({name:'方形钢弹', power:2300, stat:'格斗', fire:'melee', range:[1,2], hit:85}),
-    wp({name:'左轮打桩机', power:4700, statMul:1.2, stat:'格斗', fire:'melee', range:[1,2], hit:70, critMod:20, cd:3, unlock:20, startCd:10, evadeCd:true,
-        desc:'大招。命中不高，但打空时「赌神」有一半几率改成 ×4 暴击。开场冷却 10 回合；场上每有一次攻击打空（敌我都算，反击也算），冷却永久 −1，先减开场冷却，再减本身的冷却，减到 0 后每次行动都能用。'}),
+    wp({name:'左轮打桩机', power:500, statMul:1.2, stat:'格斗', fire:'melee', range:[1,2], hit:85, critMod:20, special:'multi', hits:12, hitsMax:16, step:10, cd:3, unlock:20, startCd:10, evadeCd:true,
+        desc:'大招。左轮弹仓连续击发 12–16 段（每次随机），每段威力 500：首段命中 85，命中后 −10、未中后 +10。每段都扣装甲，碰到高装甲只剩保底伤害——要靠暴击（×2）和「赌神」（打空的那段一半几率改成 ×4 暴击）打穿。开场冷却 10 回合；场上每有一次攻击打空（敌我都算，反击也算），冷却永久 −1，先减开场冷却，再减本身的冷却，减到 0 后每次行动都能用。'}),
   ]},
   {pilot:'艾克赛琳', mech:'A2', short:'A2', mechName:'白骑士', trait:'lucky', canFly:true, tags:{势力:'ATX', 远近分类:'远程', 战斗分类:'狙击'}, hp:4200, armor:200, eva:35, mov:6, melee:90, shoot:160, defense:75, flying:true, w:1, h:1, abilities:[], weapons:[
     wp({name:'嚎叫发射器·光束', power:2400, fire:'direct', range:[2,7], dmgType:'光束'}),

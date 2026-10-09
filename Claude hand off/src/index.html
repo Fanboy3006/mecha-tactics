@@ -2241,8 +2241,8 @@ const ALLY_T = [
   {pilot:'响介', mech:'A1', short:'A1', mechName:'古铁', trait:'gambler', tags:{势力:'ATX', 远近分类:'近战', 战斗分类:'近卫'}, hp:6500, armor:1300, eva:5, mov:5, melee:170, shoot:120, defense:100, flying:false, w:1, h:1, abilities:['gamblerSense'], weapons:[
     wp({name:'三连机炮', power:1500, fire:'direct', range:[1,3]}),
     wp({name:'方形钢弹', power:2300, stat:'格斗', fire:'melee', range:[1,2], hit:85}),
-    wp({name:'左轮打桩机', power:4700, statMul:1.2, stat:'格斗', fire:'melee', range:[1,2], hit:70, critMod:20, cd:3, unlock:20, startCd:10, evadeCd:true,
-        desc:'大招。命中不高，但打空时「赌神」有一半几率改成 ×4 暴击。开场冷却 10 回合；场上每有一次攻击打空（敌我都算，反击也算），冷却永久 −1，先减开场冷却，再减本身的冷却，减到 0 后每次行动都能用。'}),
+    wp({name:'左轮打桩机', power:500, statMul:1.2, stat:'格斗', fire:'melee', range:[1,2], hit:85, critMod:20, special:'multi', hits:12, hitsMax:16, step:10, cd:3, unlock:20, startCd:10, evadeCd:true,
+        desc:'大招。左轮弹仓连续击发 12–16 段（每次随机），每段威力 500：首段命中 85，命中后 −10、未中后 +10。每段都扣装甲，碰到高装甲只剩保底伤害——要靠暴击（×2）和「赌神」（打空的那段一半几率改成 ×4 暴击）打穿。开场冷却 10 回合；场上每有一次攻击打空（敌我都算，反击也算），冷却永久 −1，先减开场冷却，再减本身的冷却，减到 0 后每次行动都能用。'}),
   ]},
   {pilot:'艾克赛琳', mech:'A2', short:'A2', mechName:'白骑士', trait:'lucky', canFly:true, tags:{势力:'ATX', 远近分类:'远程', 战斗分类:'狙击'}, hp:4200, armor:200, eva:35, mov:6, melee:90, shoot:160, defense:75, flying:true, w:1, h:1, abilities:[], weapons:[
     wp({name:'嚎叫发射器·光束', power:2400, fire:'direct', range:[2,7], dmgType:'光束'}),
@@ -3516,7 +3516,8 @@ function forecast(att, w, def, reaction, opts = {}){
   if (w.special === 'multi'){
     const per = multiPer(att, w);
     let dist = new Map([[w.hit, 1]]), expHits = 0;
-    for (let i=0;i<w.hits;i++){
+    const nh = w.hitsMax ? Math.round((w.hits + w.hitsMax) / 2) : w.hits;   // v0.40.17 段数随机（左轮打桩机 12–16）：按平均段数估
+    for (let i=0;i<nh;i++){
       const nd = new Map(), add = (k,v) => nd.set(k, (nd.get(k) || 0) + v);
       for (const [p,pr] of dist){
         const q = hitRate(att,w,def,reaction,p,opts).hit/100;
@@ -3527,7 +3528,7 @@ function forecast(att, w, def, reaction, opts = {}){
     }
     const perR = perHit(att, w, def, {reaction, zone, counter:opts.counter}), perC = perHit(att, w, def, {reaction, zone, counter:opts.counter, crit:true});
     const exp = expHits * (perR * (1 - crit/100) + perC * crit/100);
-    return {hit, crit, zone, multi:true, dmg:perR, hits:w.hits, expHits, exp,
+    return {hit, crit, zone, multi:true, dmg:perR, hits:w.hitsMax ? `${w.hits}–${w.hitsMax}` : w.hits, expHits, exp,
       steps:[`每段威力 ${per}，攻击能力 ${atkStat(att, w)}（每段都扣装甲）`, `首段命中 ${hit}%，命中后 −${w.step}，未中后 +${w.step}`, w.ignoreDef ? '无视一切伤害减免' : `每段经过减免后 ${perR}`, `期望命中 ${expHits.toFixed(1)} 段`]};
   }
   if (w.special === 'gamble'){
@@ -3689,7 +3690,8 @@ async function strike(att, w, def, reaction, {skipConsume=false, zone=null, coun
   if (w.special === 'multi'){
     const per = multiPer(att, w), rolls = [];
     let p = w.hit, total = 0, nh = 0;
-    for (let i=0;i<w.hits;i++){
+    const nHits = w.hitsMax ? w.hits + Math.floor(Math.random() * (w.hitsMax - w.hits + 1)) : w.hits;   // v0.40.17 段数随机（左轮打桩机 12–16）
+    for (let i=0;i<nHits;i++){
       const q = hitRate(att,w,def,reaction,p,zo).hit;
       const hitR = Math.random()*100 < q, god = !hitR && gamblerProc(att);
       if (hitR || god){
@@ -3701,7 +3703,7 @@ async function strike(att, w, def, reaction, {skipConsume=false, zone=null, coun
     if (nh){ for (let j=0;j<Math.min(nh,4);j++){ fx('slash', {b:cpx(def), color:'#9ff3ff', dur:160}); await sleep(70); } fx('burst', {b:cpx(def), seed:Math.random()}); }
     else fx('miss', {b:cpx(def), dur:350});
     addFloat(def, nh ? `${nh}×  ${total}` : 'MISS', nh ? '#ffffff' : '#c9d3dd');
-    log(`${fullName(att)}【${w.name}】→ ${fullName(def)}（${ZONE[z].name}）：${w.hits} 段命中 ${nh} 段，伤害 ${total}${w.ignoreDef ? '（无视减免）' : ''}`, rolls, att.side);
+    log(`${fullName(att)}【${w.name}】→ ${fullName(def)}（${ZONE[z].name}）：${nHits} 段命中 ${nh} 段，伤害 ${total}${w.ignoreDef ? '（无视减免）' : ''}`, rolls, att.side);
     after();
     Hooks.emit('strikeResolved', {att, def, w, hit:nh > 0, dmg:total, zone:z, counter});
     if (def.hp <= 0) destroy(def, att); else turnDef();
@@ -5448,7 +5450,7 @@ const useTxt = w => `${w.cd ? `CD ${w.cd}` : 'CD 0'} · ${w.uses == null ? '无�
 function weaponInner(u, w, note, ok){
   const locked = u.lv < w.unlock;
   return `<div class="wn"><span><span class="ft ${w.fire === 'map' ? 'map' : ''}">${FIRE[w.fire]}</span>${w.name}</span>${note ? `<span class="why ${ok ? 'ok' : ''}">${note}</span>` : ''}</div>
-    <div class="wf ${locked ? 'lock' : ''}">${w.fire === 'device' ? '<span>骇入：下个敌方阶段无法行动</span>' : w.fire === 'support' ? `<span>${w.foe ? '敌机 ' : ''}${supportTxt(w, u)}</span>` : w.fire === 'heal' ? `<span>回复 ${healAmount(u, w)}</span>` : w.special === 'regen' ? `<span>回复 ${L30(u) ? 15 : 10}% 最大HP</span>` : `<span>${w.dmgType}</span><span title="攻击力 = 武器威力 ×（1 + 攻击能力值 / 100），即打 0 装甲、0 防御目标的不暴击伤害；威力 ${wPow(u, w)}，用 ${w.stat || '射击'}${w.statMul && w.statMul !== 1 ? ` ×${w.statMul}` : ''}">攻击力 ${w.special === 'gamble' ? '12000 / 90%HP' : (w.special === 'multi' || w.special === 'funnel') ? `${dispPow(u, w)} × ${w.hits} 段`  : dispPow(u, w)}</span>`}<span>射程 ${rangeTxt(u, w)}</span>${w.fire === 'support' || w.fire === 'heal' || w.fire === 'device' || w.special === 'regen' ? '' : `<span>命中 ${w.fire === 'map' || w.fire === 'passive' ? '必中' : w.hit}</span><span>暴击 ${isSure(w) ? '不暴击' : critRate(w) + '%'}</span>`}<span>${useTxt(w)}</span></div>
+    <div class="wf ${locked ? 'lock' : ''}">${w.fire === 'device' ? '<span>骇入：下个敌方阶段无法行动</span>' : w.fire === 'support' ? `<span>${w.foe ? '敌机 ' : ''}${supportTxt(w, u)}</span>` : w.fire === 'heal' ? `<span>回复 ${healAmount(u, w)}</span>` : w.special === 'regen' ? `<span>回复 ${L30(u) ? 15 : 10}% 最大HP</span>` : `<span>${w.dmgType}</span><span title="攻击力 = 武器威力 ×（1 + 攻击能力值 / 100），即打 0 装甲、0 防御目标的不暴击伤害；威力 ${wPow(u, w)}，用 ${w.stat || '射击'}${w.statMul && w.statMul !== 1 ? ` ×${w.statMul}` : ''}">攻击力 ${w.special === 'gamble' ? '12000 / 90%HP' : (w.special === 'multi' || w.special === 'funnel') ? `${dispPow(u, w)} × ${w.hitsMax ? `${w.hits}–${w.hitsMax}` : w.hits} 段`  : dispPow(u, w)}</span>`}<span>射程 ${rangeTxt(u, w)}</span>${w.fire === 'support' || w.fire === 'heal' || w.fire === 'device' || w.special === 'regen' ? '' : `<span>命中 ${w.fire === 'map' || w.fire === 'passive' ? '必中' : w.hit}</span><span>暴击 ${isSure(w) ? '不暴击' : critRate(w) + '%'}</span>`}<span>${useTxt(w)}</span></div>
     <div class="wt">${[w.unlock > 1 ? `Lv${w.unlock} 解锁` : '', ...w.upgrades.filter(up => !(u.side === 'ally' && u.lv >= up.lv)).map(up => up.note), w.unlock === 20 && u.side === 'ally' && (TIER[u.mech] === 'S' || TIER[u.mech] === 'A') && !w.upgrades.some(x => x.power != null) ? `Lv30 晋升：${w.power ? '威力' : '效果'} ×${w.power ? '1.3' : '1.5'}${tierUp(u, w) ? '（已生效）' : ''}` : '', w.afterMove ? '' : '不能移动后使用', w.ignoreDef ? '无视防御' : '', w.desc].filter(Boolean).join(' · ')}</div>`;
 }
 function bar(lbl, v, m){
@@ -7486,7 +7488,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.40.16';
+const GAME_VERSION = 'v0.40.17';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){

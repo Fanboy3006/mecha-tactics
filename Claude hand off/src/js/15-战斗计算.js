@@ -143,7 +143,8 @@ function forecast(att, w, def, reaction, opts = {}){
   if (w.special === 'multi'){
     const per = multiPer(att, w);
     let dist = new Map([[w.hit, 1]]), expHits = 0;
-    for (let i=0;i<w.hits;i++){
+    const nh = w.hitsMax ? Math.round((w.hits + w.hitsMax) / 2) : w.hits;   // v0.40.17 段数随机（左轮打桩机 12–16）：按平均段数估
+    for (let i=0;i<nh;i++){
       const nd = new Map(), add = (k,v) => nd.set(k, (nd.get(k) || 0) + v);
       for (const [p,pr] of dist){
         const q = hitRate(att,w,def,reaction,p,opts).hit/100;
@@ -154,7 +155,7 @@ function forecast(att, w, def, reaction, opts = {}){
     }
     const perR = perHit(att, w, def, {reaction, zone, counter:opts.counter}), perC = perHit(att, w, def, {reaction, zone, counter:opts.counter, crit:true});
     const exp = expHits * (perR * (1 - crit/100) + perC * crit/100);
-    return {hit, crit, zone, multi:true, dmg:perR, hits:w.hits, expHits, exp,
+    return {hit, crit, zone, multi:true, dmg:perR, hits:w.hitsMax ? `${w.hits}–${w.hitsMax}` : w.hits, expHits, exp,
       steps:[`每段威力 ${per}，攻击能力 ${atkStat(att, w)}（每段都扣装甲）`, `首段命中 ${hit}%，命中后 −${w.step}，未中后 +${w.step}`, w.ignoreDef ? '无视一切伤害减免' : `每段经过减免后 ${perR}`, `期望命中 ${expHits.toFixed(1)} 段`]};
   }
   if (w.special === 'gamble'){
