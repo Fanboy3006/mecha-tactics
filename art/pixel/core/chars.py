@@ -854,3 +854,105 @@ TANK_B = ["."*32]*8 + M16([
 TANK_B = TANK_B[:32]
 C['M2'].update(front=TANK_F, side=TANK_S, back=TANK_B, sig='重型坦克：履带底盘 + 双管主炮炮塔（2×2 机体，32px）', size=32)
 C['M2']['pal'].update(T=('#9aa1ae','#646b78','#33373f'), G='#7fe6ff')
+
+# ================= 第 3 轮（作者 10-09）：阿布拉德 = 肉盾，不是坦克车 =================
+# 又宽又矮的巨型重甲骑士：巨型肩甲、桶形胸甲、粗短的腿、左手一面塔盾（2×2 机体，32px）
+ABR_F = ["."*32]*3 + M16([
+ "................",
+ "............YYYY",
+ "...........AAAAA",
+ "...........AAAAA",
+ "..........AAAKKK",
+ "..........AAKGGG",
+ "..........AAAKKK",
+ "...........AAAAA",
+ "....NNNNNN..BBBB",
+ "..NNAAAAAANYAAAA",
+ ".NAAAAAAAAANYAAA",
+ "NAAAAAAAAAANYAAA",
+ "NAAAAAAAAAANAAAC",
+ "NNAAAAAAAANNAAAC",
+ ".NNNNNNNNNNAAAAA",
+ "...BBBBBB.NAAAAA",
+ "...AAAAAA.NYYYYY",
+ "...AAAAAA.BBBBBB",
+ "...BBBBBB.AAAAAA",
+ "..........AAAAAA",
+ ".........AAAAAA.",
+ ".........AAAAAA.",
+ ".........BBBBBB.",
+ ".........AAAAAA.",
+ "........NAAAAAA.",
+ "........NAAAAAA.",
+ ".......NNNNNNNN.",
+ "................",
+ "................",
+])
+SHIELD_F = ["."*32]*13 + [
+ "LLLLLLLLL" + "."*23,
+ "LYYYYYYYL" + "."*23,
+ "LYLLLLLYL" + "."*23,
+ "LYLLMLLYL" + "."*23,
+ "LYLMMLLYL" + "."*23,
+ "LYLMMLLYL" + "."*23,
+ "LYLLMLLYL" + "."*23,
+ "LYLLLLLYL" + "."*23,
+ "LYLLLLLYL" + "."*23,
+ "LYLLLLLYL" + "."*23,
+ "LYYYYYYYL" + "."*23,
+ ".LLLLLLL." + "."*23,
+ "..LLLLL.." + "."*23,
+ "...LLL..." + "."*23,
+] + ["."*32]*5
+ABR_FRONT = over(ABR_F, SHIELD_F)
+ABR_S = ["."*32]*3 + [
+ "................................",
+ "..............YYYY..............",
+ ".............AAAAAA.............",
+ ".............AAAAAAA............",
+ ".............AAAAKKKK...........",
+ ".............AAAKKGGG...........",
+ ".............AAAAKKKK...........",
+ "..............AAAAAA............",
+ "........NNNNNN.BBB..............",
+ "......NNAAAAAANAAAAA......LLL...",
+ ".....NAAAAAAAAANAAAAA....LYYYL..",
+ ".....NAAAAAAAAANAAAAAC...LYLLYL.",
+ ".....NAAAAAAAAANAAAAAA..LYLMLYL.",
+ ".....NNAAAAAAANNAAAAAABBLYMMLYL.",
+ "......NNNNNNNNNAAAAAAABBLYMMLYL.",
+ "........BBBBB..AAAAAAA..LYLMLYL.",
+ "........AAAAA..YYYYYYY..LYLLLYL.",
+ "........AAAAA..BBBBBBB..LYLLLYL.",
+ "........BBBBB..AAAAAAA..LYYYYYL.",
+ "..............AAAAAAAA...LLLLL..",
+ ".............AAAAA.AAAAA..LLL...",
+ ".............AAAAA.AAAAA........",
+ ".............BBBBB.BBBBB........",
+ ".............AAAAA.AAAAA........",
+ "............NAAAAA.NAAAAA.......",
+ "............NAAAAA.NAAAAA.......",
+ "...........NNNNNNN.NNNNNNNN.....",
+ "................................",
+ "................................",
+]
+C['M2'].update(front=ABR_FRONT, side=ABR_S, back=back_of(ABR_FRONT),
+               sig='又宽又矮的重甲骑士：巨型肩甲、桶形胸甲、粗短的腿、左手一面月纹塔盾（2×2 机体，32px）')
+C['M2']['pal'].update(L=('#e9f2ff','#b9cbe6','#6f86ad'), M='#fff7c9', G='#7fe6ff')
+# 肩甲换成蓝色，和白色躯干拉开层次
+def _pauldron_blue(rows, x0, x1, y0, y1):
+    out = []
+    for y, r in enumerate(rows):
+        if y0 <= y <= y1: r = ''.join(('N' if ch == 'A' and (x0 <= x <= x1 or 31 - x1 <= x <= 31 - x0) else ch) for x, ch in enumerate(r))
+        out.append(r)
+    return out
+_F = _pauldron_blue(ABR_F, 0, 10, 11, 17)
+C['M2']['front'] = over(_F, SHIELD_F)
+C['M2']['back'] = back_of(C['M2']['front'])
+C['M2']['side'] = _pauldron_blue(ABR_S, 5, 14, 11, 17)
+# 脚要踩在画布最下面一行（否则游戏里看起来浮在空中）
+def _ground(rows):
+    while rows and set(rows[-1]) == {'.'}: rows = ['.' * len(rows[0])] + rows[:-1]
+    return rows
+C['M2']['front'] = _ground(C['M2']['front']); C['M2']['side'] = _ground(C['M2']['side']); C['M2']['back'] = back_of(C['M2']['front'])
+C['S5']['front'] = _ground(C['S5']['front']); C['S5']['side'] = _ground(C['S5']['side']); C['S5']['back'] = _ground(C['S5']['back'])
