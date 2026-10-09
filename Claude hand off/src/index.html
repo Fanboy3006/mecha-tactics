@@ -3428,12 +3428,21 @@ function maxReach(u){ let m = 0; for (const w of u.weapons){ if (u.lv < w.unlock
    - 主动攻击：可以自由转向，打出去时锁定在能打到目标的朝向（canHit 不传 face = 任意朝向都行）；
    - 敌方阶段的反击、压制射击：只能用当前朝向（传 face）。 */
 const FACES = ['up','right','down','left'];
+/* v0.41 射程形状（作者 10-09）：
+   - 直射 = 3 格宽 × 前方 L 格的长条（正前方一列 + 左右各一列），L 按武器最大射程换算：≤4 → 4，5 → 5，≥6 → 6；
+     原来有最小射程的（如狙击 3–9）保留：前方第几格 ≥ 最小射程；
+   - 曲射 = 以攻击者为顶点的 90° 扇形：前方第 N 格那一排，左右各能打到 N 格；半径 = 武器最大射程，前方 ≥ 最小射程；
+   - 近战不变（前方 + 两侧，按菱形射程）；武器写了 pat 的照 pat。 */
+const directLen = r => r <= 4 ? 4 : r >= 6 ? 6 : r;
+const newShape = w => !w.pat && (w.fire === 'direct' || w.fire === 'indirect');
 function facOK(u, w, t, ax, ay, face){
   const [fx, fy] = FACE[face], lx = -fy, ly = fx;   // 侧 = 朝向顺时针转 90°
   const rg = effRange(u, w), fmin = w.fire === 'melee' ? 0 : 1;
   for (const [bx, by] of tilesOf(u, ax, ay)) for (const [tx, ty] of tilesOf(t)){
     const dx = tx - bx, dy = ty - by, f = dx*fx + dy*fy, l = dx*lx + dy*ly;
     if (w.pat){ if (w.pat.some(([a, b]) => a === f && b === l)) return true; continue; }
+    if (w.fire === 'direct'){ if (f >= Math.max(1, rg[0]) && f <= directLen(rg[1]) && Math.abs(l) <= 1) return true; continue; }
+    if (w.fire === 'indirect'){ if (f >= Math.max(1, rg[0]) && f <= rg[1] && Math.abs(l) <= f) return true; continue; }
     const d = Math.abs(dx) + Math.abs(dy);
     if (d >= rg[0] && d <= rg[1] && f >= fmin) return true;
   }
@@ -3450,7 +3459,7 @@ function pickFace(u, w, t){
 function canHit(u, w, t, ax=u.x, ay=u.y, face=null){
   if (!ATTACK_FIRES.includes(w.fire)) return false;
   const rg = effRange(u, w), d = distU(u, t, ax, ay);
-  if (!w.pat && (d < rg[0] || d > rg[1])) return false;
+  if (!w.pat && !newShape(w) && (d < rg[0] || d > rg[1])) return false;   // v0.41 直射 / 曲射的距离由形状自己判断（facOK）
   if (!isSure(w) && (face ? !facOK(u, w, t, ax, ay, face) : !FACES.some(f => facOK(u, w, t, ax, ay, f)))) return false;
   if (d > 3 && t.side !== u.side && hasStealth(t)) return false;
   if (w.fire === 'direct' && !losClear(u, ax, ay, t) && !ignoresLos(u, t)) return false;   // v0.40.13 毛的指挥网络：克鲁兹打范围内的敌机无视障碍物（17b）
@@ -3930,6 +3939,11 @@ async function battle(att, w, def, reaction, cw, {guard=false} = {}){
   if (reaction === 'defend' && !guard) log(`${fullName(def)} 选择防御`, null, def.side);
   if (reaction === 'evade') log(`${fullName(def)} 选择回避`, null, def.side);
   await strike(att, w, def, reaction, guard ? {zone:'front'} : {});
+  if (guard && def.hp > 0 && att.hp > 0){   // v0.41 作者 10-09：援护者挡刀后可以反击——按它原地的位置和当前朝向判断能不能打到
+    const gw = bestCounter(def, att);
+    if (gw){ log(`${fullName(def)} 援护后反击`, null, def.side); await strike(def, gw, att, null, {counter:true}); }
+    else log(`${fullName(def)} 援护后无法反击（不在朝向范围内）`, null, def.side);
+  }
   if (def.hp > 0 && att.hp > 0 && reaction === 'counter' && cw){
     if (!wStatus(def,cw,{counter:true}) && canHit(def,cw,att,def.x,def.y,def.facing)){
       // v0.25 进攻援护：我方攻击后被反击时，相邻的进攻援护机体可以代为承受
@@ -4949,11 +4963,18 @@ function drawGrid(){
 function computeThreat(){
   const s = new Set();
   for (const e of units.filter(u => u.side === 'enemy')){
-    let mr = 0; e.weapons.forEach(w => { if (!wStatus(e,w,{counter:true})) mr = Math.max(mr, w.range[1]); });
-    for (const t of reach(e)) for (const [fx,fy] of tilesOf(e,t.x,t.y))
-      for (let dy=-mr; dy<=mr; dy++) for (let dx=-mr+Math.abs(dy); dx<=mr-Math.abs(dy); dx++){
-        const x = fx+dx, y = fy+dy; if (inb(x,y)) s.add(y*N+x);
+    /* v0.41 按真实形状算（直射 3 宽长条、曲射扇形、近战前方 + 两侧），任意朝向都算 */
+    const ws = e.weapons.filter(w => ATTACK_FIRES.includes(w.fire) && !wStatus(e,w,{counter:true}));
+    if (!ws.length) continue;
+    const mr = Math.max(...ws.map(w => { const r = effRange(e, w)[1]; return w.pat ? 12 : w.fire === 'direct' ? directLen(r) + 1 : w.fire === 'indirect' ? r * 2 : r; }));
+    for (const t of reach(e)) for (const face of FACES){
+      const probe = {x:0, y:0, w:1, h:1, flying:false, side:'neutral', abilities:[]};
+      for (let dy=-mr; dy<=mr; dy++) for (let dx=-mr; dx<=mr; dx++){
+        const x = t.x+dx, y = t.y+dy; if (!inb(x,y) || s.has(y*N+x)) continue;
+        probe.x = x; probe.y = y;
+        if (ws.some(w => isSure(w) || facOK(e, w, probe, t.x, t.y, face))) s.add(y*N+x);
       }
+    }
   }
   return s;
 }
@@ -5773,6 +5794,8 @@ const rangeTxt = (u, w) => {
   if (w.fire === 'heal') return `${w.range[1]}`;
   if (w.fire === 'device') return `${w.range[0]}–${w.range[1]}`;
   const r = effRange(u, w);
+  if (!w.pat && w.fire === 'direct') return `3×${directLen(r[1])}${r[0] > 1 ? `（${r[0]} 格起）` : ''}`;   // v0.41 直射：3 宽长条
+  if (!w.pat && w.fire === 'indirect') return `扇形 ${r[1]}${r[0] > 1 ? `（${r[0]} 格起）` : ''}`;   // v0.41 曲射：90° 扇形
   return r[1] === Infinity ? '全图' : (r[0] === r[1] ? `${r[0]}` : `${r[0]}–${r[1]}`);
 };
 const useTxt = w => `${w.cd ? `CD ${w.cd}` : 'CD 0'} · ${w.uses == null ? '无限' : `次数 ${w.usesLeft}/${w.uses}`}`;
@@ -7817,7 +7840,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.40.24';
+const GAME_VERSION = 'v0.41';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){

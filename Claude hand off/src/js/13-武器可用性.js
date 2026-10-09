@@ -37,12 +37,21 @@ function maxReach(u){ let m = 0; for (const w of u.weapons){ if (u.lv < w.unlock
    - 主动攻击：可以自由转向，打出去时锁定在能打到目标的朝向（canHit 不传 face = 任意朝向都行）；
    - 敌方阶段的反击、压制射击：只能用当前朝向（传 face）。 */
 const FACES = ['up','right','down','left'];
+/* v0.41 射程形状（作者 10-09）：
+   - 直射 = 3 格宽 × 前方 L 格的长条（正前方一列 + 左右各一列），L 按武器最大射程换算：≤4 → 4，5 → 5，≥6 → 6；
+     原来有最小射程的（如狙击 3–9）保留：前方第几格 ≥ 最小射程；
+   - 曲射 = 以攻击者为顶点的 90° 扇形：前方第 N 格那一排，左右各能打到 N 格；半径 = 武器最大射程，前方 ≥ 最小射程；
+   - 近战不变（前方 + 两侧，按菱形射程）；武器写了 pat 的照 pat。 */
+const directLen = r => r <= 4 ? 4 : r >= 6 ? 6 : r;
+const newShape = w => !w.pat && (w.fire === 'direct' || w.fire === 'indirect');
 function facOK(u, w, t, ax, ay, face){
   const [fx, fy] = FACE[face], lx = -fy, ly = fx;   // 侧 = 朝向顺时针转 90°
   const rg = effRange(u, w), fmin = w.fire === 'melee' ? 0 : 1;
   for (const [bx, by] of tilesOf(u, ax, ay)) for (const [tx, ty] of tilesOf(t)){
     const dx = tx - bx, dy = ty - by, f = dx*fx + dy*fy, l = dx*lx + dy*ly;
     if (w.pat){ if (w.pat.some(([a, b]) => a === f && b === l)) return true; continue; }
+    if (w.fire === 'direct'){ if (f >= Math.max(1, rg[0]) && f <= directLen(rg[1]) && Math.abs(l) <= 1) return true; continue; }
+    if (w.fire === 'indirect'){ if (f >= Math.max(1, rg[0]) && f <= rg[1] && Math.abs(l) <= f) return true; continue; }
     const d = Math.abs(dx) + Math.abs(dy);
     if (d >= rg[0] && d <= rg[1] && f >= fmin) return true;
   }
@@ -59,7 +68,7 @@ function pickFace(u, w, t){
 function canHit(u, w, t, ax=u.x, ay=u.y, face=null){
   if (!ATTACK_FIRES.includes(w.fire)) return false;
   const rg = effRange(u, w), d = distU(u, t, ax, ay);
-  if (!w.pat && (d < rg[0] || d > rg[1])) return false;
+  if (!w.pat && !newShape(w) && (d < rg[0] || d > rg[1])) return false;   // v0.41 直射 / 曲射的距离由形状自己判断（facOK）
   if (!isSure(w) && (face ? !facOK(u, w, t, ax, ay, face) : !FACES.some(f => facOK(u, w, t, ax, ay, f)))) return false;
   if (d > 3 && t.side !== u.side && hasStealth(t)) return false;
   if (w.fire === 'direct' && !losClear(u, ax, ay, t) && !ignoresLos(u, t)) return false;   // v0.40.13 毛的指挥网络：克鲁兹打范围内的敌机无视障碍物（17b）

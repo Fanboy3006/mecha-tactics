@@ -5,6 +5,8 @@ const rangeTxt = (u, w) => {
   if (w.fire === 'heal') return `${w.range[1]}`;
   if (w.fire === 'device') return `${w.range[0]}–${w.range[1]}`;
   const r = effRange(u, w);
+  if (!w.pat && w.fire === 'direct') return `3×${directLen(r[1])}${r[0] > 1 ? `（${r[0]} 格起）` : ''}`;   // v0.41 直射：3 宽长条
+  if (!w.pat && w.fire === 'indirect') return `扇形 ${r[1]}${r[0] > 1 ? `（${r[0]} 格起）` : ''}`;   // v0.41 曲射：90° 扇形
   return r[1] === Infinity ? '全图' : (r[0] === r[1] ? `${r[0]}` : `${r[0]}–${r[1]}`);
 };
 const useTxt = w => `${w.cd ? `CD ${w.cd}` : 'CD 0'} · ${w.uses == null ? '无限' : `次数 ${w.usesLeft}/${w.uses}`}`;

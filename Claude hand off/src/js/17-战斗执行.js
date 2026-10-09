@@ -168,6 +168,11 @@ async function battle(att, w, def, reaction, cw, {guard=false} = {}){
   if (reaction === 'defend' && !guard) log(`${fullName(def)} 选择防御`, null, def.side);
   if (reaction === 'evade') log(`${fullName(def)} 选择回避`, null, def.side);
   await strike(att, w, def, reaction, guard ? {zone:'front'} : {});
+  if (guard && def.hp > 0 && att.hp > 0){   // v0.41 作者 10-09：援护者挡刀后可以反击——按它原地的位置和当前朝向判断能不能打到
+    const gw = bestCounter(def, att);
+    if (gw){ log(`${fullName(def)} 援护后反击`, null, def.side); await strike(def, gw, att, null, {counter:true}); }
+    else log(`${fullName(def)} 援护后无法反击（不在朝向范围内）`, null, def.side);
+  }
   if (def.hp > 0 && att.hp > 0 && reaction === 'counter' && cw){
     if (!wStatus(def,cw,{counter:true}) && canHit(def,cw,att,def.x,def.y,def.facing)){
       // v0.25 进攻援护：我方攻击后被反击时，相邻的进攻援护机体可以代为承受

@@ -93,11 +93,18 @@ function drawGrid(){
 function computeThreat(){
   const s = new Set();
   for (const e of units.filter(u => u.side === 'enemy')){
-    let mr = 0; e.weapons.forEach(w => { if (!wStatus(e,w,{counter:true})) mr = Math.max(mr, w.range[1]); });
-    for (const t of reach(e)) for (const [fx,fy] of tilesOf(e,t.x,t.y))
-      for (let dy=-mr; dy<=mr; dy++) for (let dx=-mr+Math.abs(dy); dx<=mr-Math.abs(dy); dx++){
-        const x = fx+dx, y = fy+dy; if (inb(x,y)) s.add(y*N+x);
+    /* v0.41 按真实形状算（直射 3 宽长条、曲射扇形、近战前方 + 两侧），任意朝向都算 */
+    const ws = e.weapons.filter(w => ATTACK_FIRES.includes(w.fire) && !wStatus(e,w,{counter:true}));
+    if (!ws.length) continue;
+    const mr = Math.max(...ws.map(w => { const r = effRange(e, w)[1]; return w.pat ? 12 : w.fire === 'direct' ? directLen(r) + 1 : w.fire === 'indirect' ? r * 2 : r; }));
+    for (const t of reach(e)) for (const face of FACES){
+      const probe = {x:0, y:0, w:1, h:1, flying:false, side:'neutral', abilities:[]};
+      for (let dy=-mr; dy<=mr; dy++) for (let dx=-mr; dx<=mr; dx++){
+        const x = t.x+dx, y = t.y+dy; if (!inb(x,y) || s.has(y*N+x)) continue;
+        probe.x = x; probe.y = y;
+        if (ws.some(w => isSure(w) || facOK(e, w, probe, t.x, t.y, face))) s.add(y*N+x);
       }
+    }
   }
   return s;
 }

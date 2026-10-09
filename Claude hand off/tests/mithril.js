@@ -19,9 +19,9 @@ const fs = require('fs');
     out.tier = ['U7','U2','U6','U1','U8'].map(m => g.tierOf(m)).join('');
     out.noFly = D.ALLY_T.filter(t => t.tags.势力 === '秘银').every(t => !t.flying && !t.canFly);
     // 克鲁兹隔着山打毛范围里的敌人
-    const mao = A('U2', 10, 6), kurz = A('U6', 3, 6), sou = A('U7', 9, 7);
+    const mao = A('U2', 10, 6), kurz = A('U6', 6, 6), sou = A('U7', 9, 7);   // v0.41 直射改成 3×6，克鲁兹挪近到 5 格
     const foe = E('shield', 11, 6), far = E('grunt', 14, 6);
-    g.map[6][6] = 'mountain';
+    g.map[6][8] = 'mountain';
     const rifle = kurz.weapons.find(w => w.name === '76mm 狙击炮');
     out.blocked = !g.losClear(kurz, kurz.x, kurz.y, foe);
     out.zone = C.inMaoZone(foe, 'ally') && !C.inMaoZone(far, 'ally');
