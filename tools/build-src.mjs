@@ -30,7 +30,7 @@ const ART_SRC = join(ROOT, 'art', 'mech-icons.js');
 
 const BEGIN = '<!-- ===== ART:mech-icons BEGIN（自动生成，请勿手改；源文件 art/mech-icons.js）===== -->';
 const END = '<!-- ===== ART:mech-icons END ===== -->';
-const AUDIO_BEGIN = '<!-- ===== AUDIO BEGIN（自动生成，请勿手改；源文件 audio/score.js + audio/mech-audio.js）===== -->';
+const AUDIO_BEGIN = '<!-- ===== AUDIO BEGIN（自动生成，请勿手改；源文件 audio/score.js + audio/mech-audio.js）===== -->';   // 标记文字不能改（靠它找旧块），现在的源文件是 audio/local-music.js
 const AUDIO_END = '<!-- ===== AUDIO END ===== -->';
 const ANCHOR = "<script>\n(() => {\n'use strict';\nconst N = 40, TS = 22;";
 
@@ -53,25 +53,24 @@ const artBlock = [
   END,
 ].join('\n');
 
-/* ---------- 1b. 生成音频代码块（乐谱 + 播放层） ---------- */
-/* 顺序要紧：mech-audio.js 在工厂函数里就读 globalThis.MechScore，所以 score.js 必须在前。 */
+/* ---------- 1b. 生成音频代码块（本地音乐播放层） ---------- */
 function readModule(rel, label) {
   const s = readFileSync(join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n');
   if (s.includes('</script')) throw new Error(`${rel} 里出现了 </script，无法安全内联`);
   return [`<script>`, `/* ${label} · 源文件 ${rel} · 由 tools/build-src.mjs 注入 */`, s.replace(/\n+$/, ''), `</script>`].join('\n');
 }
-const audioSrcFiles = ['audio/score.js', 'audio/mech-audio.js'];
+const audioSrcFiles = ['audio/local-music.js'];
 for (const f of audioSrcFiles) if (!existsSync(join(ROOT, f))) { console.error(`缺少 ${f}`); process.exit(1); }
 
-/* 作者 2026-10-08：DSH 的音乐不用，暂时全部静音——音频模块不打包进页面（游戏里 MechAudio 不存在时自动隐藏声音按钮）。
-   要恢复就把 AUDIO_ON 改成 true；audio/ 下的源文件都还在。 */
-const AUDIO_ON = false;
+/* 作者 2026-10-08：DSH 的合成音乐不用（audio/score.js、mech-audio.js 还在，不再打包）。
+   改用 audio/local-music.js：从 audio/ 读作者本地的版权 mp3（.gitignore 排除，不进仓库），读不到就静音、隐藏声音按钮。
+   AUDIO_ON 归音乐对话；改成 false 就完全不打包音频。 */
+const AUDIO_ON = true;
 const audioBlock = AUDIO_ON ? [
   AUDIO_BEGIN,
-  readModule('audio/score.js', '乐谱数据（唯一真源，改音乐只改这个文件）'),
-  readModule('audio/mech-audio.js', '音频播放层 MechAudio（Web Audio 现场合成）'),
+  readModule('audio/local-music.js', '本地音乐播放层 MechAudio（作者本地的 mp3，不进仓库）'),
   AUDIO_END,
-].join('\n') : [AUDIO_BEGIN, '<!-- 音频暂停（作者 2026-10-08 全部静音），恢复见 tools/build-src.mjs 的 AUDIO_ON -->', AUDIO_END].join('\n');
+].join('\n') : [AUDIO_BEGIN, '<!-- 音频关闭，见 tools/build-src.mjs 的 AUDIO_ON -->', AUDIO_END].join('\n');
 
 /* 把音频块插到 ART 块后面（ART 块紧邻游戏主脚本之前） */
 function injectAudio(text) {

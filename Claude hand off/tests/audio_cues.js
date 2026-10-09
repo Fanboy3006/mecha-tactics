@@ -1,36 +1,112 @@
-/* 音频接线测试（Claude 维护）：各场景切到对的 cue、Boss 判定、胜利号角、M 键静音、没有报错。
+/* 音频接线测试（音乐对话维护，2026-10-08 改成本地音乐版）
+   第一部分：没有音乐文件（和 claude.ai 试玩页一样）→ 声音按钮隐藏、cue 照样跟着场景走、主题曲切换逻辑对、没有报错。
+   第二部分：如果 audio/ 下有作者的 mp3（只在作者电脑上有，不进仓库），用 file:// 打开真页面，确认真的在放、切曲子。
    用法：node tests/audio_cues.js    需要 playwright + Chromium */
 const { chromium } = require('playwright');
-const fs = require('fs');
+const fs = require('fs'), path = require('path');
+const ROOT = path.join(__dirname, '..', '..');
+let bad = 0;
+const check = (ok, label, got) => { if (!ok) bad++; console.log(`${ok ? '✓' : '✗'} ${label}${got !== undefined ? '：' + got : ''}`); };
+
 (async () => {
-  const b = await chromium.launch(); const p = await b.newPage({viewport:{width:1400,height:900}});
-  const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => d.accept());
-  await p.route('**/*', r => r.abort());
-  await p.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>[hidden]{display:none!important}</style></head><body>${fs.readFileSync(__dirname + '/../src/artifact-fragment.html','utf8')}</body></html>`);
-  if (!(await p.evaluate(() => typeof MechAudio !== 'undefined'))){ const hid = await p.evaluate(() => document.querySelector('#btnSound').hidden); console.log(`${hid ? '✓' : '✗'} 音频暂停（作者 10-08 全部静音）：没有打包音频，声音按钮已隐藏`); console.log('ERRS', JSON.stringify(errs)); await b.close(); process.exit(hid && !errs.length ? 0 : 1); }
-  let bad = 0;
-  const expect = async (label, want) => { const s = await p.evaluate(() => window.__game.sound); const ok = s.cue === want; if (!ok) bad++; console.log(`${ok ? '✓' : '✗'} ${label}：${s.cue}${ok ? '' : `（应为 ${want}）`}`); };
-  await p.mouse.click(5, 5);
-  await expect('打开页面（默认肉鸽开局界面）', 'title');
-  await p.selectOption('#levelSel', 'tut1'); await p.waitForTimeout(400);
-  await expect('教学 1 我方阶段', 'allyPhase');
-  await p.selectOption('#levelSel', 'defense'); await p.waitForTimeout(300);
-  await expect('编队界面', 'title');
-  await p.click('#btnForm'); await p.waitForTimeout(400);
-  await expect('防卫战开打（第 1 波没有 Boss）', 'allyPhase');
-  await p.evaluate(() => window.__game.startLevel('trial_B1')); await p.waitForTimeout(300);
-  await p.click('#btnForm', {timeout:800}).catch(() => {}); await p.waitForTimeout(400);
-  await expect('试玩关（场上有重装要塞）', 'boss');
-  await p.keyboard.press('m'); await expect('按 M 静音', null);
-  await p.keyboard.press('m'); await expect('再按 M 恢复', 'boss');
-  await p.evaluate(() => { const g = window.__game, a = g.units; for (let i = a.length-1; i >= 0; i--) if (a[i].side === 'enemy') a.splice(i,1); g.checkEnd(); }); await p.waitForTimeout(300);
-  await expect('胜利', 'victory');
-  await p.click('#btnAgain'); await p.waitForTimeout(400);
-  await p.click('#btnForm', {timeout:800}).catch(() => {}); await p.waitForTimeout(300);
-  await expect('马上重开：号角还在放', 'victory');
-  await p.waitForTimeout(6500);
-  await expect('6 秒后回到战斗曲', 'boss');
-  console.log('ERRS', errs);
+  const b = await chromium.launch({args:['--autoplay-policy=no-user-gesture-required']});
+
+  /* ---------- 第一部分：没有文件 ---------- */
+  {
+    const p = await b.newPage({viewport:{width:1400,height:900}});
+    const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => d.accept());
+    await p.route('**/*', r => r.abort());
+    await p.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>[hidden]{display:none!important}</style></head><body>${fs.readFileSync(__dirname + '/../src/artifact-fragment.html','utf8')}</body></html>`);
+    await p.waitForTimeout(300);
+    check(await p.evaluate(() => typeof MechAudio !== 'undefined' && MechAudio.local), '打包的是本地音乐播放层');
+    check(await p.evaluate(() => document.querySelector('#btnSound').hidden), '读不到音乐文件 → 声音按钮隐藏');
+    const cue = () => p.evaluate(() => window.__game.sound.cue);
+    const expect = async (label, want) => { const c = await cue(); check(c === want, label, c + (c === want ? '' : `（应为 ${want}）`)); };
+    await p.mouse.click(5, 5);
+    await expect('打开页面（开局界面）', 'title');
+    await p.selectOption('#levelSel', 'tut1'); await p.waitForTimeout(400);
+    await expect('教学 1 我方阶段', 'allyPhase');
+
+    /* 主题曲：直接发事件 */
+    const themeOf = code => p.evaluate(c => { const t = window.__game.data.ALLY_T.find(t => t.mech === c); return window.__audio.themeOf({side:'ally', mech:c}); }, code);
+    check(await themeOf('W1') === 'theme:流星小队BGM', '希罗 → 流星小队BGM', await themeOf('W1'));
+    check(await themeOf('A1') === 'theme:ATX小队音乐', '响介 → ATX小队音乐', await themeOf('A1'));
+    check(await themeOf('A3') === 'theme:ATX小队音乐', '拉米亚（双势力）按主势力 → ATX', await themeOf('A3'));
+    check(await themeOf('B1') === 'theme:主角音乐', '雷萨 → 主角音乐', await themeOf('B1'));
+    check(await themeOf('B2') === 'theme:影世界音乐', '蕾卡 → 影世界音乐', await themeOf('B2'));
+    check(await themeOf('M1') === null, 'Feena（月球王国）没有主题曲', await themeOf('M1'));
+
+    const MAP = {strikeResolved:'strike', attackStart:'attackStart', actionEnd:'actionEnd', phaseStart:'phase'};
+    const emit = (ev, c) => p.evaluate(([k, c]) => window.__audio.on[k](c), [MAP[ev], c]);
+    const ally = m => ({side:'ally', mech:m}), foe = {side:'enemy', mech:'x'};
+    await emit('strikeResolved', {att:ally('A1'), def:foe, hit:true});
+    await expect('我方阶段：响介出手', 'theme:ATX小队音乐');
+    await emit('strikeResolved', {att:foe, def:ally('A1'), hit:true, counter:true});
+    await expect('敌机反击不切回', 'theme:ATX小队音乐');
+    await emit('strikeResolved', {att:ally('W2'), def:foe, hit:true});
+    await expect('援护的迪奥出手 → 流星小队', 'theme:流星小队BGM');
+    await emit('actionEnd', {unit:ally('A1'), side:'ally'});
+    await expect('行动结束切回', 'allyPhase');
+    await emit('strikeResolved', {att:ally('M1'), def:foe, hit:true});
+    await expect('Feena 出手不切', 'allyPhase');
+    await emit('phaseStart', {side:'enemy', turn:1});
+    await expect('敌方阶段', 'enemyPhase');
+    await emit('strikeResolved', {att:foe, def:ally('B1'), hit:true});
+    await emit('strikeResolved', {att:ally('B1'), def:foe, hit:true, counter:true});
+    await expect('敌方阶段：雷萨反击 → 主角音乐', 'theme:主角音乐');
+    await emit('strikeResolved', {att:foe, def:ally('M1'), hit:false});
+    await expect('下一台敌机出手切回', 'enemyPhase');
+    await emit('strikeResolved', {att:ally('A5'), def:foe, hit:true, counter:true});
+    await emit('phaseStart', {side:'ally', turn:2});
+    await expect('阶段开始一律切回', 'allyPhase');
+    await emit('attackStart', {att:ally('W5'), def:foe});
+    await expect('attackStart 接好后用它（出手前就切）', 'theme:流星小队BGM');
+    await emit('strikeResolved', {att:ally('A1'), def:foe, hit:true});
+    await expect('有 attackStart 后 strikeResolved 不再切', 'theme:流星小队BGM');
+    await emit('actionEnd', {unit:ally('W5'), side:'ally'});
+
+    await p.keyboard.press('m'); await expect('按 M 静音', null);
+    await p.keyboard.press('m'); await expect('再按 M 恢复', 'allyPhase');
+    await p.evaluate(() => window.__game.startLevel('trial_B1')); await p.waitForTimeout(300);
+    await p.click('#btnForm', {timeout:800}).catch(() => {}); await p.waitForTimeout(400);
+    await expect('试玩关（场上有重装要塞）', 'boss');
+    await emit('attackStart', {att:ally('A1'), def:foe});
+    await expect('Boss 在场时主题曲照样切', 'theme:ATX小队音乐');
+    await emit('actionEnd', {unit:ally('A1'), side:'ally'});
+    await expect('切回 Boss 曲', 'boss');
+    await p.evaluate(() => { const g = window.__game, a = g.units; for (let i = a.length-1; i >= 0; i--) if (a[i].side === 'enemy') a.splice(i,1); g.checkEnd(); }); await p.waitForTimeout(300);
+    await expect('胜利（暂时没有曲子，淡出）', 'victory');
+    check(await p.evaluate(() => window.__game.sound && MechAudio.state().track === null), '胜利时没有曲子在放');
+    console.log('ERRS', JSON.stringify(errs)); if (errs.length) bad++;
+    await p.close();
+  }
+
+  /* ---------- 第二部分：有作者的音乐文件时 ---------- */
+  const probe = path.join(ROOT, 'audio', '战斗音乐1.mp3');
+  if (!fs.existsSync(probe)){ console.log('（audio/ 下没有 mp3，跳过真播放测试——只在作者电脑上跑）'); }
+  else {
+    const p = await b.newPage({viewport:{width:1400,height:900}});
+    const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => d.accept());
+    await p.goto('file://' + path.join(ROOT, 'Claude hand off', 'src', 'index.html').replace(/\\/g, '/'));
+    await p.waitForFunction(() => MechAudio.state().ready, null, {timeout:5000}).catch(() => {});
+    check(await p.evaluate(() => MechAudio.state().ready), '读到了本地音乐文件');
+    check(!(await p.evaluate(() => document.querySelector('#btnSound').hidden)), '声音按钮显示');
+    await p.mouse.click(5, 5);
+    await p.selectOption('#levelSel', 'tut1'); await p.waitForTimeout(1200);
+    let s = await p.evaluate(() => MechAudio.state());
+    check(s.track === '战斗音乐1' && s.playing, '我方阶段在放 战斗音乐1', JSON.stringify(s));
+    await p.evaluate(() => window.__audio.on.strike({att:{side:'ally', mech:'B2'}, def:{side:'enemy'}, hit:true}));
+    await p.waitForTimeout(1000);
+    s = await p.evaluate(() => MechAudio.state());
+    check(s.track === '影世界音乐' && s.playing, '蕾卡出手 → 影世界音乐', JSON.stringify(s));
+    await p.evaluate(() => window.__audio.on.actionEnd({unit:{side:'ally', mech:'B2'}, side:'ally'}));
+    await p.waitForTimeout(1000);
+    s = await p.evaluate(() => MechAudio.state());
+    check(s.track === '战斗音乐1' && s.playing, '行动结束 → 回到 战斗音乐1（接着刚才的位置）', JSON.stringify(s));
+    console.log('ERRS', JSON.stringify(errs)); if (errs.length) bad++;
+    await p.close();
+  }
   await b.close();
-  process.exit(bad || errs.length ? 1 : 0);
+  console.log(bad ? `✗ ${bad} 项不对` : '✓ 全部通过');
+  process.exit(bad ? 1 : 0);
 })();

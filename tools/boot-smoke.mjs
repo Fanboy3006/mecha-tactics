@@ -308,7 +308,8 @@ try {
 console.log('\n[8] 音频模块（注入顺序 + 无 AudioContext 时的降级）');
 try {
   const MA = sandbox.MechAudio, MS = sandbox.MechScore;
-  if (!MS) bad('游戏里没有 MechScore（乐谱没注入，或者注入顺序不对）');
+  if (MA && MA.local) ok('打包的是本地音乐播放层（audio/local-music.js，2026-10-08 起取代合成器，没有乐谱）');
+  else if (!MS) bad('游戏里没有 MechScore（乐谱没注入，或者注入顺序不对）');
   else if (!MS.CUES || Object.keys(MS.CUES).length < 8) bad(`MechScore.CUES 只有 ${MS.CUES ? Object.keys(MS.CUES).length : 0} 首`);
   else ok(`MechScore 已注入，${Object.keys(MS.CUES).length} 首曲子`);
 
@@ -324,7 +325,7 @@ try {
       const r = MA.play('allyPhase');
       MA.sfx('hit'); MA.setVolume(0.5, 0.5); MA.mute(true); MA.mute(false); MA.stop();
       const st = MA.state();
-      if (r !== false) info(`没有 AudioContext 时 play() 返回了 ${r}（预期 false）`);
+      if (r !== false && !MA.local) info(`没有 AudioContext 时 play() 返回了 ${r}（预期 false）`);
       if (st.ready !== false) bad('没有 AudioContext 时 state().ready 应该是 false');
       else ok('没有 AudioContext 时优雅降级（play 返回 false，不抛异常）');
     } catch (e) { threw = e; }
