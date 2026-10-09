@@ -42,7 +42,8 @@ const fs = require('fs');
     const rifle = lo.weapons.find(w => w.name === 'GN 狙击步枪');
     out.rifle0 = g.wStatus(lo, rifle, {moved:true}); C.activateTA(lo); out.rifle1 = g.wStatus(lo, rifle, {moved:true});
     const tas = lo.weapons.find(w => w.name === 'TRANS-AM 狙击'); tas.cdLeft = 0;
-    const R = Math.random; Math.random = () => 0; await C.strike(lo, tas, t2); Math.random = R;
+    const R = Math.random; Math.random = () => 0; await C.strike(lo, C.lockStrikeW(tas), t2); Math.random = R;
+    out.lock = [tas.special, tas.lockN, tas.lockHits, String(g.forecast(lo, tas, t2, null).hits)];
     out.mark = t2.debuffs.map(d => d.pct);
     // 阿雷路亚：推 4 格
     us.length = 0;
@@ -86,6 +87,7 @@ const fs = require('fs');
   check('洛克昂：平时狙击步枪移动后不能用', r.rifle0 === '移动后不可用', r.rifle0);
   check('洛克昂：TRANS-AM 中狙击步枪移动后能用', r.rifle1 === null, String(r.rifle1));
   check('洛克昂：TRANS-AM 狙击的破防 −40%', r.mark.includes(40), JSON.stringify(r.mark));
+  check('洛克昂：TRANS-AM 狙击是多重锁定 3 台、每台 3 段', r.lock[0] === 'lock' && r.lock[1] === 3 && r.lock[2] === 3 && r.lock[3] === '3', JSON.stringify(r.lock));
   check('阿雷路亚：TRANS-AM 中冲撞推 4 格', r.pushTo === 8, r.pushTo);
   check('提耶利亚：TRANS-AM 中高压全弹宽 3 格', r.width[1] === r.width[0] * 3 || r.width[1] > r.width[0] * 2, JSON.stringify(r.width));
   check('提耶利亚：脱装时 5×5 内的敌机眩晕，外面的不受影响', r.stun[0] && r.stun[1] && !r.stun[2], JSON.stringify(r.stun));

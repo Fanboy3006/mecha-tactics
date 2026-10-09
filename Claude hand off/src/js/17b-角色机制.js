@@ -171,6 +171,19 @@ Hooks.on('phaseStart', c => { if (c.side === 'enemy') units.forEach(u => { if (u
 const LONE_R = 2;
 const isAlone = u => !!u && !units.some(a => a !== u && a.side === u.side && a.hp > 0 && distU(a, u) <= LONE_R);
 
+/* ===== v0.41.1 需求单 #14：射程形状改了以后，用别的办法加强狙击大招（作者 10-09：射程不变） =====
+   洛克昂 TRANS-AM 狙击 = 多重锁定 + 每个目标多段判定：武器写 special:'lock' + lockHits（段数）/ lockStep；
+   发射时（22 的 lockfire）和预测时（15 的 forecast）都换成同名的多段武器副本去打；
+   markOnHit：打中过就挂一层破防（百分比走 markPct，TRANS-AM 中的洛克昂是 40%）。
+   克鲁兹 超长距离狙击 = 无视防御（ignoreDef），不用改代码。 */
+const lockStrikeW = w => w.lockHits ? {...w, special:'multi', hits:w.lockHits, step:w.lockStep || 10} : w;
+Hooks.on('strikeResolved', c => {
+  if (!c.hit || c.def.hp <= 0 || !c.w.markOnHit || hasTrait(c.def, 'wSeries')) return;
+  const mp = markPct(c.att, c.w);
+  c.def.debuffs.push({pct:mp, src:c.w.name});
+  log(`${fullName(c.def)} 被【${c.w.name}】标记：破防 −${mp}%（合计 −${Math.min(100, breakSum(c.def))}%）`, null, c.att.side);
+}, '洛克昂 TRANS-AM 狙击：打中过就挂破防');
+
 /* 测试接口：角色机制的函数（tests/moon.js 等用；window.__game 归规则对话，所以单独挂一个） */
 window.__chars = {autoWeapon:u => autoWeapon(u), echoWeapon:u => echoWeapon(u), attackTilesOf, pickOf, setPick:k => { FEENA_PICK = k; }, canSwitchPick, chainStepOf, effMov, zocRadius,
-  strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d), smokeHit, inSmoke, evadeN, evadeCdCut, get SMOKES(){ return SMOKES; }, inMaoZone, ignoresLos, linkSupport:(a, t) => linkSupport(a, t), activateTA, taActive, taAfter, canTA, purgeStun, collideDmg, isAlone};
+  strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d), smokeHit, inSmoke, evadeN, evadeCdCut, get SMOKES(){ return SMOKES; }, inMaoZone, ignoresLos, linkSupport:(a, t) => linkSupport(a, t), activateTA, taActive, taAfter, canTA, purgeStun, collideDmg, isAlone, lockStrikeW};

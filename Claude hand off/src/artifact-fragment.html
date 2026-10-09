@@ -2243,9 +2243,9 @@ const ALLY_T = [
     wp({name:'GN 狙击步枪', power:2650, fire:'direct', range:[3,7], hit:130, afterMove:false, dmgType:'光束', taMove:true, desc:'TRANS-AM 中可以移动后使用。'}),
     wp({name:'GN 光束手枪', power:1100, fire:'direct', range:[1,2], hit:130, dmgType:'光束'}),
     wp({name:'GN 导弹', power:1700, fire:'indirect', range:[2,5], hit:130, afterMove:false, uses:2}),
-    wp({name:'TRANS-AM 狙击', power:3150, stat:'射击+觉醒', taOnly:true, fire:'direct', range:[4,9], hit:130, afterMove:false, cd:2, unlock:20, special:'markBreak', dmgType:'光束',
-        upgrades:[{lv:30, range:[4,12], again:true, note:'Lv30：射程 4–12，击破目标后可以再攻击一次（不能移动）'}],
-        desc:'只有 TRANS-AM 中能用。命中后直接挂一层破防（TRANS-AM 中 −40%），不管从哪个方向打。攻击能力值 = 射击 + 觉醒。'}),
+    wp({name:'TRANS-AM 狙击', power:550, stat:'射击+觉醒', taOnly:true, fire:'direct', range:[4,9], hit:130, afterMove:false, cd:2, unlock:20, special:'lock', lockN:3, lockHits:3, lockStep:10, markOnHit:true, dmgType:'光束',
+        upgrades:[{lv:30, lockN:4, note:'Lv30：最多锁定 4 台'}],
+        desc:'只有 TRANS-AM 中能用。多重锁定：射程内选最多 3 台敌机，每台连续判定 3 段（首段命中 130，命中后 −10、未中后 +10，每段都扣装甲），目标不能反击、防御或回避；打中过的目标挂一层 −40% 破防。攻击能力值 = 射击 + 觉醒。'}),
   ]},
   {pilot:'阿雷路亚', mech:'CB3', short:'CB3', trait:'hallelujah', canFly:true, tags:{势力:'天人', 远近分类:'近战', 战斗分类:'特种'}, hp:4500, armor:500, eva:25, mov:6, melee:140, shoot:130, defense:85, flying:false, w:1, h:1, abilities:['transAm'], weapons:[
     wp({name:'GN 冲撞', power:1150, stat:'格斗', fire:'melee', special:'push', push:2,
@@ -2405,8 +2405,9 @@ const ALLY_T = [
     wp({name:'76mm 狙击炮', power:2550, fire:'direct', range:[3,9], hit:120, afterMove:false}),
     wp({name:'突击步枪', power:1300, fire:'direct', range:[1,4]}),
     wp({name:'单分子刀', power:1200, stat:'格斗', fire:'melee'}),
-    wp({name:'超长距离狙击', power:3950, statMul:1.2, fire:'direct', range:[5,14], hit:120, critMod:10, afterMove:false, cd:2, unlock:20,
-        upgrades:[{lv:30, again:true, note:'Lv30：击破目标后可以再攻击一次（不能移动）'}]}),
+    wp({name:'超长距离狙击', power:3950, statMul:1.2, fire:'direct', range:[5,14], hit:120, critMod:10, afterMove:false, cd:2, unlock:20, ignoreDef:true,
+        upgrades:[{lv:30, again:true, note:'Lv30：击破目标后可以再攻击一次（不能移动）'}],
+        desc:'无视防御：装甲、防御值、屏障、护盾都不起作用。'}),
   ]},
   {pilot:'梅丽莎·毛', mech:'U2', short:'U2', mechName:'M9·指挥', trait:'maoNet', tags:{势力:'秘银', 远近分类:'远程', 战斗分类:'指挥'}, hp:4800, armor:500, eva:25, mov:6, melee:120, shoot:145, defense:85, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'突击步枪', power:1400, fire:'direct', range:[1,4]}),
@@ -3616,6 +3617,7 @@ const funnelZone = (def, [dx,dy]) => { const [fx,fy] = FACE[def.facing], fw = dx
 const FUNNEL_ZONES = def => FUNNEL_DIRS.map(d => funnelZone(def, d));
 const multiPer = (att, w) => wPow(att, w);   // v0.37 每段威力就是武器威力（属性在公式的攻击能力值里）
 function forecast(att, w, def, reaction, opts = {}){
+  if (w.lockHits) w = lockStrikeW(w);   // v0.41.1 锁定 + 多段：按多段预测（17b）
   const {hit, zone} = hitRate(att,w,def,reaction,undefined,opts), crit = critRate(w,att,def,{...opts, reaction});
   if (w.special === 'funnel'){
     const per = multiPer(att, w), zs = FUNNEL_ZONES(def);
@@ -4287,9 +4289,22 @@ Hooks.on('phaseStart', c => { if (c.side === 'enemy') units.forEach(u => { if (u
 const LONE_R = 2;
 const isAlone = u => !!u && !units.some(a => a !== u && a.side === u.side && a.hp > 0 && distU(a, u) <= LONE_R);
 
+/* ===== v0.41.1 需求单 #14：射程形状改了以后，用别的办法加强狙击大招（作者 10-09：射程不变） =====
+   洛克昂 TRANS-AM 狙击 = 多重锁定 + 每个目标多段判定：武器写 special:'lock' + lockHits（段数）/ lockStep；
+   发射时（22 的 lockfire）和预测时（15 的 forecast）都换成同名的多段武器副本去打；
+   markOnHit：打中过就挂一层破防（百分比走 markPct，TRANS-AM 中的洛克昂是 40%）。
+   克鲁兹 超长距离狙击 = 无视防御（ignoreDef），不用改代码。 */
+const lockStrikeW = w => w.lockHits ? {...w, special:'multi', hits:w.lockHits, step:w.lockStep || 10} : w;
+Hooks.on('strikeResolved', c => {
+  if (!c.hit || c.def.hp <= 0 || !c.w.markOnHit || hasTrait(c.def, 'wSeries')) return;
+  const mp = markPct(c.att, c.w);
+  c.def.debuffs.push({pct:mp, src:c.w.name});
+  log(`${fullName(c.def)} 被【${c.w.name}】标记：破防 −${mp}%（合计 −${Math.min(100, breakSum(c.def))}%）`, null, c.att.side);
+}, '洛克昂 TRANS-AM 狙击：打中过就挂破防');
+
 /* 测试接口：角色机制的函数（tests/moon.js 等用；window.__game 归规则对话，所以单独挂一个） */
 window.__chars = {autoWeapon:u => autoWeapon(u), echoWeapon:u => echoWeapon(u), attackTilesOf, pickOf, setPick:k => { FEENA_PICK = k; }, canSwitchPick, chainStepOf, effMov, zocRadius,
-  strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d), smokeHit, inSmoke, evadeN, evadeCdCut, get SMOKES(){ return SMOKES; }, inMaoZone, ignoresLos, linkSupport:(a, t) => linkSupport(a, t), activateTA, taActive, taAfter, canTA, purgeStun, collideDmg, isAlone};
+  strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d), smokeHit, inSmoke, evadeN, evadeCdCut, get SMOKES(){ return SMOKES; }, inMaoZone, ignoresLos, linkSupport:(a, t) => linkSupport(a, t), activateTA, taActive, taAfter, canTA, purgeStun, collideDmg, isAlone, lockStrikeW};
 /* ---------- 回合流程 ---------- */
 function fireTip(key){
   if (!LV || !LV.tips) return;
@@ -6264,7 +6279,8 @@ async function onAction(a){
     S.mode = 'busy'; refresh();
     consume(w);
     log(`${fullName(u)}【${w.name}】锁定 ${ts.length} 台敌机`, null, 'ally');
-    for (const t of ts){ if (over || u.hp <= 0) break; if (t.hp > 0) await strike(u, w, t, null, {skipConsume:true}); }
+    const sw = lockStrikeW(w);   // v0.41.1 锁定 + 多段（洛克昂 TRANS-AM 狙击，17b）
+    for (const t of ts){ if (over || u.hp <= 0) break; if (t.hp > 0) await strike(u, sw, t, null, {skipConsume:true}); }
     refresh(); checkEnd();
     if (!over && u.hp > 0) await afterAttack(u); else if (!over){ clearSel(); refresh(); }
   }
@@ -7826,7 +7842,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.41';
+const GAME_VERSION = 'v0.41.1';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){

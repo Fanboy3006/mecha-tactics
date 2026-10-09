@@ -174,7 +174,8 @@ async function onAction(a){
     S.mode = 'busy'; refresh();
     consume(w);
     log(`${fullName(u)}【${w.name}】锁定 ${ts.length} 台敌机`, null, 'ally');
-    for (const t of ts){ if (over || u.hp <= 0) break; if (t.hp > 0) await strike(u, w, t, null, {skipConsume:true}); }
+    const sw = lockStrikeW(w);   // v0.41.1 锁定 + 多段（洛克昂 TRANS-AM 狙击，17b）
+    for (const t of ts){ if (over || u.hp <= 0) break; if (t.hp > 0) await strike(u, sw, t, null, {skipConsume:true}); }
     refresh(); checkEnd();
     if (!over && u.hp > 0) await afterAttack(u); else if (!over){ clearSel(); refresh(); }
   }

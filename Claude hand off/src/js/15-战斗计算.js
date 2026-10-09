@@ -121,6 +121,7 @@ const funnelZone = (def, [dx,dy]) => { const [fx,fy] = FACE[def.facing], fw = dx
 const FUNNEL_ZONES = def => FUNNEL_DIRS.map(d => funnelZone(def, d));
 const multiPer = (att, w) => wPow(att, w);   // v0.37 每段威力就是武器威力（属性在公式的攻击能力值里）
 function forecast(att, w, def, reaction, opts = {}){
+  if (w.lockHits) w = lockStrikeW(w);   // v0.41.1 锁定 + 多段：按多段预测（17b）
   const {hit, zone} = hitRate(att,w,def,reaction,undefined,opts), crit = critRate(w,att,def,{...opts, reaction});
   if (w.special === 'funnel'){
     const per = multiPer(att, w), zs = FUNNEL_ZONES(def);

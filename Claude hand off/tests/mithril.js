@@ -38,6 +38,9 @@ const fs = require('fs');
     const hp2 = foe.hp; await C.linkSupport(kurz, foe); out.onlySousuke = foe.hp === hp2;
     const hp3 = foe.hp; Math.random = () => 0; await C.linkSupport(mao, foe); Math.random = R; out.maoLink = foe.hp < hp3;
     const yang = A('U8', 9, 5), hp4 = foe.hp; await C.linkSupport(yang, foe); out.notOthers = foe.hp === hp4;
+    // 克鲁兹 超长距离狙击：无视防御（打重装要塞时伤害远高于普通狙击炮）
+    const ul = kurz.weapons.find(w => w.name === '超长距离狙击'), big = E('fortress', 9, 9);
+    out.ignore = [ul.ignoreDef, g.damageCalc(kurz, ul, big, {}).dmg, g.damageCalc(kurz, rifle, big, {}).dmg];
     // Lv10 前毛的特技没解锁
     us.length = 0;
     const m9 = A('U2', 10, 6, 9), f9 = E('grunt', 11, 6);
@@ -55,6 +58,7 @@ const fs = require('fs');
   check('毛自己攻击范围里的敌人也触发克鲁兹支援', r.maoLink === true);
   check('其他人（杨）的攻击不触发', r.notOthers === true);
   check('毛 Lv10 前没有指挥网络', r.lv9 === true);
+  check('克鲁兹超长距离狙击无视防御', r.ignore[0] === true && r.ignore[1] > r.ignore[2] * 3, JSON.stringify(r.ignore));
   console.log('ERRS', JSON.stringify(errs));
   await b.close();
   process.exit(bad || errs.length ? 1 : 0);
