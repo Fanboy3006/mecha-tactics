@@ -21,12 +21,12 @@ function dlg(html, wide){
 async function runStartScreen(){
   audioScene('menu');
   $('#runView').hidden = false; $('#runView').innerHTML = '';
-  const squads = [{id:'moon', name:'月之国分队', desc:'Feena 担任指挥官（不出场）：英雄无敌 3 式成长，战斗中可以下达【陨石召唤】，升级时学习二级技能。不送角色。'},
+  const squads = [...(CMD_ENABLED ? [{id:'moon', name:'月之国分队', desc:'Feena 担任指挥官（不出场）：英雄无敌 3 式成长，战斗中可以下达【陨石召唤】，升级时学习二级技能。不送角色。'}] : []),   // v0.40.13 指挥官系统关闭（DLC）
     ...CLASSES.map(c => ({id:c, name:`${c}分队`, desc:`开局从${c}角色里选一名 Lv20（免费）。`})),
     ...FACTIONS.map(f => ({id:f, name:`${f}势力分队`, desc:`开局从${f}的角色里选一名 Lv20（免费）。`, fac:true}))];   // v0.26 势力分队
   const v = await dlg(`<div class="eyebrow" style="color:var(--accent)">肉鸽模式 · 混沌迷宫</div><h2>选择分队</h2>
     <p class="small">各个平行宇宙被扭曲在一起，形成了混沌迷宫。在迷宫里招募来自不同宇宙的机师，穿过 3 层航区，击败最深处的敌人。</p>
-    ${[['指挥官分队', squads.filter(q => q.id === 'moon')], ['职业分队', squads.filter(q => CLASSES.includes(q.id))], ['势力分队', squads.filter(q => q.fac)]].map(([h, qs]) => `<div class="fgroup"><i style="--fc:var(--accent)"></i>${h}</div>
+    ${[...(CMD_ENABLED ? [['指挥官分队', squads.filter(q => q.id === 'moon')]] : []), ['职业分队', squads.filter(q => CLASSES.includes(q.id))], ['势力分队', squads.filter(q => q.fac)]].map(([h, qs]) => `<div class="fgroup"><i style="--fc:var(--accent)"></i>${h}</div>
     <div class="rcards">${qs.map(q => `<button class="rcard" style="--fc:${q.id === 'moon' ? '#9fb7d8' : q.fac ? (FACTION_COL[q.id] || 'var(--accent)') : 'var(--accent)'}" data-v="${q.id}"><b>${q.name}</b><small>${q.desc}</small></button>`).join('')}</div>`).join('')}
     <div class="acts"><button class="btn" data-v="cancel">返回</button></div>`, true);
   if (v === 'cancel'){ runHide(); startLevel('tut1'); return; }

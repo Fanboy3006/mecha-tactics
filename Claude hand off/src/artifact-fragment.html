@@ -4295,7 +4295,7 @@ function showFormation(done){
   const cap = LV.maxDeploy || roster.length;
   const fixed = !LV.spots && level !== 'skirmish';      // 教学等固定出场的关卡：只选指挥官
   const pool = roster.filter(u => !u.commandOnly);
-  const cmdCands = roster.filter(u => u.command);
+  const cmdCands = CMD_ENABLED ? roster.filter(u => u.command) : [];   // v0.40.13 指挥官系统关闭（DLC）
   const mem = FORM_MEM[level];
   let sel = new Set(fixed ? roster.map(u => u.mech) : (mem ? mem.sel : (LV.defaultDeploy || pool.map(u => u.mech)).slice(0, cap)));
   let cmd = mem && !fixed ? mem.cmd : null;
@@ -4324,13 +4324,13 @@ function showFormation(done){
       return `<div class="fgroup"><i style="--fc:${FACTION_COL[g] || '#4f95e0'}"></i>${g}</div><div class="fgrid">${list.map(u => card(u, 'dep')).join('')}</div>`;
     }).join('');
     $('#endDlg').innerHTML = `<div class="eyebrow" style="color:var(--accent)">战前编队</div><h2>${fixed ? '选择指挥官' : `选择出击机体（${sel.size} / ${cap}）`}</h2>
-      <p class="small">${fixed ? '这一关的出场机体是固定的。' : `${LV.hangar ? `选首发（场上同时最多 ${cap} 台）；没选的队员都带进战斗、放在机库，战斗中可以在部署格派出。` : `这一关最多出击 ${cap} 台。`}点击机体切换是否出击。`}${LV.noCmd ? '' : '指挥官不会出场作战，而是在战场外下达指挥（最多一位，可以不设）。'}</p>
+      <p class="small">${fixed ? '这一关的出场机体是固定的。' : `${LV.hangar ? `选首发（场上同时最多 ${cap} 台）；没选的队员都带进战斗、放在机库，战斗中可以在部署格派出。` : `这一关最多出击 ${cap} 台。`}点击机体切换是否出击。`}${LV.noCmd || !cmdCands.length ? '' : '指挥官不会出场作战，而是在战场外下达指挥（最多一位，可以不设）。'}</p>
       ${deploy}
       ${(() => { const fu = roster.find(u => u.skillPick && u.lv >= 20 && (sel.has(u.mech) || (LV.hangar && pool.includes(u) && cmd !== u.mech))); return fu ? `<div class="fgroup"><i style="--fc:var(--accent)"></i>${fu.pilot} 只能携带一个技能</div><div style="display:flex;gap:6px;flex-wrap:wrap">${[['bless','月光祝福（增益）'],['echo','残月的余响（输出）']].map(([k, n]) => `<button class="rv-btn ${FEENA_PICK === k ? 'on' : ''}" data-fp="${k}">${n}</button>`).join('')}</div>` : ''; })()}
       ${LO ? `<div class="fgroup"><i style="--fc:var(--accent)"></i>出击武装：普通武装全部带上；★ 大招每台最多带 1 个，点一下切换（反击也只能用带上的武装）</div>
         ${roster.filter(u => sel.has(u.mech) || (LV.hangar && pool.includes(u) && cmd !== u.mech)).map(u => { const cur = loOf(u); return `<div class="rv-row"><span class="nm" style="flex:0 0 120px">${u.short} ${u.pilot}${LV.hangar ? (sel.has(u.mech) ? ' · 首发' : ' · 机库') : ''}</span><span style="display:flex;flex-wrap:wrap;gap:4px">${loChoices(u).map(w => `<button class="rv-btn ${cur.includes(w.name) ? 'on' : ''}" ${isUlt(w) ? `data-lo="${u.mech}|${w.name}"` : 'disabled'} title="${FIRE[w.fire]}${w.desc ? ' · ' + w.desc.replace(/"/g, '') : ''}">${isUlt(w) ? '★ ' : ''}${w.name}</button>`).join('')}</span></div>`; }).join('') || '<p class="small">先选出击机体。</p>'}
         ${LV.loadout.note ? `<p class="small">${LV.loadout.note}</p>` : ''}` : ''}
-      ${LV.noCmd ? '' : `<div class="fgroup"><i style="--fc:var(--accent)"></i>指挥官（可选）</div>
+      ${LV.noCmd || !cmdCands.length ? '' : `<div class="fgroup"><i style="--fc:var(--accent)"></i>指挥官（可选）</div>
       <div class="fgrid"><button class="fm cmd ${cmd ? '' : 'on'}" style="--fc:#888" data-cmd=""><b>不设指挥官</b><small>全部机体作战</small></button>${cmdCands.map(u => card(u, 'cmd')).join('')}</div>
       ${cmd ? `<p class="small">【${COMMANDS[roster.find(u => u.mech === cmd).command].name}】${COMMANDS[roster.find(u => u.mech === cmd).command].desc}</p>` : ''}`}
       <div class="acts">${fixed ? '' : '<button class="btn" id="btnFormClear">清空</button>'}<button class="btn primary" id="btnForm" ${sel.size ? '' : 'disabled'}>开始作战</button></div>`;
@@ -6275,6 +6275,10 @@ Hooks.on('phaseStart', c => {
   al.forEach(u => { const h = Math.min(u.maxHp - u.hp, Math.round(u.maxHp * .03 * k)); if (h > 0){ u.hp += h; addFloat(u, `+${h}`, '#9fe0b8'); } });
 }, '藏品：后勤网');
 /* ---------- Feena 指挥官 ---------- */
+/* v0.40.13 作者 10-08：指挥官系统太复杂，先关掉（游戏够好玩以后做成 DLC）。
+   关掉的是：肉鸽「月之国分队」（Feena 场外指挥、升级学二级技能、陨石召唤），原型关编队里的「指挥官（可选）」。
+   代码都留着，把 CMD_ENABLED 改回 true 就恢复。Feena 作为普通出场角色不受影响。 */
+const CMD_ENABLED = false;
 const SKILLS = {
   '领航':{desc:['推进剂上限 +2','推进剂上限 +3','推进剂上限 +4']},
   '后勤':{desc:['推进剂上限 +1','推进剂上限 +2','推进剂上限 +2，全军移动 +1']},
@@ -6483,12 +6487,12 @@ function dlg(html, wide){
 async function runStartScreen(){
   audioScene('menu');
   $('#runView').hidden = false; $('#runView').innerHTML = '';
-  const squads = [{id:'moon', name:'月之国分队', desc:'Feena 担任指挥官（不出场）：英雄无敌 3 式成长，战斗中可以下达【陨石召唤】，升级时学习二级技能。不送角色。'},
+  const squads = [...(CMD_ENABLED ? [{id:'moon', name:'月之国分队', desc:'Feena 担任指挥官（不出场）：英雄无敌 3 式成长，战斗中可以下达【陨石召唤】，升级时学习二级技能。不送角色。'}] : []),   // v0.40.13 指挥官系统关闭（DLC）
     ...CLASSES.map(c => ({id:c, name:`${c}分队`, desc:`开局从${c}角色里选一名 Lv20（免费）。`})),
     ...FACTIONS.map(f => ({id:f, name:`${f}势力分队`, desc:`开局从${f}的角色里选一名 Lv20（免费）。`, fac:true}))];   // v0.26 势力分队
   const v = await dlg(`<div class="eyebrow" style="color:var(--accent)">肉鸽模式 · 混沌迷宫</div><h2>选择分队</h2>
     <p class="small">各个平行宇宙被扭曲在一起，形成了混沌迷宫。在迷宫里招募来自不同宇宙的机师，穿过 3 层航区，击败最深处的敌人。</p>
-    ${[['指挥官分队', squads.filter(q => q.id === 'moon')], ['职业分队', squads.filter(q => CLASSES.includes(q.id))], ['势力分队', squads.filter(q => q.fac)]].map(([h, qs]) => `<div class="fgroup"><i style="--fc:var(--accent)"></i>${h}</div>
+    ${[...(CMD_ENABLED ? [['指挥官分队', squads.filter(q => q.id === 'moon')]] : []), ['职业分队', squads.filter(q => CLASSES.includes(q.id))], ['势力分队', squads.filter(q => q.fac)]].map(([h, qs]) => `<div class="fgroup"><i style="--fc:var(--accent)"></i>${h}</div>
     <div class="rcards">${qs.map(q => `<button class="rcard" style="--fc:${q.id === 'moon' ? '#9fb7d8' : q.fac ? (FACTION_COL[q.id] || 'var(--accent)') : 'var(--accent)'}" data-v="${q.id}"><b>${q.name}</b><small>${q.desc}</small></button>`).join('')}</div>`).join('')}
     <div class="acts"><button class="btn" data-v="cancel">返回</button></div>`, true);
   if (v === 'cancel'){ runHide(); startLevel('tut1'); return; }
@@ -7361,7 +7365,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.40.12';
+const GAME_VERSION = 'v0.40.13';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){

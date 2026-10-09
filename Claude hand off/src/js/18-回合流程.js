@@ -280,7 +280,7 @@ function showFormation(done){
   const cap = LV.maxDeploy || roster.length;
   const fixed = !LV.spots && level !== 'skirmish';      // 教学等固定出场的关卡：只选指挥官
   const pool = roster.filter(u => !u.commandOnly);
-  const cmdCands = roster.filter(u => u.command);
+  const cmdCands = CMD_ENABLED ? roster.filter(u => u.command) : [];   // v0.40.13 指挥官系统关闭（DLC）
   const mem = FORM_MEM[level];
   let sel = new Set(fixed ? roster.map(u => u.mech) : (mem ? mem.sel : (LV.defaultDeploy || pool.map(u => u.mech)).slice(0, cap)));
   let cmd = mem && !fixed ? mem.cmd : null;
@@ -309,13 +309,13 @@ function showFormation(done){
       return `<div class="fgroup"><i style="--fc:${FACTION_COL[g] || '#4f95e0'}"></i>${g}</div><div class="fgrid">${list.map(u => card(u, 'dep')).join('')}</div>`;
     }).join('');
     $('#endDlg').innerHTML = `<div class="eyebrow" style="color:var(--accent)">战前编队</div><h2>${fixed ? '选择指挥官' : `选择出击机体（${sel.size} / ${cap}）`}</h2>
-      <p class="small">${fixed ? '这一关的出场机体是固定的。' : `${LV.hangar ? `选首发（场上同时最多 ${cap} 台）；没选的队员都带进战斗、放在机库，战斗中可以在部署格派出。` : `这一关最多出击 ${cap} 台。`}点击机体切换是否出击。`}${LV.noCmd ? '' : '指挥官不会出场作战，而是在战场外下达指挥（最多一位，可以不设）。'}</p>
+      <p class="small">${fixed ? '这一关的出场机体是固定的。' : `${LV.hangar ? `选首发（场上同时最多 ${cap} 台）；没选的队员都带进战斗、放在机库，战斗中可以在部署格派出。` : `这一关最多出击 ${cap} 台。`}点击机体切换是否出击。`}${LV.noCmd || !cmdCands.length ? '' : '指挥官不会出场作战，而是在战场外下达指挥（最多一位，可以不设）。'}</p>
       ${deploy}
       ${(() => { const fu = roster.find(u => u.skillPick && u.lv >= 20 && (sel.has(u.mech) || (LV.hangar && pool.includes(u) && cmd !== u.mech))); return fu ? `<div class="fgroup"><i style="--fc:var(--accent)"></i>${fu.pilot} 只能携带一个技能</div><div style="display:flex;gap:6px;flex-wrap:wrap">${[['bless','月光祝福（增益）'],['echo','残月的余响（输出）']].map(([k, n]) => `<button class="rv-btn ${FEENA_PICK === k ? 'on' : ''}" data-fp="${k}">${n}</button>`).join('')}</div>` : ''; })()}
       ${LO ? `<div class="fgroup"><i style="--fc:var(--accent)"></i>出击武装：普通武装全部带上；★ 大招每台最多带 1 个，点一下切换（反击也只能用带上的武装）</div>
         ${roster.filter(u => sel.has(u.mech) || (LV.hangar && pool.includes(u) && cmd !== u.mech)).map(u => { const cur = loOf(u); return `<div class="rv-row"><span class="nm" style="flex:0 0 120px">${u.short} ${u.pilot}${LV.hangar ? (sel.has(u.mech) ? ' · 首发' : ' · 机库') : ''}</span><span style="display:flex;flex-wrap:wrap;gap:4px">${loChoices(u).map(w => `<button class="rv-btn ${cur.includes(w.name) ? 'on' : ''}" ${isUlt(w) ? `data-lo="${u.mech}|${w.name}"` : 'disabled'} title="${FIRE[w.fire]}${w.desc ? ' · ' + w.desc.replace(/"/g, '') : ''}">${isUlt(w) ? '★ ' : ''}${w.name}</button>`).join('')}</span></div>`; }).join('') || '<p class="small">先选出击机体。</p>'}
         ${LV.loadout.note ? `<p class="small">${LV.loadout.note}</p>` : ''}` : ''}
-      ${LV.noCmd ? '' : `<div class="fgroup"><i style="--fc:var(--accent)"></i>指挥官（可选）</div>
+      ${LV.noCmd || !cmdCands.length ? '' : `<div class="fgroup"><i style="--fc:var(--accent)"></i>指挥官（可选）</div>
       <div class="fgrid"><button class="fm cmd ${cmd ? '' : 'on'}" style="--fc:#888" data-cmd=""><b>不设指挥官</b><small>全部机体作战</small></button>${cmdCands.map(u => card(u, 'cmd')).join('')}</div>
       ${cmd ? `<p class="small">【${COMMANDS[roster.find(u => u.mech === cmd).command].name}】${COMMANDS[roster.find(u => u.mech === cmd).command].desc}</p>` : ''}`}
       <div class="acts">${fixed ? '' : '<button class="btn" id="btnFormClear">清空</button>'}<button class="btn primary" id="btnForm" ${sel.size ? '' : 'disabled'}>开始作战</button></div>`;
