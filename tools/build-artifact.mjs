@@ -12,6 +12,11 @@
  * 用法：node tools/build-src.mjs && node tools/build-artifact.mjs
  * 发布：Artifact 发布 dist/artifact/index.html，files = {art.js, game.js, music/*.mp3}，url 用试玩页链接，不传 capabilities。
  *       music/ 是 Suno 曲子（音乐对话，10-09 起），曲子没变时可以不传（发布时没列出的文件会保留）。
+ *
+ * 测试版 / 正式版（作者 10-10）：
+ *   node tools/build-artifact.mjs            → dist/artifact/   测试版（标题和顶栏写「测试版」），各对话平时只发布这个
+ *   node tools/build-artifact.mjs --release  → dist/release/    正式版（写「正式版」），只有作者说「更新正式版」时由统筹对话发布
+ *   两个链接见《分工与派活指南》1.5 第 5 条。
  * ========================================================================== */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync, rmSync } from 'fs';
 import vm from 'vm';
@@ -20,7 +25,9 @@ import { fileURLToPath } from 'url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const FRAG = join(ROOT, 'Claude hand off', 'src', 'artifact-fragment.html');
-const OUT = join(ROOT, 'Claude hand off', 'dist', 'artifact');
+const RELEASE = process.argv.includes('--release');
+const CHANNEL = RELEASE ? '正式版' : '测试版';
+const OUT = join(ROOT, 'Claude hand off', 'dist', RELEASE ? 'release' : 'artifact');
 const ART_BEGIN = '<!-- ===== ART:mech-icons BEGIN';
 const ART_END = '<!-- ===== ART:mech-icons END ===== -->';
 const MAIN = "<script>\n(() => {\n'use strict';\nconst N = 40, TS = 22;";
@@ -62,11 +69,15 @@ if (s.includes(AUDIO_MARK) && existsSync(join(ROOT, 'audio', 'local-music.js')))
   s = s.replace(AUDIO_MARK, `<script>window.MECHA_MUSIC_BASE = 'music/'; window.MECHA_MUSIC_FLAT = true;</script>\n` + AUDIO_MARK);
 }
 
+/* 4. 测试版 / 正式版标记：标题和顶栏的「试作版」换掉 */
+s = s.replace('<title>机甲战棋 试作版</title>', `<title>机甲战棋 ${CHANNEL}</title>`).replace('<span class="ver">试作版 ', `<span class="ver">${CHANNEL} `);
+if (!s.includes(`<span class="ver">${CHANNEL} `)) fail('找不到顶栏的版本标记');
+
 if (/<script>(?![\s\S]*<\/script>)/.test(s)) fail('页面里还有没拆干净的内联脚本');
 mkdirSync(OUT, {recursive: true});
 writeFileSync(join(OUT, 'index.html'), s, 'utf8');
 writeFileSync(join(OUT, 'art.js'), art, 'utf8');
 writeFileSync(join(OUT, 'game.js'), game, 'utf8');
 const kb = t => (Buffer.byteLength(t) / 1024).toFixed(0) + ' KB';
-console.log(`✓ dist/artifact：index.html ${kb(s)} · art.js ${kb(art)} · game.js ${kb(game)}` + (music.length ? ` · music/ ${music.length} 首` : ''));
+console.log(`✓ ${CHANNEL} dist/${RELEASE ? 'release' : 'artifact'}：index.html ${kb(s)} · art.js ${kb(art)} · game.js ${kb(game)}` + (music.length ? ` · music/ ${music.length} 首` : ''));
 if (music.length) console.log('  发布时 files 再加：' + music.map(id => `music/${id}.mp3`).join('、'));
