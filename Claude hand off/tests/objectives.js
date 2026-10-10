@@ -33,8 +33,8 @@ const fs = require('fs');
   await p.close();
   // 斩首
   p = await start('targets');
-  const tg = await p.evaluate(() => { const g = window.__game, ts = g.units.filter(u => u.target); const n = ts.length, star = ts.every(u => u.badgeList && u.badgeList.length); ts.forEach(u => { u.hp = 0; }); g.checkEnd(); return {n, star, over:g.over, type:g.LV.victory.type}; });
-  check('斩首：2 个带 ★ 的头目，打掉就胜利', tg.type === 'targets' && tg.n === 2 && tg.star && tg.over, JSON.stringify(tg));
+  const tg = await p.evaluate(() => { const g = window.__game, ts = g.units.filter(u => u.target); const n = ts.length, star = ts.every(u => u.badgeList && u.badgeList.length), far = ts.every(u => u.x + u.w >= g.LV.w - 2), boss = ts.every(u => u.mech === g.data.ENEMY_T.fortress.mech), guard = ts.every(u => u.guardZone); ts.forEach(u => { u.hp = 0; }); g.checkEnd(); return {n, star, far, boss, guard, over:g.over, type:g.LV.victory.type}; });
+  check('斩首（v0.41.9）：第 1 层 1 个带 ★ 的重装要塞，贴着最右边、守卫型，打掉就胜利', tg.type === 'targets' && tg.n === 1 && tg.star && tg.far && tg.boss && tg.guard && tg.over, JSON.stringify(tg));
   await p.close();
   // 突破
   p = await start('reach');

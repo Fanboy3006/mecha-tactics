@@ -111,11 +111,17 @@ function buildStage(st, extra = 0){
   const theme = THEMES[st.theme % THEMES.length], lv = runEnemyLv(kind, st.layer);
   const obj = stageObj(st), L = st.layer, T = (tier, n) => tierPick(r, theme, tier, n, L), boss = () => ENEMY_BOSS[Math.floor(r() * ENEMY_BOSS.length)];
   /* v0.32 按梯队配兵：杂兵给 AOE 清，精锐各有克制，头目带范围护壁要集火 / 近卫补刀 */
-  let keys = [], later = [], targets = 0;
+  let keys = [], later = [], targets = 0, tkeys = [], gkeys = [];
   if (!st.enemies){
     if (kind === 'battle'){
       if (obj === 'survive') keys = [...T('杂兵', 3 + L), ...T('精锐', 1)];
-      else if (obj === 'targets'){ targets = L >= 2 ? 3 : 2; keys = [...T('头目', targets), ...T('杂兵', 2 + L), ...T('精锐', 1)]; }
+      else if (obj === 'targets'){
+        /* v0.41.9 斩首（作者 10-10：斩首对象血量、防御、攻击都太低；默认应该在一个不动的、比较远的位置）：
+           目标改用 Boss 梯队（第 1 层只出重装要塞），第 1 层 1 个、第 2 层起 2 个，放在地图最右端，各带 1 台精锐护卫；
+           目标和护卫都是守卫型（3 格内才动），等敌方对话给 hold（原地不动）以后换掉。中段照旧是杂兵 2+L + 精锐 1。 */
+        targets = L >= 2 ? 2 : 1; tkeys = [...Array(targets)].map(() => L === 1 ? 'fortress' : boss()); gkeys = T('精锐', targets);
+        keys = [...T('杂兵', 2 + L), ...T('精锐', 1)];
+      }
       else { keys = [...T('杂兵', 3 + L), ...T('精锐', 1), ...(L >= 2 ? T('头目', 1) : [])]; later.push([...T('杂兵', 2 + L), ...(L >= 2 ? T('精锐', 1) : []), ...T('头目', 1)]); }
     }
     if (kind === 'source'){ keys = [...T('杂兵', 3 + L), ...T('精锐', 2), ...T('头目', 1)]; later.push([...T('杂兵', 2 + L), ...T('精锐', 1), ...T('头目', 1)]); }
@@ -134,15 +140,16 @@ function buildStage(st, extra = 0){
   const r2 = mulberry32(st.seed ^ 0x77);
   for (let i=0; i<extra; i++) keys.push(...tierPick(r2, theme, '杂兵', 1));
   const occ = [];
-  const place = (list, eliteLv) => {
+  const place = (list, eliteLv, at = null) => {   // at = {x:[lo,hi], y:[lo,hi], add:{...}}：手动指定范围（斩首目标、护卫用）
     const out = [];
     for (const k of list){
       const t = ENEMY_T[k];
       for (let tries = 0; tries < 400; tries++){
-        const x = obj === 'reach' ? ri(r, Math.floor(W / 2) - 3, W - t.w - 5) : obj === 'targets' ? ri(r, Math.floor(W / 2), W - t.w - 6) : ri(r, W - 10, W - t.w - 1), y = ri(r, 1, H - t.h - 1), probe = {x, y, w:t.w, h:t.h};
+        const x = at ? ri(r, at.x[0], Math.min(at.x[1], W - t.w)) : obj === 'reach' ? ri(r, Math.floor(W / 2) - 3, W - t.w - 5) : obj === 'targets' ? ri(r, Math.floor(W / 2), W - t.w - 6) : ri(r, W - 10, W - t.w - 1),
+              y = at ? ri(r, at.y[0], Math.min(at.y[1], H - t.h - 1)) : ri(r, 1, H - t.h - 1), probe = {x, y, w:t.w, h:t.h};
         if (occ.some(o => distU(probe, o) < 1)) continue;
         if (!st.rows && tilesOf(probe).some(([a, b]) => g[b] && (['c','x','v'].includes(g[b][a]) || (!t.flying && g[b][a] === 'w')))) continue;   // v0.33 不把敌人放进裂谷，免得把战线墙挖穿
-        occ.push(probe); out.push({t:k, x, y, facing:'left', lv: lv + TIER_LV[tierOfEnemy(k)]});
+        occ.push(probe); out.push({t:k, x, y, facing:'left', lv: lv + TIER_LV[tierOfEnemy(k)], ...((at && at.add) || {})});
         break;
       }
     }
@@ -151,8 +158,14 @@ function buildStage(st, extra = 0){
   const enemies = [];
   const pass = e => ({...(e.target ? {target:true} : {}), ...(e.guardZone ? {guardZone:e.guardZone} : {})});   // 手工关：斩首目标、守卫型
   if (st.enemies) for (const e of st.enemies){ enemies.push({t:e.t, x:e.x, y:e.y, facing:e.facing || 'left', lv:e.lv || lv + (e.lvAdd || 0), ...pass(e)}); occ.push({x:e.x, y:e.y, w:ENEMY_T[e.t].w, h:ENEMY_T[e.t].h}); }
+  tkeys.forEach((k, i) => {   // 斩首目标：每个占一条横带，贴着地图最右边；护卫在它左前方
+    const t = ENEMY_T[k], y0 = Math.floor(i * H / targets) + 1, y1 = Math.floor((i + 1) * H / targets) - 2;
+    const tg = place([k], false, {x:[W - t.w - 2, W - t.w - 1], y:[Math.max(y0, 2), Math.min(y1, H - t.h - 2)], add:{target:true, guardZone:3}});
+    enemies.push(...tg);
+    const c = tg[0] || {x:W - 3, y:Math.floor((y0 + y1) / 2)};
+    enemies.push(...place([gkeys[i]], false, {x:[c.x - 3, c.x - 2], y:[Math.max(1, c.y - 1), c.y + t.h], add:{guardZone:3}}));
+  });
   enemies.push(...place(keys, false));
-  for (let i = 0; i < targets && i < enemies.length; i++) enemies[enemies.length - keys.length + i].target = true;   // 斩首目标 = 最先配的那几个头目
   const waves = [{at:null, enemies}];
   if (st.waves) st.waves.forEach((wv, i) => { occ.length = 0; waves.push({at:wv.at || 3 + i*2, enemies:wv.enemies.map(e => ({t:e.t, x:e.x, y:e.y, facing:e.facing || 'left', lv:e.lv || lv + (e.lvAdd || 0), ...pass(e)}))}); });
   else later.forEach((list, i) => { occ.length = 0; waves.push({at:3 + i*2, enemies:place(list, true)}); });
