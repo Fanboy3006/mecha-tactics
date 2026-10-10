@@ -7720,6 +7720,44 @@ Hooks.on('phaseStart', c => {
     log(`敌方增援 ${list.length} 台从右侧出现`, null, 'sys');
   }
 }, '关卡目标：坚守胜利、持续刷新');
+/* ---------- 作战目标卡（关卡对话 v0.41.10，作者 10-10：「关内都需要有一个清楚的方式说明胜利条件」） ----------
+   右侧栏最上面一张常驻卡片：胜利条件、失败条件、当前进度。每个阶段开始、每次击破、每次行动结束都刷新。
+   文字来自关卡的 goalText / victory / waves / breach，不用每关另写。 */
+const goalCard = (() => {
+  const el = document.createElement('section'); el.className = 'card'; el.id = 'goalCard'; el.hidden = true;
+  el.style.cssText = 'border-color:color-mix(in srgb,var(--accent) 55%,transparent)';
+  const side = document.querySelector('.side'); if (side) side.insertBefore(el, side.firstChild);
+  return el;
+})();
+function goalProgress(){
+  const v = LV.victory || {}, foes = units.filter(u => u.side === 'enemy' && u.hp > 0);
+  const left = LV.waves ? LV.waves.length - 1 - waveIdx : 0;
+  if (v.type === 'survive') return `第 ${turn} / ${v.turns} 回合（撑到第 ${v.turns + 1} 回合我方阶段就赢）`;
+  if (v.type === 'targets') return `★ 目标还剩 <b>${foes.filter(u => u.target).length}</b> 台`;
+  if (v.type === 'reach'){ const req = v.units.map(m => roster.find(u => u.mech === m)).filter(Boolean); return `已进入撤离区 <b>${req.filter(u => units.includes(u) && inZone(u)).length} / ${v.units.length}</b>`; }
+  if (v.type === 'reachAny') return '任意一台进入绿框就赢';
+  return `场上敌人 <b>${foes.length}</b> 台${left > 0 ? `，后面还有 <b>${left}</b> 波` : '（最后一波）'}`;
+}
+function goalFails(){
+  const v = LV.victory || {}, out = [];
+  out.push(LV.hangar ? '场上一台我方机体都没有（机库里有人也算输）' : '我方机体全部被击破');
+  if (v.type === 'reach') out.push(`${v.units.map(m => { const u = roster.find(r => r.mech === m); return u ? fullName(u) : m; }).join('、')}${v.units.length > 1 ? ' 任意一台' : ''}被击破`);
+  if (deadline){ const lb = (LV.waves && LV.waves[waveIdx] && LV.waves[waveIdx].label) || ''; out.push(`第 ${deadline} 回合结束时还没${!lb || lb.startsWith('第') ? '打完' + (lb || '这一波') : lb}`); }
+  if (LV.breach) out.push('地面敌人在敌方回合结束时站进我方防线');
+  if (LV.run) out.push(v.type === 'annihilate' ? '撤退或失败时，剩余敌人（含还没出场的波次）每台扣 1 点作战耐久' : '撤退或失败时扣 3 点作战耐久');
+  return out;
+}
+function refreshGoal(){
+  if (!LV || !LV.victory || level === 'editor'){ goalCard.hidden = true; return; }
+  goalCard.hidden = false;
+  goalCard.innerHTML = `<h3>作战目标</h3>
+    <div style="font-size:13px;line-height:1.6"><b style="color:var(--good)">胜利</b>　${LV.goalText || ''}</div>
+    <div style="font-size:12px;margin-top:4px;color:var(--accent)">进度：${goalProgress()}</div>
+    <div style="font-size:12px;margin-top:6px;color:var(--muted)"><b style="color:var(--enemy)">失败</b>　${goalFails().join('；')}</div>`;
+}
+Hooks.on('phaseStart', refreshGoal, '作战目标卡：刷新');
+Hooks.on('unitDestroyed', () => setTimeout(refreshGoal, 0), '作战目标卡：击破后刷新');
+Hooks.on('actionEnd', () => setTimeout(refreshGoal, 0), '作战目标卡：行动后刷新');
 /* ---------- 肉鸽关底 Boss（关卡对话维护，作者 2026-10-08：「关底需要有特色、存在不同解法的 Boss」） ----------
    设计见 docs/肉鸽关底Boss设计.md。作者定：保留两个出口（Boss 战可选，靠奖励吸引）；不做「突破过关」；四个 Boss 都做。
    - 这里只写场地、站位、增援、目标（关卡对话的地盘）；Boss 自己的能力和数值归规则对话（需求单 #10）。
@@ -8144,7 +8182,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.41.9';
+const GAME_VERSION = 'v0.41.10';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
