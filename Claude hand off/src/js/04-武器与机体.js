@@ -335,7 +335,7 @@ const ENEMY_T = {
   ]},
   /* v0.41.7 敌方对话（作者 10-09）：肉鸽终点 Boss。行为在 17c（ai:'lane'）；数值按新公式直接写，试玩后再调 */
   bluefish:{pilot:'敌将', mech:'蓝色大肥鱼', short:'鱼', weak:{}, noEvade:true, hp:240000, armor:1800, defense:150, eva:0, mov:2, melee:160, shoot:100, flying:false, w:3, h:3,
-    ai:'lane', immovable:true, abilities:['laneCrush'], weapons:[
+    ai:'lane', immovable:true, noScale:true, abilities:['laneCrush'], weapons:[
     wp({name:'周身冲击', power:2800, v37:true, stat:'格斗', fire:'map', range:[1,2], dmgType:'物理', desc:'敌方阶段走完后，对身边 2 格内的所有我方单位造成伤害（必中，不能反击）。'}),
   ]},
   hound:{pilot:'敌兵', mech:'猎犬', short:'猎', weak:{光束:30}, hp:3000, armor:200, eva:10, mov:5, melee:90, shoot:100, flying:false, w:1, h:1, abilities:[], weapons:[

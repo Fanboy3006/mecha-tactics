@@ -52,6 +52,25 @@ function convWeapons(ws, t, lvAdd, Aref, Dref){
     convWeapons(t.weapons, t, 8, 600, 103);
   }
 }
+/* v0.41.12 敌人整体加强（需求单 #16，作者 10-10：「敌方能力值大幅提高，精英血量 1.5 倍，Boss 三倍」）
+   按梯队乘在模板上（在上面的新公式换算之后）。杂兵不动：保持「AOE 能清、近卫一刀一个」。
+   hp / armor / pow 是倍率（pow 乘武器威力），def 是防御值加多少。写 noScale:true 的模板不吃（蓝色大肥鱼单独设计）。 */
+const ENEMY_SCALE = {
+  精锐:{hp:1.5, armor:1.2, def:10, pow:1.25},
+  头目:{hp:1.5, armor:1.2, def:15, pow:1.3},
+  Boss:{hp:3,   armor:1,   def:15, pow:1.25},
+};
+function scaleEnemyT(k, t){
+  const m = ENEMY_SCALE[tierOfEnemy(k)]; if (!m || t.noScale || t.scaled) return;
+  t.hp = Math.round(t.hp * m.hp); t.armor = Math.round(t.armor * m.armor); t.defense = (t.defense || 0) + m.def;
+  for (const w of t.weapons){
+    if (!(w.power > 0) || w.fire === 'heal' || w.fire === 'support') continue;
+    w.power = Math.round(w.power * m.pow);
+    for (const up of w.upgrades || []) if (up.power > 0) up.power = Math.round(up.power * m.pow);
+  }
+  t.scaled = true;
+}
+for (const [k, t] of Object.entries(ENEMY_T)) scaleEnemyT(k, t);
 /* 按梯队挑 n 个：一半概率从本关主题里有的挑 */
 /* v0.32.1 头目按层开放：第 1 层只有指挥官机、狂战士；第 2 层加浮游炮母机、自修复机；第 3 层起才有 λ 试作机 */
 const HEAD_BY_LAYER = [null, ['captain','berserker'], ['captain','berserker','funnel','regen'], null, null];
