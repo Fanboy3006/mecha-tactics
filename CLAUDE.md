@@ -42,7 +42,7 @@
 - 作者本地直接双击根目录 `index.html` 就能玩（永远是仓库最新）。
 - claude.ai 上有两个链接，只能从 claude.ai 的对话发布，本地发不了：
   - **测试版** `https://claude.ai/artifact/DCAtoqhJA8mxFMpvzp8vgc`：每次改动都发这里（`node tools/build-artifact.mjs`）；
-  - **正式版** `https://claude.ai/artifact/8qhCXG3tvLKeFibEQESWoZ`：**只有作者说「更新正式版」才发**，由统筹对话执行 `node tools/build-artifact.mjs --release`，并打 git 标签 `release-vX.Y.Z`。
+  - **正式版** `https://claude.ai/artifact/8qhCXG3tvLKeFibEQESWoZ`：**只有作者说「更新正式版」才发**，由统筹对话执行 `node tools/build-artifact.mjs --release`，并把 `release` 分支移到这次发布的提交（`git push origin <提交>:refs/heads/release --force`），提交说明写版本号。
 - 本地做完后在任务板上写「待发布测试版 vX.Y.Z」，等 claude.ai 上的对话来发。
 
 ## 5. 额度用完时（作者 10-10）
