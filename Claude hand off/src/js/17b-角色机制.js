@@ -184,10 +184,10 @@ Hooks.on('strikeResolved', c => {
   log(`${fullName(c.def)} 被【${c.w.name}】标记：破防 −${mp}%（合计 −${Math.min(100, breakSum(c.def))}%）`, null, c.att.side);
 }, '洛克昂 TRANS-AM 狙击：打中过就挂破防');
 
-/* ===== 克莱因派（v0.41.4，作者 10-09） =====
+/* ===== 卫星国防军（v0.41.4，作者 10-09） =====
    SEED（能力 seed）：觉醒值在战斗中成长，成长量记在 u.awG（按 BATTLE_ID 区分，换场归零；模板的 awaken 不改）。
-   - 我方阶段开始（第 2 回合起）：在场每个克莱因派 +SEED_TURN；卡嘉莉「奥布之狮」4 格内的其他克莱因派再 +ORB_TURN；
-   - 克莱因派击破敌机：在场每个克莱因派 +SEED_KILL；
+   - 我方阶段开始（第 2 回合起）：在场每个卫星国防军 +SEED_TURN；卡嘉莉「奥布之狮」4 格内的其他卫星国防军再 +ORB_TURN；
+   - 卫星国防军击破敌机：在场每个卫星国防军 +SEED_KILL；
    - 卡嘉莉「奥布之狮的号令」：全图我方 +5（她 SEED 后 +8），别的势力也吃（只加觉醒值，没有 SEED）；
    - 本场累计 +SEED_NEED 触发 SEED，之后不再成长；拉克丝（endlessSeed）不封顶。
    SEED 后：闪避 + 觉醒 × SEED_EVA（03 TRAIT_FX.seed）；重装改成防御 + 觉醒 × SEED_DEF（03 REDUCTIONS seedDef）。
@@ -223,14 +223,14 @@ Hooks.on('phaseStart', c => {
     const orb = units.some(o => o !== u && o.side === u.side && o.hp > 0 && hasTrait(o, 'orbLion') && distU(o, u) <= ORB_R);
     addAwaken(u, SEED_TURN + (orb ? ORB_TURN : 0));
   }
-}, '克莱因派 SEED：我方阶段开始觉醒 +5（奥布之狮 4 格内 +1）');
+}, '卫星国防军 SEED：我方阶段开始觉醒 +5（奥布之狮 4 格内 +1）');
 Hooks.on('unitDestroyed', c => {
   const by = c.by;
-  if (!by || by.side === c.unit.side || c.unit.side === 'neutral' || !inFaction(by, '克莱因派')) return;
+  if (!by || by.side === c.unit.side || c.unit.side === 'neutral' || !inFaction(by, '卫星国防军')) return;
   const ks = kleinField(by.side); if (!ks.length) return;
   ks.forEach(u => addAwaken(u, SEED_KILL));
-  log(`${fullName(by)} 击破敌机：在场克莱因派觉醒 +${SEED_KILL}`, null, by.side);
-}, '克莱因派 SEED：击破敌机后在场每人觉醒 +3');
+  log(`${fullName(by)} 击破敌机：在场卫星国防军觉醒 +${SEED_KILL}`, null, by.side);
+}, '卫星国防军 SEED：击破敌机后在场每人觉醒 +3');
 /* 卡嘉莉「奥布之狮的号令」：17 的 castSupport 看到 awakenAdd 就交给这里 */
 function awakenCall(u, w, ts){
   const n = seedActive(u) ? (w.awakenSeed || w.awakenAdd) : w.awakenAdd;

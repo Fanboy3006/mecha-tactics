@@ -44,7 +44,7 @@ const fs = require('fs');
   }
   check('刹那一回合 DASH 2 次（共行动 3 次）', dashes === 2, `DASH ${dashes} 次`);
 
-  /* 3. 援护攻击：伊萨克攻击后，射程内的露娜弹窗询问（v0.41.4 克莱因派换人），空格 = 伤害最高的武装 */
+  /* 3. 援护攻击：伊萨克攻击后，射程内的露娜弹窗询问（v0.41.4 卫星国防军换人），空格 = 伤害最高的武装 */
   await setup('trial_S3', `const a = g.units.find(x => x.mech === 'S4'), s = g.units.find(x => x.mech === 'S3'), e = g.units.filter(x => x.side === 'enemy')[0];
     e.x = 10; e.y = 6; e.maxHp = e.hp = 999999; a.x = 9; a.y = 6; s.x = 6; s.y = 6; g.units.filter(x => x.side === 'enemy').slice(1).forEach((o, i) => { o.x = 20; o.y = i; }); return true;`);
   await attack('S4', 0, false); await settle(1200);

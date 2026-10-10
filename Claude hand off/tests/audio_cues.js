@@ -36,7 +36,7 @@ const check = (ok, label, got) => { if (!ok) bad++; console.log(`${ok ? '✓' : 
     check(await themeOf('B2') === 'theme:Suno 影世界', '蕾卡 → Suno 影世界', await themeOf('B2'));
     check(await themeOf('M1') === 'theme:Suno 月王国', 'Feena → Suno 月王国（10-09 新）', await themeOf('M1'));
     check(await themeOf('U7') === 'theme:Suno 秘银', '宗介 → Suno 秘银（10-09 新）', await themeOf('U7'));
-    check(await themeOf('S1') === 'theme:Suno ZAFT', '拉克丝（克莱因派）→ Suno ZAFT（10-09 新）', await themeOf('S1'));
+    check(await themeOf('S1') === 'theme:Suno 卫星国防军', '拉克丝（卫星国防军）→ Suno 卫星国防军（10-09 新）', await themeOf('S1'));
     check(await themeOf('CB1') === null, '刹那（天人）还没有主题曲', await themeOf('CB1'));
 
     const MAP = {strikeResolved:'strike', attackStart:'attackStart', actionEnd:'actionEnd', phaseStart:'phase'};

@@ -494,7 +494,7 @@ function unitSprite(u){
  * 1 个精灵像素 ≈ PX_TARGET 个逻辑像素，按设备像素取整，保证颗粒锐利。 */
 const PX_TARGET = TS * 1.25 / 16;   // 16px 的精灵约占 1.25 格
 const PX_PAD = 8;                   // 精锐特效留的边（精灵像素）
-const PX_FAC = {影世界:'ying', 月球王国:'moon', 天人:'cb', 克莱因派:'clyne', 预防者:'prev', ATX:'atx', 秘银:'mith', 演习:'drill'};
+const PX_FAC = {影世界:'ying', 月球王国:'moon', 天人:'cb', 卫星国防军:'clyne', 预防者:'prev', ATX:'atx', 秘银:'mith', 演习:'drill'};
 const PX_CLS = {近卫:'guard', 尖兵:'striker', 指挥:'command', 重装:'heavy', 狙击:'sniper', 特种:'special'};
 function pixelKey(u){
   if (!MP || !MP.ready()) return null;

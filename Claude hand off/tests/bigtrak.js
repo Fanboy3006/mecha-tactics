@@ -50,12 +50,13 @@ const fs = require('fs');
     es.forEach((e, i) => { e.x = 22; e.y = i; e.maxHp = e.hp = 999999; e.eva = -999; });
     const [a, b2] = es; a.x = u.x + 4; a.y = u.y; b2.x = u.x + 7; b2.y = u.y;
     const h = [a.hp, b2.hp];
+    Math.random = () => 0;   // 命中判定固定为中（闪避下限是 0，改 eva 没用）
     g.onTile(u.x, u.y); g.onTile(u.x, u.y); await g.onAction('attack');
     const i = u.weapons.findIndex(w => w.name === '连锁投掷');
     document.querySelector(`#actionCard button[data-w="${i}"]`).click();
     const m1 = g.S.mode; g.onTile(a.x, a.y); if (!g.S.target) return {m1, mode:g.S.mode, facing:u.facing, ok:g.weaponUsable(u, u.weapons[i])};
     await g.onAction('fire');
-    return {mode:g.S.mode, d:[h[0] - a.hp, h[1] - b2.hp]};
+    return {mode:g.S.mode, d:[h[0] - a.hp, h[1] - b2.hp], log:document.querySelector('#log').innerText.split('\n').slice(-6).join(' | '), a:a.mech + '@' + a.x + ',' + a.y, u:u.x + ',' + u.y + u.facing};
   });
   console.log(JSON.stringify(ui));
   check('界面流程：第一下打中后弹到 3 格外的第二台', ui.d && ui.d[0] > 0 && ui.d[1] > 0, JSON.stringify(ui));

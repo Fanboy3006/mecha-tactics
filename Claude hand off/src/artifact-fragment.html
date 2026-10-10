@@ -307,7 +307,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
           <span><i style="background:#8a6bd8"></i>影世界</span>
           <span><i style="background:#9fb7d8"></i>月球王国</span>
           <span><i style="background:#4fc3a1"></i>天人</span>
-          <span><i style="background:#e88fb4"></i>克莱因派</span>
+          <span><i style="background:#e88fb4"></i>卫星国防军</span>
           <span><i style="background:#f2c14e"></i>流星小队</span>
           <span><i style="background:#e9e7e2"></i>ATX</span>
           <span><i style="background:#7d9a58"></i>秘银</span>
@@ -380,7 +380,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
     rock:   {armor:'#5d554e', light:'#8b7f74', dark:'#2f2b27', accent:'#c9b9a8', trim:'#7a6f65', visor:'#c9b9a8'},
     /* v0.17 新势力（Claude 合并时补的占位配色，DSH 在 v0.19 调整了两套）。
      * 底色取自游戏里头像徽章用的 FACTION_COL，保证地图和面板颜色一致。 */
-    // 克莱因派：樱粉 + 白　（色相 335°，和其他六套都拉得开）
+    // 卫星国防军：樱粉 + 白　（色相 335°，和其他六套都拉得开）
     clyne:  {armor:'#a85d80', light:'#e88fb4', dark:'#4f2a3d', accent:'#ffe3f0', trim:'#f2b3cf', visor:'#ffd6ea'},
     // 预防者：金黄 + 白　（色相 42°，唯一大面积暖黄）
     prev:   {armor:'#a8822c', light:'#f2c14e', dark:'#4d3a12', accent:'#fff1c4', trim:'#f7d77f', visor:'#fff0b8'},
@@ -1635,7 +1635,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
     '影世界': 'ying',
     '月球王国': 'moon',
     '天人': 'cb',
-    '克莱因派': 'clyne',
+    '卫星国防军': 'clyne',
     '预防者': 'prev', '流星小队': 'prev',
     'ATX': 'atx',
     '秘银': 'mithril',            // v0.26 势力名「米斯里尔」改为「秘银」（Claude 改）
@@ -1788,7 +1788,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
     'Suno 影世界':   {file:'SUNO/Suno 影世界1.mp3',   lufs:-14.3, id:'shadow'},
     'Suno 月王国':   {file:'SUNO/SUNO 月王国.mp3',    lufs:-12.9, id:'moon'},
     'Suno 秘银':     {file:'SUNO/SUNO 秘银小队.mp3',  lufs:-13.8, id:'mithril'},
-    'Suno ZAFT':     {file:'SUNO/SUNO ZAFT.mp3',      lufs:-14.9, id:'clyne'},
+    'Suno 卫星国防军':     {file:'SUNO/SUNO 卫星国防军.mp3',      lufs:-14.9, id:'clyne'},
     /* 还没有 Suno 版的，用作者本地的版权曲 */
     '战略音乐1':     {file:'战略音乐1.mp3',  lufs:-15.5, alt:'Suno 主角'},
     'BOSS BGM':      {file:'BOSS BGM.mp3',   lufs:-15.0, alt:'Suno 我方回合'},
@@ -1803,7 +1803,7 @@ details.calc summary{font-size:11px;color:var(--muted);cursor:pointer;margin-top
   const THEMES = {
     unit:    {B1:'Suno 主角'},                          // 雷萨
     faction: {'流星小队':'Suno 流星小队', 'ATX':'Suno ATX', '影世界':'Suno 影世界',
-              '月球王国':'Suno 月王国', '秘银':'Suno 秘银', '克莱因派':'Suno ZAFT'},   // 天人还没有
+              '月球王国':'Suno 月王国', '秘银':'Suno 秘银', '卫星国防军':'Suno 卫星国防军'},   // 天人还没有
   };
 
   /* 仓库里的页面（Claude hand off/src/index.html）从 ../../audio/ 读；试玩页由 build-artifact 设 MECHA_MUSIC_BASE = 'music/'、MECHA_MUSIC_FLAT = true，按 id 读 music/<id>.mp3 */
@@ -1968,10 +1968,10 @@ const ABIL = {
   gnShield:{name:'GN 全盾·哈罗', desc:'本回合没有移动时（架设狙击），正面受到的伤害 −30%。'},
   guard:{name:'援护防御', desc:'敌方阶段友军被攻击时，只要援护者用移动力能走到它旁边（援护范围 = 移动力覆盖范围），就可以代为承受并自动防御，每个敌方阶段 2 次。援护会挡下这一整轮攻击，包括对方随后的援护攻击。'},
   /* ---- v0.16 新角色：个人特技 ---- */
-  seed:{name:'SEED', desc:'（克莱因派）觉醒值在战斗中成长：我方阶段开始 +5（第 2 回合起），克莱因派击破敌机后在场每人 +3。本场累计 +50 时 SEED 觉醒，之后不再成长：闪避 + 觉醒 × 0.15（重装改成防御 + 觉醒 × 0.25）。'},
+  seed:{name:'SEED', desc:'（卫星国防军）觉醒值在战斗中成长：我方阶段开始 +5（第 2 回合起），卫星国防军击破敌机后在场每人 +3。本场累计 +50 时 SEED 觉醒，之后不再成长：闪避 + 觉醒 × 0.15（重装改成防御 + 觉醒 × 0.25）。'},
   endlessSeed:{name:'无尽的 SEED', desc:'拉克丝的觉醒成长没有上限：SEED 觉醒后仍然每回合 +5、击破 +3，闪避和「射击 + 觉醒」的大招跟着一直变强。'},
   duelPride:{name:'决斗者的骄傲', desc:'目标 2 格内没有其他敌机时（一对一），伤害 +20%；Lv30 起 +35%。'},
-  orbLion:{name:'奥布之狮', desc:'4 格内的其他克莱因派，我方阶段开始时觉醒多 +1。卡嘉莉 SEED 觉醒后：4 格内其他友军受到的伤害 −5%（防御 +5）。'},
+  orbLion:{name:'奥布之狮', desc:'4 格内的其他卫星国防军，我方阶段开始时觉醒多 +1。卡嘉莉 SEED 觉醒后：4 格内其他友军受到的伤害 −5%（防御 +5）。'},
   erratic:{name:'手感不稳', desc:'直射 / 曲射命中 −10，但暴击 +20。'},
   focusFire:{name:'集火', desc:'攻击本回合已经被其他友军攻击过的敌机时，伤害 +20%。'},
   extended:{name:'强化人', desc:'每被攻击一次（无论是否命中，援护防御也算）叠 1 层，最多 3 层；下一次主动攻击每层伤害 +15%，攻击后清空。SEED 暴走后最多 5 层。'},
@@ -2035,7 +2035,7 @@ const PROMO_PASSIVE = {CB5:'gnArmsGuard', M2:'ironField', M4:'zanshin', S3:'luna
 const L30 = u => u.side === 'ally' && u.lv >= 30;
 /* 特技 / 能力的数值效果：hit / eva / crit / dmg（伤害%）/ red（减伤%）/ armorPct，可以是常数或函数 (自己, 对方, 武器, 选项)；aura 是光环 */
 const TRAIT_FX = {
-  seed:{eva:u => seedActive(u) && !isHeavy(u) ? Math.round(awakenOf(u) * SEED_EVA) : 0},   // v0.41.4 克莱因派（17b）
+  seed:{eva:u => seedActive(u) && !isHeavy(u) ? Math.round(awakenOf(u) * SEED_EVA) : 0},   // v0.41.4 卫星国防军（17b）
   orbLion:{aura:{r:4, red:src => seedActive(src) ? 5 : 0}},   // v0.41.4 r 和 17b 的 ORB_R 一致（这里在加载时求值，不能引用 17b 的常量）
   erratic:{hit:(u,o,w) => w && (w.fire === 'direct' || w.fire === 'indirect') ? -10 : 0, crit:(u,o,w) => w && (w.fire === 'direct' || w.fire === 'indirect') ? 20 : 0},
   focusFire:{dmg:(u,d) => d && d.hitLog && d.hitLog.turn === turn && [...d.hitLog.by].some(id => id !== u.uid) ? 20 : 0},
@@ -2162,7 +2162,7 @@ const REDUCTIONS = [
   {id:'buffDef', name:'防御增益', stage:2,   // v0.40.10 角色对话：月光祝福 Lv20+、战地急救加防御；拘束减防御（负数）
     applies:c => buffSum(c.def,'def') !== 0,
     def:c => buffSum(c.def,'def')},
-  {id:'seedDef', name:'SEED 防御', stage:2,   // v0.41.4 克莱因派：重装 SEED 后防御 + 觉醒 × 0.25（17b）
+  {id:'seedDef', name:'SEED 防御', stage:2,   // v0.41.4 卫星国防军：重装 SEED 后防御 + 觉醒 × 0.25（17b）
     applies:c => seedDefOf(c.def) > 0,
     def:c => seedDefOf(c.def)},
   {id:'softRed', name:'减伤（特技 / 增益）', stage:2,
@@ -2297,10 +2297,10 @@ const ALLY_T = [
     wp({name:'GN 大型光束剑', power:2000, stat:'格斗', fire:'melee', range:[1,2], dmgType:'光束'}),
   ]},
   /* ================= v0.16 新势力 ================= */
-  /* ---- 克莱因派（SEED；v0.41.4 角色对话按势力重设计，作者 10-09 定：五人，围绕 SEED 觉醒） ----
-     全员能力 seed：觉醒初值低（70，拉克丝 90），我方阶段开始 +5（第 2 回合起），克莱因派击破敌机后在场每人 +3；
+  /* ---- 卫星国防军（SEED；v0.41.4 角色对话按势力重设计，作者 10-09 定：五人，围绕 SEED 觉醒） ----
+     全员能力 seed：觉醒初值低（70，拉克丝 90），我方阶段开始 +5（第 2 回合起），卫星国防军击破敌机后在场每人 +3；
      本场累计 +50 触发 SEED，之后不再涨（拉克丝无上限）。SEED 后闪避 + 觉醒 × 0.15；重装改成防御 + 觉醒 × 0.25。机制在 17b。 */
-  {pilot:'拉克丝', mech:'S1', short:'S1', mechName:'自由', trait:'endlessSeed', canFly:true, tags:{势力:'克莱因派', 远近分类:'远程', 战斗分类:'特种'}, hp:5200, armor:700, eva:35, mov:6, melee:150, shoot:170, awaken:90, flying:true, w:1, h:1, abilities:['seed'], weapons:[
+  {pilot:'拉克丝', mech:'S1', short:'S1', mechName:'自由', trait:'endlessSeed', canFly:true, tags:{势力:'卫星国防军', 远近分类:'远程', 战斗分类:'特种'}, hp:5200, armor:700, eva:35, mov:6, melee:150, shoot:170, awaken:90, flying:true, w:1, h:1, abilities:['seed'], weapons:[
     wp({name:'光束军刀', power:3100, stat:'格斗', fire:'melee', dmgType:'光束'}),
     wp({name:'高能光束步枪', power:2700, fire:'direct', range:[1,5], dmgType:'光束'}),
     wp({name:'电磁炮', power:2550, fire:'direct', range:[2,6]}),
@@ -2310,26 +2310,26 @@ const ALLY_T = [
     wp({name:'超级 DRAGOON', power:1250, stat:'射击+觉醒', fire:'indirect', range:[2,8], special:'funnel', hits:8, cd:2, unlock:30, startCd:4, dmgType:'光束',
         desc:'浮游炮：发射后从 8 个随机方向攻击 8 次，目标闪避减半。不需要视线。SEED：攻击能力值 = 射击 + 觉醒。Lv30 解锁。'}),
   ]},
-  {pilot:'卡嘉莉', mech:'S2', short:'S2', mechName:'晓', trait:'orbLion', canFly:true, tags:{势力:'克莱因派', 远近分类:'远程', 战斗分类:'指挥'}, hp:5000, armor:700, eva:20, mov:5, melee:120, shoot:145, awaken:70, defense:85, flying:false, w:1, h:1, abilities:['seed','beamReflect'], weapons:[
+  {pilot:'卡嘉莉', mech:'S2', short:'S2', mechName:'晓', trait:'orbLion', canFly:true, tags:{势力:'卫星国防军', 远近分类:'远程', 战斗分类:'指挥'}, hp:5000, armor:700, eva:20, mov:5, melee:120, shoot:145, awaken:70, defense:85, flying:false, w:1, h:1, abilities:['seed','beamReflect'], weapons:[
     wp({name:'光束步枪', power:1500, fire:'direct', range:[1,4], dmgType:'光束'}),
     wp({name:'光束军刀', power:1600, stat:'格斗', fire:'melee', dmgType:'光束'}),
     wp({name:'DRAGOON', power:500, fire:'indirect', range:[2,6], special:'funnel', hits:8, cd:2, dmgType:'光束',
         desc:'浮游炮：发射后从 8 个随机方向攻击 8 次，目标闪避减半；每段按随机方向算正面 / 侧面 / 背面加成。不需要视线。'}),
     wp({name:'奥布之狮的号令', fire:'support', range:[0,99], self:true, awakenAdd:5, awakenSeed:8, cd:3, dmgType:'—',
-        desc:'全图我方（含自己）觉醒 +5；卡嘉莉 SEED 后改成 +8。克莱因派涨的觉醒算进 SEED 进度；别的势力只加觉醒值（加强「属性 + 觉醒」的大招）。'}),
+        desc:'全图我方（含自己）觉醒 +5；卡嘉莉 SEED 后改成 +8。卫星国防军涨的觉醒算进 SEED 进度；别的势力只加觉醒值（加强「属性 + 觉醒」的大招）。'}),
     wp({name:'八咫之守', fire:'support', range:[0,3], buff:{beamRed:40}, cd:2, unlock:20, startCd:2, dmgType:'—',
         desc:'3 格内的其他友军光束减伤 40%，持续到下一个我方阶段开始。'}),
   ]},
-  {pilot:'露娜玛丽亚', mech:'S3', short:'S3', mechName:'脉冲', trait:'focusFire', canFly:true, tags:{势力:'克莱因派', 远近分类:'远程', 战斗分类:'狙击'}, hp:4000, armor:300, eva:15, mov:5, melee:90, shoot:165, awaken:70, defense:75, flying:false, w:1, h:1, abilities:['seed'], weapons:[
+  {pilot:'露娜玛丽亚', mech:'S3', short:'S3', mechName:'脉冲', trait:'focusFire', canFly:true, tags:{势力:'卫星国防军', 远近分类:'远程', 战斗分类:'狙击'}, hp:4000, armor:300, eva:15, mov:5, melee:90, shoot:165, awaken:70, defense:75, flying:false, w:1, h:1, abilities:['seed'], weapons:[
     wp({name:'炮装·高能光束炮', power:2350, fire:'direct', range:[3,8], hit:120, afterMove:false, dmgType:'光束'}),
     wp({name:'光束步枪', power:1150, fire:'direct', range:[1,3], dmgType:'光束'}),
     wp({name:'剑装·对舰刀', power:1300, stat:'格斗', fire:'melee', dmgType:'光束'}),
   ]},
-  {pilot:'伊萨克', mech:'S4', short:'S4', mechName:'决斗', trait:'duelPride', tags:{势力:'克莱因派', 远近分类:'近战', 战斗分类:'近卫'}, hp:5000, armor:700, eva:25, mov:6, melee:160, shoot:110, awaken:70, defense:95, flying:false, w:1, h:1, abilities:['seed'], weapons:[
+  {pilot:'伊萨克', mech:'S4', short:'S4', mechName:'决斗', trait:'duelPride', tags:{势力:'卫星国防军', 远近分类:'近战', 战斗分类:'近卫'}, hp:5000, armor:700, eva:25, mov:6, melee:160, shoot:110, awaken:70, defense:95, flying:false, w:1, h:1, abilities:['seed'], weapons:[
     wp({name:'光束军刀', power:2100, stat:'格斗', fire:'melee', range:[1,2], dmgType:'光束'}),
     wp({name:'光束步枪', power:1300, fire:'direct', range:[1,3], dmgType:'光束'}),
   ]},
-  {pilot:'史黛拉', mech:'S5', short:'S5', mechName:'盖亚', trait:'extended', tags:{势力:'克莱因派', 远近分类:'近战', 战斗分类:'重装'}, hp:8500, armor:1300, eva:10, mov:5, melee:150, shoot:140, awaken:70, defense:110, flying:false, w:1, h:1, abilities:['seed','beastMode'], weapons:[
+  {pilot:'史黛拉', mech:'S5', short:'S5', mechName:'盖亚', trait:'extended', tags:{势力:'卫星国防军', 远近分类:'近战', 战斗分类:'重装'}, hp:8500, armor:1300, eva:10, mov:5, melee:150, shoot:140, awaken:70, defense:110, flying:false, w:1, h:1, abilities:['seed','beastMode'], weapons:[
     wp({name:'光束翼刃', power:2400, stat:'格斗', fire:'melee', range:[1,2], critMod:10, dmgType:'光束'}),
     wp({name:'光束突击炮', power:1500, fire:'direct', range:[1,3], dmgType:'光束'}),
     wp({name:'毁灭·全方位炮击', power:2750, stat:'射击+觉醒', fire:'map', shape:'burst', rad:3, seedIff:true, afterMove:false, cd:3, unlock:20, dmgType:'光束',
@@ -2480,9 +2480,9 @@ const PROMO_WEAPONS = {
    - Lv20 大招：Lv20 打 Lv12 盾卫（装甲 600、防御 87）。骨干单体约 10000，精锐约 12000；地图炮约 0.7–0.8 倍，多重锁定每个目标约 0.5 倍，多段全中约 1.5 倍；
    - Lv30 大招：Lv30 打 Lv20 指挥官机（装甲 600、防御 118）。单体约 20000–26000，范围约 14000–18000。
    大招倍率 statMul：Lv20 大招 ×1.2、Lv30 大招 ×1.5（大招随等级成长更快）；
-   觉醒系大招（门之力、TRANS-AM、量子化、λ 驱动、满月）改用「属性 + 觉醒」，不再乘 statMul。觉醒初值：雷萨 140、Feena 150、刹那 130、宗介 130、洛克昂 110，克莱因派 70（拉克丝 90，战斗中会成长，见 17b），其他 100。
+   觉醒系大招（门之力、TRANS-AM、量子化、λ 驱动、满月）改用「属性 + 觉醒」，不再乘 statMul。觉醒初值：雷萨 140、Feena 150、刹那 130、宗介 130、洛克昂 110，卫星国防军 70（拉克丝 90，战斗中会成长，见 17b），其他 100。
    开场冷却 startCd：Lv20 大招默认 3；Lv30 大招 4；传送斩 2；被动（残月的余响、月华再生）0；增益类（八咫之守、马格纳克队支援）2。 */
-const NEW_FORMULA = ['W2','W3','W4','W5','CB2','CB3','CB4','CB5','B1','M1','M2','M3','M4','M5','A1','A2','A3','A4','A5','U1','U2','U6','U7','U8','CB1','S1','W1','S2','S3','S4','S5','B3','B4'];   // v0.41.4 克莱因派整体按新公式重写   // v0.40.13 秘银整体按新公式重写   // v0.40.11 ATX 整体按新公式重写   // v0.40.10 月球王国整体按新公式重写
+const NEW_FORMULA = ['W2','W3','W4','W5','CB2','CB3','CB4','CB5','B1','M1','M2','M3','M4','M5','A1','A2','A3','A4','A5','U1','U2','U6','U7','U8','CB1','S1','W1','S2','S3','S4','S5','B3','B4'];   // v0.41.4 卫星国防军整体按新公式重写   // v0.40.13 秘银整体按新公式重写   // v0.40.11 ATX 整体按新公式重写   // v0.40.10 月球王国整体按新公式重写
 ALLY_T.forEach(t => {
   if (PROMO_WEAPONS[t.mech]) t.weapons.push(...PROMO_WEAPONS[t.mech]);
   if (NEW_FORMULA.includes(t.mech)) t.weapons.forEach(w => { w.v37 = true; });
@@ -3093,10 +3093,10 @@ const TRIALS = {
   CB3:{e:['grunt','shield','bomber','grunt'], feat:'chasm', hint:'移动前点「TRANS-AM 启动」（Lv10）：3 个回合内威力 ×1.3、移动 +2、闪避 +15，结束后 1 回合移动 −2，冷却 10 回合。阿雷路亚的 TRANS-AM：GN 冲撞推 4 格、碰撞伤害 1600。推进裂谷直接坠毁。Lv20 被动「超兵反射」：闪避 +15。'},
   CB4:{e:['grunt','grunt','raider','raider','artillery'], cluster:true, hint:'移动前点「TRANS-AM 启动」（Lv10）：3 个回合内威力 ×1.3、移动 +2、闪避 +15，结束后 1 回合移动 −2，冷却 10 回合。提耶利亚的 TRANS-AM：高压全弹（Lv20）光束宽 3 格。<b>脱装成纳德雷的那一刻，5×5 内的敌机全部眩晕一回合</b>（一场一次），外装甲同时化为 GN 墙。冲进敌群中间再脱装。'},
   CB5:{e:['raider','raider','berserker','grunt','artillery'], mates:['CB2','CB4'], hint:'拉塞的 GN ARMOR TYPE-E：2×2 大型支援装甲，不能开 TRANS-AM。援护防御时 GN 力场让防御再 +30；Lv20「GN 武装·护卫」援护次数 +1。让队友开 TRANS-AM 冲出去，拉塞在后面挡刀。'},
-  S1:{e:['drone','drone','grunt','grunt','fighter','hound','swarm'], mates:['S2'], hint:'SEED：每回合觉醒 +5，克莱因派击破敌机再 +3，累计 +50 觉醒（看面板的「SEED 进度」）。拉克丝的觉醒没有上限，越打闪避越高、METEOR 越痛。卡嘉莉的号令能一下推进 SEED。Lv20 METEOR 一次锁定 5 台，Lv30 超级 DRAGOON。'},
-  S2:{e:['phase','phase','sniper','jammer'], mates:['S1','S5'], hint:'卡嘉莉是指挥：「奥布之狮的号令」给全图我方觉醒 +5，她 4 格内的克莱因派每回合多涨 1。她 SEED 后号令变 +8、身边友军受到伤害 −5%。这批敌人全用光束，晓的光束反射装甲会把伤害弹回去。'},
+  S1:{e:['drone','drone','grunt','grunt','fighter','hound','swarm'], mates:['S2'], hint:'SEED：每回合觉醒 +5，卫星国防军击破敌机再 +3，累计 +50 觉醒（看面板的「SEED 进度」）。拉克丝的觉醒没有上限，越打闪避越高、METEOR 越痛。卡嘉莉的号令能一下推进 SEED。Lv20 METEOR 一次锁定 5 台，Lv30 超级 DRAGOON。'},
+  S2:{e:['phase','phase','sniper','jammer'], mates:['S1','S5'], hint:'卡嘉莉是指挥：「奥布之狮的号令」给全图我方觉醒 +5，她 4 格内的卫星国防军每回合多涨 1。她 SEED 后号令变 +8、身边友军受到伤害 −5%。这批敌人全用光束，晓的光束反射装甲会把伤害弹回去。'},
   S3:{e:['grunt','grunt','grunt','tank'], mates:['S4'], cluster:true, hint:'露娜是狙击：先让伊萨克打一下，露娜再打同一个目标，「集火」伤害 +20%；炮装不能移动后用。SEED 后闪避 + 觉醒 × 0.15。'},
-  S4:{e:['grunt','captain','grunt','beetle'], mates:['S3'], hint:'伊萨克是近卫：击破后 DASH 再打一次，克莱因派每击破一台全队觉醒 +3。特技「决斗者的骄傲」：目标身边 2 格没有别的敌机时伤害 +20%，先把落单的挑出来。'},
+  S4:{e:['grunt','captain','grunt','beetle'], mates:['S3'], hint:'伊萨克是近卫：击破后 DASH 再打一次，卫星国防军每击破一台全队觉醒 +3。特技「决斗者的骄傲」：目标身边 2 格没有别的敌机时伤害 +20%，先把落单的挑出来。'},
   S5:{e:['raider','raider','hound','hound','swarm','swarm'], mates:['S1'], feat:'forest', hint:'史黛拉是重装：挨打（包括援护防御）叠强化人，下一次攻击每层 +15%。SEED 后防御 + 觉醒 × 0.25，进入暴走：强化人最多 5 层，Lv20 毁灭·全方位炮击不再误伤友军。'},
   W1:{e:['grunt','grunt','grunt','swarm','swarm'], hint:'流星小队全员「单独行动」：身边 2 格内没有友军时伤害 +20%、闪避 +15；全员可以全图部署。ZERO 系统：命中、闪避 +15，暴击倍率 ×2.5。Lv20 双联破坏步枪：宽 3、长 6，共 18 格（斜着放也连成一片），会误伤友军；Lv30 解锁只打敌人的「零式·旋转破坏步枪」。'},
   W2:{e:['sniper','sniper','artillery','stealth','turret'], feat:'ridge', hint:'流星小队全员「单独行动」：身边 2 格内没有友军时伤害 +20%、闪避 +15；全员可以全图部署。超级干扰器：3 格外的敌人选不中迪奥，被迪奥砍也不能反击。Lv20 斩首能直接收掉残血敌人。'},
@@ -3564,7 +3564,7 @@ const wPow = (u, w) => Math.round(wv(u, w, 'power') * (tierUp(u, w) ? 1.3 : 1) *
    - 公式算完后：能量屏障（≤2500 无效）→ λ 力场（−3000）→ 护盾吸收。 */
 const STAT_KEY = {格斗:'melee', 射击:'shoot', 觉醒:'awaken', 防御:'defense'};
 const statNames = w => String(w.stat || '射击').split('+');
-const statVal = (u, k) => STAT_KEY[k] === 'awaken' ? awakenOf(u) : (u[STAT_KEY[k]] ?? 100);   // v0.41.4 克莱因派：觉醒值在战斗中成长（17b）
+const statVal = (u, k) => STAT_KEY[k] === 'awaken' ? awakenOf(u) : (u[STAT_KEY[k]] ?? 100);   // v0.41.4 卫星国防军：觉醒值在战斗中成长（17b）
 const atkStat = (u, w) => Math.round(statNames(w).reduce((a, k) => a + statVal(u, k), 0) * (w.statMul || 1));
 /* 面板上显示的攻击力：对 0 装甲、0 防御目标的不暴击伤害 */
 const dispPow = (u, w, power = wPow(u, w)) => Math.round(power * (1 + atkStat(u, w) / 100));
@@ -4328,10 +4328,10 @@ Hooks.on('strikeResolved', c => {
   log(`${fullName(c.def)} 被【${c.w.name}】标记：破防 −${mp}%（合计 −${Math.min(100, breakSum(c.def))}%）`, null, c.att.side);
 }, '洛克昂 TRANS-AM 狙击：打中过就挂破防');
 
-/* ===== 克莱因派（v0.41.4，作者 10-09） =====
+/* ===== 卫星国防军（v0.41.4，作者 10-09） =====
    SEED（能力 seed）：觉醒值在战斗中成长，成长量记在 u.awG（按 BATTLE_ID 区分，换场归零；模板的 awaken 不改）。
-   - 我方阶段开始（第 2 回合起）：在场每个克莱因派 +SEED_TURN；卡嘉莉「奥布之狮」4 格内的其他克莱因派再 +ORB_TURN；
-   - 克莱因派击破敌机：在场每个克莱因派 +SEED_KILL；
+   - 我方阶段开始（第 2 回合起）：在场每个卫星国防军 +SEED_TURN；卡嘉莉「奥布之狮」4 格内的其他卫星国防军再 +ORB_TURN；
+   - 卫星国防军击破敌机：在场每个卫星国防军 +SEED_KILL；
    - 卡嘉莉「奥布之狮的号令」：全图我方 +5（她 SEED 后 +8），别的势力也吃（只加觉醒值，没有 SEED）；
    - 本场累计 +SEED_NEED 触发 SEED，之后不再成长；拉克丝（endlessSeed）不封顶。
    SEED 后：闪避 + 觉醒 × SEED_EVA（03 TRAIT_FX.seed）；重装改成防御 + 觉醒 × SEED_DEF（03 REDUCTIONS seedDef）。
@@ -4367,14 +4367,14 @@ Hooks.on('phaseStart', c => {
     const orb = units.some(o => o !== u && o.side === u.side && o.hp > 0 && hasTrait(o, 'orbLion') && distU(o, u) <= ORB_R);
     addAwaken(u, SEED_TURN + (orb ? ORB_TURN : 0));
   }
-}, '克莱因派 SEED：我方阶段开始觉醒 +5（奥布之狮 4 格内 +1）');
+}, '卫星国防军 SEED：我方阶段开始觉醒 +5（奥布之狮 4 格内 +1）');
 Hooks.on('unitDestroyed', c => {
   const by = c.by;
-  if (!by || by.side === c.unit.side || c.unit.side === 'neutral' || !inFaction(by, '克莱因派')) return;
+  if (!by || by.side === c.unit.side || c.unit.side === 'neutral' || !inFaction(by, '卫星国防军')) return;
   const ks = kleinField(by.side); if (!ks.length) return;
   ks.forEach(u => addAwaken(u, SEED_KILL));
-  log(`${fullName(by)} 击破敌机：在场克莱因派觉醒 +${SEED_KILL}`, null, by.side);
-}, '克莱因派 SEED：击破敌机后在场每人觉醒 +3');
+  log(`${fullName(by)} 击破敌机：在场卫星国防军觉醒 +${SEED_KILL}`, null, by.side);
+}, '卫星国防军 SEED：击破敌机后在场每人觉醒 +3');
 /* 卡嘉莉「奥布之狮的号令」：17 的 castSupport 看到 awakenAdd 就交给这里 */
 function awakenCall(u, w, ts){
   const n = seedActive(u) ? (w.awakenSeed || w.awakenAdd) : w.awakenAdd;
@@ -5542,7 +5542,7 @@ function unitSprite(u){
  * 1 个精灵像素 ≈ PX_TARGET 个逻辑像素，按设备像素取整，保证颗粒锐利。 */
 const PX_TARGET = TS * 1.25 / 16;   // 16px 的精灵约占 1.25 格
 const PX_PAD = 8;                   // 精锐特效留的边（精灵像素）
-const PX_FAC = {影世界:'ying', 月球王国:'moon', 天人:'cb', 克莱因派:'clyne', 预防者:'prev', ATX:'atx', 秘银:'mith', 演习:'drill'};
+const PX_FAC = {影世界:'ying', 月球王国:'moon', 天人:'cb', 卫星国防军:'clyne', 预防者:'prev', ATX:'atx', 秘银:'mith', 演习:'drill'};
 const PX_CLS = {近卫:'guard', 尖兵:'striker', 指挥:'command', 重装:'heavy', 狙击:'sniper', 特种:'special'};
 function pixelKey(u){
   if (!MP || !MP.ready()) return null;
@@ -5987,7 +5987,7 @@ function bar(lbl, v, m){
   const r = v/m;
   return `<div class="barrow"><span class="lbl">${lbl}</span><div class="track"><div class="fill ${r <= .25 ? 'low' : r <= .5 ? 'mid' : ''}" style="width:${Math.round(r*100)}%"></div></div><span class="num">${v}/${m}</span></div>`;
 }
-const FACTION_COL = {'影世界':'#8a6bd8', '月球王国':'#9fb7d8', '天人':'#4fc3a1', '克莱因派':'#e88fb4', '流星小队':'#f2c14e', 'ATX':'#e9e7e2', '秘银':'#7d9a58'};   // 和 art/mech-icons.js 的 PAL 底色保持一致（v0.19 DSH 定稿）
+const FACTION_COL = {'影世界':'#8a6bd8', '月球王国':'#9fb7d8', '天人':'#4fc3a1', '卫星国防军':'#e88fb4', '流星小队':'#f2c14e', 'ATX':'#e9e7e2', '秘银':'#7d9a58'};   // 和 art/mech-icons.js 的 PAL 底色保持一致（v0.19 DSH 定稿）
 const PT = {};
 const ptKey = m => 'mecha-tactics-portrait-' + m;
 function loadPortrait(m){
@@ -8036,7 +8036,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.41.5';
+const GAME_VERSION = 'v0.41.6';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){

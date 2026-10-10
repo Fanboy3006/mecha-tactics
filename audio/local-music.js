@@ -31,7 +31,7 @@
     'Suno 影世界':   {file:'SUNO/Suno 影世界1.mp3',   lufs:-14.3, id:'shadow'},
     'Suno 月王国':   {file:'SUNO/SUNO 月王国.mp3',    lufs:-12.9, id:'moon'},
     'Suno 秘银':     {file:'SUNO/SUNO 秘银小队.mp3',  lufs:-13.8, id:'mithril'},
-    'Suno ZAFT':     {file:'SUNO/SUNO ZAFT.mp3',      lufs:-14.9, id:'clyne'},
+    'Suno 卫星国防军':     {file:'SUNO/SUNO 卫星国防军.mp3',      lufs:-14.9, id:'clyne'},
     /* 还没有 Suno 版的，用作者本地的版权曲 */
     '战略音乐1':     {file:'战略音乐1.mp3',  lufs:-15.5, alt:'Suno 主角'},
     'BOSS BGM':      {file:'BOSS BGM.mp3',   lufs:-15.0, alt:'Suno 我方回合'},
@@ -46,7 +46,7 @@
   const THEMES = {
     unit:    {B1:'Suno 主角'},                          // 雷萨
     faction: {'流星小队':'Suno 流星小队', 'ATX':'Suno ATX', '影世界':'Suno 影世界',
-              '月球王国':'Suno 月王国', '秘银':'Suno 秘银', '克莱因派':'Suno ZAFT'},   // 天人还没有
+              '月球王国':'Suno 月王国', '秘银':'Suno 秘银', '卫星国防军':'Suno 卫星国防军'},   // 天人还没有
   };
 
   /* 仓库里的页面（Claude hand off/src/index.html）从 ../../audio/ 读；试玩页由 build-artifact 设 MECHA_MUSIC_BASE = 'music/'、MECHA_MUSIC_FLAT = true，按 id 读 music/<id>.mp3 */

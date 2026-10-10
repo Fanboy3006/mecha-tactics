@@ -47,7 +47,7 @@
     rock:   {armor:'#5d554e', light:'#8b7f74', dark:'#2f2b27', accent:'#c9b9a8', trim:'#7a6f65', visor:'#c9b9a8'},
     /* v0.17 新势力（Claude 合并时补的占位配色，DSH 在 v0.19 调整了两套）。
      * 底色取自游戏里头像徽章用的 FACTION_COL，保证地图和面板颜色一致。 */
-    // 克莱因派：樱粉 + 白　（色相 335°，和其他六套都拉得开）
+    // 卫星国防军：樱粉 + 白　（色相 335°，和其他六套都拉得开）
     clyne:  {armor:'#a85d80', light:'#e88fb4', dark:'#4f2a3d', accent:'#ffe3f0', trim:'#f2b3cf', visor:'#ffd6ea'},
     // 预防者：金黄 + 白　（色相 42°，唯一大面积暖黄）
     prev:   {armor:'#a8822c', light:'#f2c14e', dark:'#4d3a12', accent:'#fff1c4', trim:'#f7d77f', visor:'#fff0b8'},
@@ -1302,7 +1302,7 @@
     '影世界': 'ying',
     '月球王国': 'moon',
     '天人': 'cb',
-    '克莱因派': 'clyne',
+    '卫星国防军': 'clyne',
     '预防者': 'prev', '流星小队': 'prev',
     'ATX': 'atx',
     '秘银': 'mithril',            // v0.26 势力名「米斯里尔」改为「秘银」（Claude 改）

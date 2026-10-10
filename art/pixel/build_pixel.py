@@ -52,7 +52,7 @@ FAC = {
  'mith':  ('#8ea468','#54683a','#2c3a1d','#ffd98a','#ffd766'),
  'drill': ('#9fd2ff','#4f95e0','#2a4f9a','#eaf6ff','#fff27a'),
 }
-FAC_OF = {'影世界':'ying','月球王国':'moon','天人':'cb','克莱因派':'clyne','预防者':'prev','ATX':'atx','秘银':'mith','演习':'drill'}
+FAC_OF = {'影世界':'ying','月球王国':'moon','天人':'cb','卫星国防军':'clyne','预防者':'prev','ATX':'atx','秘银':'mith','演习':'drill'}
 CLS_OF = {'近卫':'guard','尖兵':'striker','指挥':'command','重装':'heavy','狙击':'sniper','特种':'special'}
 CORE_COL = {'heavy':'#8fd0ff','guard':'#ff9a86','sniper':'#ffa8dd','command':'#cfa8ff','striker':'#ffd766','special':'#7fe6ff'}
 BASE = {'o':'#141622','w':'#f4f4f4','l':'#c9ccd6','g':'#8b8fa3','k':'#4b4f63','y':'#ffd766','r':'#ff9a3d'}

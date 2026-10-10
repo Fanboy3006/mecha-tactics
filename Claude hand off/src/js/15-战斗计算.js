@@ -45,7 +45,7 @@ const wPow = (u, w) => Math.round(wv(u, w, 'power') * (tierUp(u, w) ? 1.3 : 1) *
    - 公式算完后：能量屏障（≤2500 无效）→ λ 力场（−3000）→ 护盾吸收。 */
 const STAT_KEY = {格斗:'melee', 射击:'shoot', 觉醒:'awaken', 防御:'defense'};
 const statNames = w => String(w.stat || '射击').split('+');
-const statVal = (u, k) => STAT_KEY[k] === 'awaken' ? awakenOf(u) : (u[STAT_KEY[k]] ?? 100);   // v0.41.4 克莱因派：觉醒值在战斗中成长（17b）
+const statVal = (u, k) => STAT_KEY[k] === 'awaken' ? awakenOf(u) : (u[STAT_KEY[k]] ?? 100);   // v0.41.4 卫星国防军：觉醒值在战斗中成长（17b）
 const atkStat = (u, w) => Math.round(statNames(w).reduce((a, k) => a + statVal(u, k), 0) * (w.statMul || 1));
 /* 面板上显示的攻击力：对 0 装甲、0 防御目标的不暴击伤害 */
 const dispPow = (u, w, power = wPow(u, w)) => Math.round(power * (1 + atkStat(u, w) / 100));
