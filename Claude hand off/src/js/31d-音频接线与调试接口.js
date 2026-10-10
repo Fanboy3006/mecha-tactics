@@ -81,6 +81,13 @@ else {
   if (AU.onAvailable){ $('#btnSound').hidden = true; AU.onAvailable(ok => { $('#btnSound').hidden = !ok; }); }
   setSound(SOUND.on);
 }
+/* 音乐鉴赏页（作者 10-10）：开场菜单进入；页面本体在 audio/music-room.js */
+async function openMusicRoom(){
+  if (!AU || !AU.openRoom) return;
+  const units = {}; for (const k in AU.tuning.defaults.unit){ const t = tplOf(k); units[k] = t ? t.pilot : k; }
+  await AU.openRoom({factions: FACTIONS, units});
+  if (!SOUND.on) AU.stop();
+}
 /* 测试 / 调试用（音乐对话） */
 window.__audio = {themeOf, setTheme, get theme(){ return SOUND.theme; }, on:AUH};   // on.attackStart / strike / actionEnd / phase：只跑音频这边的处理
 

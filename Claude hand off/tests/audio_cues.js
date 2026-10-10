@@ -106,6 +106,26 @@ const check = (ok, label, got) => { if (!ok) bad++; console.log(`${ok ? '✓' : 
     await p.waitForTimeout(1000);
     s = await p.evaluate(() => MechAudio.state());
     check(s.track === 'Suno 我方回合' && s.playing, '新回合 → 回到 Suno 我方回合（接着刚才的位置）', JSON.stringify(s));
+    /* 音乐鉴赏页（10-10）：从开场菜单进 → 试听 → 改场景 / 主题曲 / 音量 → 导出 → Esc 关闭；改动存在 localStorage，刷新后还在 */
+    await p.reload(); await p.waitForTimeout(1000);      // 开场菜单
+    await p.click('button[data-v="music"]', {timeout:3000}).catch(() => {});
+    await p.waitForTimeout(800);
+    check(await p.evaluate(() => !!document.getElementById('musicRoom')), '开场菜单 → 音乐鉴赏页打开');
+    await p.click('.mr-tr[data-n="Suno ATX"] .play'); await p.waitForTimeout(900);
+    s = await p.evaluate(() => MechAudio.state());
+    check(s.track === 'Suno ATX' && s.playing, '鉴赏页：试听 Suno ATX', JSON.stringify(s));
+    await p.selectOption('select[data-key="天人"]', 'Suno 秘银');
+    await p.selectOption('select[data-key="boss"]', 'Suno 主角');
+    check(await p.evaluate(() => MechAudio.themeOf('CB1', {tags:{势力:'天人'}})) === 'theme:Suno 秘银', '鉴赏页：天人主题曲改成 Suno 秘银，游戏里立刻生效');
+    await p.click('[data-act=copy]'); await p.waitForTimeout(200);
+    const out = await p.inputValue('.mr-out');
+    check(/天人 主题曲/.test(out) && /场景 boss/.test(out), '鉴赏页：导出文字列出改动', out.split('\n')[1]);
+    await p.keyboard.press('Escape'); await p.waitForTimeout(300);
+    check(await p.evaluate(() => !document.getElementById('musicRoom')), 'Esc 关闭鉴赏页');
+    await p.reload(); await p.waitForTimeout(800);
+    check(await p.evaluate(() => MechAudio.CUES.boss) === 'Suno 主角', '改动刷新后还在（localStorage）');
+    await p.evaluate(() => MechAudio.tuning.reset());
+    check(await p.evaluate(() => MechAudio.CUES.boss) === 'BOSS BGM', '恢复默认');
     console.log('ERRS', JSON.stringify(errs)); if (errs.length) bad++;
     await p.close();
   }

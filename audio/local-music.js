@@ -53,12 +53,27 @@
   const W = typeof window !== 'undefined' ? window : {};
   const BASE = W.MECHA_MUSIC_BASE || '../../audio/', FLAT = !!W.MECHA_MUSIC_FLAT;
   const REF = -17.5, MASTER = 0.8, FADE = 600;
-  const gainOf = n => Math.min(1, Math.pow(10, (REF - TRACKS[n].lufs) / 20)) * MASTER;
+
+  /* ---------- 作者的试听调整（音乐鉴赏页，10-10） ----------
+     存在这台浏览器的 localStorage（TUNE_KEY），游戏里立刻生效；「复制设置」导出后发给音乐对话写进上面的表，所有人才生效。
+     {db:{曲名: 音量偏移 dB}, cues:{场景: 曲名 | null}, unit:{机体代号: 曲名 | null}, faction:{势力: 曲名 | null}} */
+  const TUNE_KEY = 'mecha-music-tune';
+  const DEF = {cues: Object.assign({}, CUES), unit: Object.assign({}, THEMES.unit), faction: Object.assign({}, THEMES.faction)};
+  let tune = {db:{}, cues:{}, unit:{}, faction:{}};
+  try { const t = JSON.parse(localStorage.getItem(TUNE_KEY) || 'null'); if (t && typeof t === 'object') tune = Object.assign(tune, t); } catch(e){}
+  function applyTune(){
+    const put = (dst, def, ov) => { for (const k in dst) delete dst[k]; Object.assign(dst, def); for (const k in ov){ if (ov[k] === null || TRACKS[ov[k]]) dst[k] = ov[k]; } for (const k in dst) if (dst[k] === null && !(k in CUES_SCENES)) delete dst[k]; };
+    put(CUES, DEF.cues, tune.cues); put(THEMES.unit, DEF.unit, tune.unit); put(THEMES.faction, DEF.faction, tune.faction);
+  }
+  const CUES_SCENES = Object.assign({}, CUES);      // 场景的键（值为 null 的 = 静音，要保留）
+  function saveTune(){ try { localStorage.setItem(TUNE_KEY, JSON.stringify(tune)); } catch(e){} }
+  const dbOf = n => +(tune.db[n] || 0);
+  const gainOf = n => Math.min(1, Math.pow(10, (REF - TRACKS[n].lufs + dbOf(n)) / 20)) * MASTER;
   const urlOf = n => { const t = TRACKS[n]; if (FLAT && !t.id) return null; try { return new URL(BASE + (FLAT ? t.id + '.mp3' : t.file), document.baseURI).href; } catch(e){ return null; } };
   /* 读不到的曲子（试玩页上的本地版权曲）退到 alt */
   const bad = {};
   const usable = n => { for (let k = 0; n && k < 5; k++){ if (!bad[n] && (!FLAT || TRACKS[n].id)) return n; n = TRACKS[n].alt || null; } return null; };
-  const nameOf = cue => usable(!cue ? null : cue.startsWith('theme:') ? cue.slice(6) : (CUES[cue] || null));
+  const nameOf = cue => usable(!cue ? null : cue.startsWith('theme:') ? cue.slice(6) : cue.startsWith('track:') ? (TRACKS[cue.slice(6)] ? cue.slice(6) : null) : (CUES[cue] || null));
 
   const els = {};
   let avail = null, muted = false, unlocked = false, cue = null, cur = null;
@@ -68,7 +83,7 @@
   function el(n){
     if (els[n]) return els[n];
     const u = urlOf(n); if (!u || typeof Audio === 'undefined') return null;
-    const a = new Audio(); a.preload = 'auto'; a.loop = true; a.volume = 0; a.src = u;
+    const a = new Audio(); a.preload = 'metadata'; a.loop = true; a.volume = 0; a.src = u;
     a._target = 0;
     a.addEventListener('error', () => { bad[n] = true; if (cur === n){ cur = null; play(cue); } });
     return (els[n] = a);
@@ -90,6 +105,7 @@
   function fadeTo(n, v){ const a = els[n]; if (!a) return; a._target = v; if (!timer) timer = setInterval(tick, 30); }
   function start(n){
     const a = el(n); if (!a) return;
+    a.preload = 'auto';
     const p = a.play(); if (p && p.catch) p.catch(() => {});
     fadeTo(n, gainOf(n));
   }
@@ -111,7 +127,42 @@
     return n && TRACKS[n] ? 'theme:' + n : null;
   }
   function onAvailable(fn){ if (avail !== null) fn(avail); else waiters.push(fn); }
-  function state(){ const a = cur && els[cur]; return {ready: !!avail, cue, track: cur, muted, playing: !!(a && !a.paused)}; }
+  function state(){ const a = cur && els[cur]; return {ready: !!avail, cue, track: cur, muted, playing: !!(a && !a.paused), time: a ? a.currentTime : 0, dur: a && isFinite(a.duration) ? a.duration : 0}; }
+
+  /* ---------- 给音乐鉴赏页用 ---------- */
+  const tuning = {
+    defaults: DEF,
+    get(){ return JSON.parse(JSON.stringify(tune)); },
+    setDb(n, db){ db = Math.round(db * 2) / 2; if (db) tune.db[n] = db; else delete tune.db[n]; saveTune(); if (cur === n && els[n] && els[n]._target > 0) fadeTo(n, gainOf(n)); },
+    /* kind: 'cues' | 'unit' | 'faction'；name 为 null = 静音 / 没有主题曲；和默认一样就删掉覆盖 */
+    assign(kind, key, name){
+      const def = DEF[kind][key] === undefined ? (kind === 'cues' ? null : undefined) : DEF[kind][key];
+      if ((name || null) === (def || null)) delete tune[kind][key]; else tune[kind][key] = name || null;
+      saveTune(); applyTune();
+      if (cue && !cue.startsWith('track:')) play(cue);   // 正在放的场景换了曲子就跟着换
+    },
+    reset(){ tune = {db:{}, cues:{}, unit:{}, faction:{}}; saveTune(); applyTune(); if (cur && els[cur] && els[cur]._target > 0) fadeTo(cur, gainOf(cur)); },
+    changed(){ return Object.keys(tune.db).length + Object.keys(tune.cues).length + Object.keys(tune.unit).length + Object.keys(tune.faction).length; },
+    /* 导出：发给音乐对话的一段文字 */
+    exportText(){
+      const L = ['【音乐鉴赏 · 调整】' + new Date().toLocaleString()];
+      const nm = v => v === null ? '（静音 / 不切）' : v;
+      for (const k in tune.cues) L.push(`场景 ${k}：${nm(DEF.cues[k] === undefined ? null : DEF.cues[k])} → ${nm(tune.cues[k])}`);
+      for (const k in tune.unit) L.push(`机体 ${k} 主题曲：${nm(DEF.unit[k] || null)} → ${nm(tune.unit[k])}`);
+      for (const k in tune.faction) L.push(`势力 ${k} 主题曲：${nm(DEF.faction[k] || null)} → ${nm(tune.faction[k])}`);
+      for (const k in tune.db) L.push(`音量 ${k}：${tune.db[k] > 0 ? '+' : ''}${tune.db[k]} dB`);
+      if (L.length === 1) L.push('（没有改动）');
+      L.push('', JSON.stringify(tune));
+      return L.join('\n');
+    },
+    dbOf, usable: n => usable(n) === n,
+  };
+  /* 试听一首：直接放这首（不管场景），seek 到 t 秒 */
+  function preview(n){ if (TRACKS[n]) play('track:' + n); }
+  function seek(t){ const a = cur && els[cur]; if (a && isFinite(t)) try { a.currentTime = Math.max(0, t); } catch(e){} }
+  function meta(n){ const a = el(n); return a ? {dur: isFinite(a.duration) ? a.duration : 0, bad: !!bad[n] || usable(n) !== n} : {dur:0, bad:true}; }
+
+  applyTune();
 
   /* 探测：先载第一首战斗曲的元数据，读得到就算可用 */
   (function probe(){
@@ -127,5 +178,5 @@
     document.addEventListener('pointerdown', u, true); document.addEventListener('keydown', u, true);
   }
 
-  globalThis.MechAudio = {local:true, play, stop, mute, unlock, sfx(){}, setVolume(){}, state, themeOf, hasCue: c => !!nameOf(c), onAvailable, TRACKS, CUES, THEMES, _bad: bad};
+  globalThis.MechAudio = {local:true, play, stop, mute, unlock, sfx(){}, setVolume(){}, state, themeOf, hasCue: c => !!nameOf(c), onAvailable, TRACKS, CUES, THEMES, _bad: bad, preview, seek, meta, tuning};
 })();

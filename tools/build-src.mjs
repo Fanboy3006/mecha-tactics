@@ -59,7 +59,7 @@ function readModule(rel, label) {
   if (s.includes('</script')) throw new Error(`${rel} 里出现了 </script，无法安全内联`);
   return [`<script>`, `/* ${label} · 源文件 ${rel} · 由 tools/build-src.mjs 注入 */`, s.replace(/\n+$/, ''), `</script>`].join('\n');
 }
-const audioSrcFiles = ['audio/local-music.js'];
+const audioSrcFiles = ['audio/local-music.js', 'audio/music-room.js'];
 for (const f of audioSrcFiles) if (!existsSync(join(ROOT, f))) { console.error(`缺少 ${f}`); process.exit(1); }
 
 /* 作者 2026-10-08：DSH 的合成音乐不用（audio/score.js、mech-audio.js 还在，不再打包）。
@@ -68,7 +68,8 @@ for (const f of audioSrcFiles) if (!existsSync(join(ROOT, f))) { console.error(`
 const AUDIO_ON = true;
 const audioBlock = AUDIO_ON ? [
   AUDIO_BEGIN,
-  readModule('audio/local-music.js', '本地音乐播放层 MechAudio（作者本地的 mp3，不进仓库）'),
+  readModule('audio/local-music.js', '音乐播放层 MechAudio（Suno 曲子 + 作者本地的版权曲）'),
+  readModule('audio/music-room.js', '音乐鉴赏页（开场菜单进入，作者试听、调整用）'),
   AUDIO_END,
 ].join('\n') : [AUDIO_BEGIN, '<!-- 音频关闭，见 tools/build-src.mjs 的 AUDIO_ON -->', AUDIO_END].join('\n');
 
