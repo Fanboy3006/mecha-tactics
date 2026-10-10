@@ -1940,6 +1940,7 @@ let phaseSide = 'ally';
 /* ---------- 能力与减免管线 ---------- */
 const ABIL = {
   barrier:{name:'能量屏障', desc:'生成伤害 ≤2500 时完全无效，每场 3 次。'},
+  laneCrush:{name:'直线碾压', desc:'每个敌方阶段向右前进，不看地形和控制区，路线上的单位（敌我、中立、召唤物）直接摧毁；右边缘碰到地图边就算游到终点，作战失败。走完对身边 2 格内的我方单位放一次周身冲击。不能被拉、推。'},
   frontArmor:{name:'正面装甲', desc:'从正面受到的伤害 −50%（百分比减免阶段）。侧面、背面不生效。这台机体不会回避，也不会防御。'},
   dodgeFatigue:{name:'闪避疲劳', desc:'通用规则（所有会回避的单位）：同一回合内每完全闪避一次攻击，闪避 −10，下一个我方阶段开始时恢复。'},
   portalTrait:{name:'门之力', desc:'指令「传送」：移动到 7 格内任意空地，代替本回合移动。每次反噬 +25，反噬 ≥100 时不能使用。（之后还会改动 / 升级）'},
@@ -2530,6 +2531,11 @@ const ENEMY_T = {
     wp({name:'主炮', power:3000, fire:'direct', range:[2,8], cd:1, dmgType:'光束'}),
     wp({name:'对空机枪', power:1600, fire:'direct', range:[1,3]}),
     wp({name:'舰载导弹', power:2200, fire:'indirect', range:[3,9], cd:2}),
+  ]},
+  /* v0.41.7 敌方对话（作者 10-09）：肉鸽终点 Boss。行为在 17c（ai:'lane'）；数值按新公式直接写，试玩后再调 */
+  bluefish:{pilot:'敌将', mech:'蓝色大肥鱼', short:'鱼', weak:{}, noEvade:true, hp:240000, armor:1800, defense:150, eva:0, mov:2, melee:160, shoot:100, flying:false, w:3, h:3,
+    ai:'lane', immovable:true, abilities:['laneCrush'], weapons:[
+    wp({name:'周身冲击', power:2800, v37:true, stat:'格斗', fire:'map', range:[1,2], dmgType:'物理', desc:'敌方阶段走完后，对身边 2 格内的所有我方单位造成伤害（必中，不能反击）。'}),
   ]},
   hound:{pilot:'敌兵', mech:'猎犬', short:'猎', weak:{光束:30}, hp:3000, armor:200, eva:10, mov:5, melee:90, shoot:100, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'猎枪', power:500, fire:'direct', range:[1,3]}),
@@ -4052,6 +4058,7 @@ function doHeal(u, w, t){
   log(`${fullName(u)}【${w.name}】${fullName(t)} 回复 ${amt} HP（${t.hp}/${t.maxHp}）`, null, 'ally');
 }
 function pushUnit(att, def, n){
+  if (def.immovable){ log(`${fullName(def)} 纹丝不动`, null, 'sys'); return; }   // v0.41.7 敌方对话（17c）
   const d = dirToward(att, def), [dx,dy] = FACE[d];
   for (let i=0; i<n; i++){
     const nx = def.x + dx, ny = def.y + dy, tiles = tilesOf(def, nx, ny);
@@ -4070,6 +4077,7 @@ function pushUnit(att, def, n){
   }
 }
 function pullUnit(att, def, n){
+  if (def.immovable){ log(`${fullName(def)} 纹丝不动`, null, 'sys'); return; }   // v0.41.7 敌方对话（17c）
   const [dx,dy] = FACE[dirToward(def, att)];
   let moved = 0;
   for (let i=0; i<n; i++){
@@ -4482,6 +4490,75 @@ async function bounceChain(u, w, first){
 /* 测试接口：角色机制的函数（tests/moon.js 等用；window.__game 归规则对话，所以单独挂一个） */
 window.__chars = {autoWeapon:u => autoWeapon(u), echoWeapon:u => echoWeapon(u), attackTilesOf, pickOf, setPick:k => { FEENA_PICK = k; }, canSwitchPick, chainStepOf, effMov, zocRadius,
   strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d), smokeHit, inSmoke, evadeN, evadeCdCut, get SMOKES(){ return SMOKES; }, inMaoZone, ignoresLos, linkSupport:(a, t) => linkSupport(a, t), activateTA, taActive, taAfter, canTA, purgeStun, collideDmg, isAlone, lockStrikeW, awakenOf, awGain, seedActive, seedDefOf, addAwaken, extMax, mapIff, awakenCall:(u, w) => awakenCall(u, w, supportTargets(u, w)), hitRate, emit:(n, c) => Hooks.emit(n, c), unitsOnTiles, summonTiles, startSummon, pickSummonTile, placeSummons, shadowPulse, isSummon, bounceChain:(u, w, t) => bounceChain(u, w, t)};
+/* ---------- 敌方机制（敌方设计对话维护，2026-10-09 起） ----------
+   敌人的特殊行为、特殊能力放这里。18 的 aiAct 开头按 e.ai 分派到 ENEMY_AI（被骇入 / 眩晕仍然先判定）。
+   - ENEMY_AI[key](e)：完全接管这台敌人的行动；
+   - 不能被拉、推的敌人写 immovable:true（17 的 pullUnit / pushUnit 开头判定）。 */
+const ENEMY_AI = {};
+
+/* ---------- 蓝色大肥鱼（作者 10-09：肉鸽终点 Boss，取代迷宫之主） ----------
+   - 3×3，HP、装甲、防御都极高；不会回避；
+   - 每个敌方阶段向右走 laneMov 格（默认 2），不看地形、不看控制区，路线上的单位（敌我、中立、召唤物）直接摧毁，力场壁也撞碎；
+   - 右边缘碰到地图边 = 游到终点，作战失败；
+   - 走完后对身边 2 格内的我方单位放一次周身冲击（必中、地图炮类，不能反击）；武装损坏时不放；
+   - 被眩晕 / 骇入那一回合不走；不能被拉、推。
+   - 击破它（★）就过关。打法（作者定）：纯数值硬打，或用无视防御 / 特殊伤害 / 按比例的伤害。 */
+const laneGoalX = u => MW - u.w;   // 走到这个 x 就算到终点（右边缘贴地图边）
+async function laneCrushStep(e){
+  const nx = e.x + 1;
+  const col = []; for (let j = 0; j < e.h; j++) col.push([nx + e.w - 1, e.y + j]);
+  const hit = units.filter(u => u !== e && u.hp > 0 && tilesOf(u).some(([a, b]) => col.some(([c, d]) => a === c && b === d)));
+  for (const [c, d] of col) if (walls.has(d*N + c)){ walls.delete(d*N + c); log(`${fullName(e)} 撞碎了力场壁`, null, 'sys'); }
+  e.x = nx; e.moved = true; e.facing = 'right';
+  for (const u of hit){
+    u.hp = 0; u.coreUsed = true;   // 碾压：不触发核心分离
+    addFloat(u, '碾碎', '#ff6b5e');
+    log(`${fullName(e)} 从 ${fullName(u)} 身上碾了过去`, null, 'sys');
+    destroy(u, e);
+  }
+  refresh(); focusOn(e);
+  await sleep(hit.length ? 420 : 200);
+}
+ENEMY_AI.lane = async function(e){
+  focusOn(e); S.inspect = e; refresh();
+  await sleep(240);
+  const steps = Math.max(0, Math.min(effMov(e), laneGoalX(e) - e.x));
+  for (let i = 0; i < steps && !over; i++) await laneCrushStep(e);
+  e.facing = 'right';
+  if (over) return;
+  if (e.x >= laneGoalX(e)){ refresh(); defeat(`${fullName(e)} 游到了终点。`); return; }
+  checkEnd(); if (over) return;
+  const w = e.weapons.find(w => w.fire === 'map');
+  if (w && !e.disarmed){
+    const foes = units.filter(u => u.side === 'ally' && u.hp > 0 && distU(e, u) <= w.range[1]);
+    if (foes.length){
+      log(`${fullName(e)}【${w.name}】周围 ${w.range[1]} 格内 ${foes.length} 台我方机体受到冲击`, null, 'enemy');
+      fx('pulse', {b:cpx(e), r:TS * (w.range[1] + 1.5), color:'#7fb8ff', dur:500});
+      await sleep(350);
+      for (const u of foes) if (u.hp > 0 && units.includes(u)) await strike(e, w, u, null, {skipConsume:true});
+      refresh(); checkEnd();
+    }
+  } else if (e.disarmed) log(`${fullName(e)} 武装损坏，本阶段不能攻击`, null, 'sys');
+  e.disarmed = false; e.acted = true;
+};
+/* 终点线：场上有走直线的敌人时，在右边缘它那几行画一道蓝色终点线 */
+Hooks.on('drawOverlay', ({ctx}) => {
+  for (const e of units){
+    if (e.ai !== 'lane' || e.hp <= 0 || e.side !== 'enemy') continue;
+    e.facing = 'right';   // 永远朝右（出场时 31 的 onSpawn 会统一改成朝左，这里扳回来）
+    const x = laneGoalX(e) + e.w - 1;
+    ctx.fillStyle = 'rgba(80,150,255,.22)'; ctx.fillRect(x*TS, e.y*TS, TS, e.h*TS);
+    ctx.setLineDash([5,4]); ctx.strokeStyle = 'rgba(120,180,255,.95)'; ctx.lineWidth = 2;
+    ctx.strokeRect(x*TS+1, e.y*TS+1, TS-2, e.h*TS-2); ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(170,210,255,.95)'; ctx.font = '700 11px "Noto Sans SC", system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('终点', (x + .5)*TS, e.y*TS - 4); ctx.textAlign = 'start';
+    /* 本回合会走到的格子：淡蓝色 */
+    const n = Math.min(effMov(e), laneGoalX(e) - e.x);
+    if (n > 0){ ctx.fillStyle = 'rgba(80,150,255,.14)'; ctx.fillRect((e.x + e.w)*TS, e.y*TS, n*TS, e.h*TS); }
+  }
+});
+/* 测试接口（敌方对话自己的，__game 归规则对话） */
+window.__enemy = {ENEMY_AI, laneGoalX, pullUnit:(a, d, n) => pullUnit(a, d, n), pushUnit:(a, d, n) => pushUnit(a, d, n), destroy:(u, by) => destroy(u, by)};
 /* ---------- 回合流程 ---------- */
 function fireTip(key){
   if (!LV || !LV.tips) return;
@@ -4537,6 +4614,7 @@ async function endTurn(){
 }
 async function aiAct(e){
   if (e.stunned){ e.stunned = false; e.acted = true; log(`${fullName(e)} 被骇入，本阶段无法行动`, null, 'sys'); await sleep(250); return; }
+  if (e.ai && ENEMY_AI[e.ai]) return ENEMY_AI[e.ai](e);   // v0.41.7 敌方对话：特殊行为的敌人（17c，例如蓝色大肥鱼）
   const tiles = reach(e), players = units.filter(u => u.side === 'ally');
   if (!players.length) return;
   /* v0.30 统一 AI（作者 10-05 定）：
@@ -5303,6 +5381,7 @@ function draw(now){
     ctx.fillStyle = 'rgba(255,170,160,.95)'; ctx.font = '700 12px "Noto Sans SC", system-ui, sans-serif'; ctx.textAlign = 'center';
     ctx.fillText('防线', (z.x0 + (z.x1-z.x0+1)/2)*TS, z.y0*TS + 16); ctx.textAlign = 'start';
   }
+  Hooks.emit('drawOverlay', {ctx});   // v0.41.7 敌方对话：终点线等（17c）
   if (CMD){
     for (const m of CMD.pending){
       ctx.setLineDash([4,3]); ctx.strokeStyle = 'rgba(255,120,90,.95)'; ctx.lineWidth = 2;
@@ -7536,7 +7615,8 @@ const ENEMY_TIER = {
 };
 for (const k of ENEMY_TIER.头目) if (ENEMY_T[k]) ENEMY_T[k].weak = {...(ENEMY_T[k].weak || {}), 范围:-50};   // 范围护壁
 for (const k of Object.keys(ENEMY_T)) ENEMY_T[k].key = k;   // v0.35 单位上记住模板键，方便按梯队判断
-const tierOfEnemy = k => ENEMY_BOSS.includes(k) || k === 'flagship' ? 'Boss' : Object.keys(ENEMY_TIER).find(t => ENEMY_TIER[t].includes(k)) || '杂兵';
+const BOSS_SPECIAL = ['flagship','bluefish'];   // 不进随机 Boss 池、但算 Boss 梯队的（手工关专用）
+const tierOfEnemy = k => ENEMY_BOSS.includes(k) || BOSS_SPECIAL.includes(k) ? 'Boss' : Object.keys(ENEMY_TIER).find(t => ENEMY_TIER[t].includes(k)) || '杂兵';
 const TIER_LV = {杂兵:0, 精锐:1, 头目:2, Boss:2};
 /* ---------- v0.37 新伤害公式：防御 / 觉醒属性，旧武器威力换算 ----------
    新公式：伤害 =（威力 − 装甲）×（1 +（攻击能力值 − 防御值）/ 100）。
@@ -7638,7 +7718,7 @@ Hooks.on('phaseStart', c => {
      出口守军的关卡池只有在 Boss 模板到位（bossReady）以后才换成 Boss 战，之前继续用原来的随机守军关。
    - 31 里把 BOSS_STAGES 并进 STAGE_OVERRIDES；26 里出口守军优先抽 boss:true 且 bossReady 的关。
    - 敌人字段：lvAdd = 在本关等级上再加几级（Boss / 头目 +2，精锐 +1）；target = 斩首目标 ★；guardZone = 守卫型。 */
-const BOSS_FALLBACK = {gatefort:'fortress', beacon:'skyfort', pylon:'turret', twinA:'berserker', twinB:'artillery', mazelord:'flagship'};
+const BOSS_FALLBACK = {gatefort:'fortress', beacon:'skyfort', pylon:'turret', twinA:'berserker', twinB:'artillery'};
 const bk = k => ENEMY_T[k] ? k : (BOSS_FALLBACK[k] || k);
 const bossReady = st => !!(st && st.bossKeys && st.bossKeys.every(k => ENEMY_T[k]));
 const BOSS_STAGES = {
@@ -7684,19 +7764,24 @@ const BOSS_STAGES = {
       {t:'hound', x:15, y:6, facing:'left'}, {t:'hound', x:15, y:10, facing:'left'}],
     desc:'<b>关底 Boss：双子</b><br>两台都是 ★，<b>都击破</b>才过关。<br><br>· <b>双子链接</b>：一台被击破后，另一台如果撑到<b>下一个敌方阶段开始</b>，就会把它复活（50% HP）。所以要在<b>同一个我方回合</b>里把两台都收掉。<br>· 双子 A 是近战，会一直冲最近的我方机体；双子 B 是曲射炮台（最小射程 3），蹲在右上高台上不动。<br>· 高台只有右下一条坡道，坡道口有盾卫，旁边还有敌方狙击盯着。飞行机、尖兵的前线中继可以帮你绕过去。<br>· A 只追最近的目标：也可以把它引到 B 附近，用范围攻击一起打。'},
 
-  /* 终点「迷宫之主」——考节奏。指挥舰（3×3，飞行）停在右侧停机坪。HP > 50% 时有屏障、不动；≤ 50% 屏障失效、开始前进，主炮先画预警线再发射。
-     解法：① 尖兵从侧线插中继、精锐前线出场，第 1 阶段就压上去；② 守住中线，等它第 2 阶段自己过来；③ 第 2 阶段躲预警线，或让重装援护硬吃换输出。 */
-  'ISW-4-F-1':{boss:true, bossKeys:['mazelord'], name:'迷宫之主', affix:null, obj:'targets', w:30, h:18,
-    rows:rtRows(30, 18, [['x',0,0,30,1], ['x',0,17,30,1], ['x',7,5,13,2], ['x',7,11,13,2], ['m',20,5,1,1], ['m',20,12,1,1],
-      ['f',9,2,3,2], ['f',9,14,3,2], ['w',12,8,3,2], ['m',16,7,1,1], ['m',16,10,1,1], ['f',2,4,2,1], ['f',2,13,2,1], ['f',23,1,2,2], ['f',23,15,2,2]]),
-    spots:[[1,2],[1,8],[1,14],[3,6],[3,11]],
+  /* 终点「蓝色大肥鱼」——作者 10-09 定，取代原来的迷宫之主（敌方对话写了第一版场地，关卡对话可以随意改）。
+     大肥鱼（3×3）从左边缘出发，每个敌方阶段向右走 2 格，不看地形和控制区，路线上的单位敌我不分直接碾碎；右边缘碰到地图边 = 失败。
+     HP、装甲、防御都极高；走完后对身边 2 格放周身冲击。行为在 17c（ai:'lane'），模板在 04 的 ENEMY_T.bluefish。
+     鱼道（第 7–9 行）整条保持平原。解法（作者定）：纯数值硬打；无视防御 / 特殊伤害 / 按比例的伤害特别有效。 */
+  'ISW-4-F-1':{boss:true, bossKeys:['bluefish'], name:'蓝色大肥鱼', affix:null, obj:'targets', w:30, h:18,
+    rows:rtRows(30, 18, [['x',0,0,30,1], ['x',0,17,30,1],
+      ['f',6,3,3,2], ['f',6,13,3,2], ['m',11,4,1,2], ['m',11,12,1,2], ['f',15,2,2,2], ['f',15,14,2,2], ['c',17,5,2,1], ['c',17,12,2,1],
+      ['m',20,4,2,1], ['m',20,13,2,1], ['w',24,2,3,2], ['w',24,14,3,2]]),
+    spots:[[2,3],[2,13],[5,1],[5,15],[9,2],[9,14]],
     enemies:[
-      {t:bk('mazelord'), x:25, y:7, facing:'left', lvAdd:2, target:true},
-      {t:'captain', x:21, y:8, facing:'left', lvAdd:2}, {t:'sniper', x:21, y:2, facing:'left', lvAdd:1}, {t:'sniper', x:21, y:15, facing:'left', lvAdd:1},
-      {t:'shield', x:19, y:8, facing:'left', lvAdd:1}, {t:'shield', x:19, y:9, facing:'left', lvAdd:1}, {t:'venom', x:22, y:12, facing:'left', lvAdd:2}],
-    waves:[{at:3, enemies:[{t:'funnel', x:27, y:3, facing:'left'}, {t:'berserker', x:27, y:13, facing:'left'}]},
-           {at:5, enemies:[{t:'skyfort', x:26, y:2, facing:'left'}, {t:'venom', x:27, y:14, facing:'left'}]}],
-    desc:'<b>最终 Boss：迷宫之主</b><br>击破指挥舰（★）就通关。<br><br>· <b>第 1 阶段</b>（HP 一半以上）：有能量屏障（低威力的攻击无效，只挡几次），停在右边停机坪不动，第 3、5 回合会叫来增援。<br>· <b>第 2 阶段</b>（HP 一半以下）：屏障失效、开始往前压；主炮会先在地上画出一条<b>预警线</b>，下个敌方阶段发射。<br>· 三条战线汇合到停机坪。可以让尖兵从上下侧线插中继、让精锐直接在前线出场，也可以守住中线等它自己过来。'},
+      {t:'bluefish', x:0, y:7, facing:'right', lvAdd:2, target:true},
+      {t:'grunt', x:10, y:8, facing:'left'}, {t:'grunt', x:19, y:7, facing:'left'},
+      {t:'shield', x:13, y:5, facing:'left', lvAdd:1}, {t:'shield', x:13, y:11, facing:'left', lvAdd:1},
+      {t:'berserker', x:18, y:3, facing:'left', lvAdd:2}, {t:'venom', x:18, y:13, facing:'left', lvAdd:2},
+      {t:'sniper', x:27, y:4, facing:'left', guardZone:6, lvAdd:1}, {t:'sniper', x:27, y:12, facing:'left', guardZone:6, lvAdd:1}],
+    waves:[{at:3, enemies:[{t:'funnel', x:27, y:2, facing:'left'}, {t:'captain', x:27, y:14, facing:'left'}]},
+           {at:6, enemies:[{t:'skyfort', x:25, y:1, facing:'left'}, {t:'venom', x:27, y:15, facing:'left'}]}],
+    desc:'<b>最终 Boss：蓝色大肥鱼</b><br>击破大肥鱼（★）就通关；它的右边缘碰到地图右边（蓝色<b>终点</b>线）就<b>失败</b>。<br><br>· 它每个敌方阶段向右走 <b>2 格</b>（淡蓝色是下一步要走的格子），<b>不看地形和控制区</b>，路线上的单位<b>敌我不分直接碾碎</b>——别站在鱼道上，敌人挡路也会被它压扁。<br>· HP、装甲、防御都<b>极高</b>，普通武器只能刮一点。<b>无视防御</b>、<b>特殊伤害</b>、<b>按比例的伤害</b>（斩首、传送斩等）特别有效；练度够也可以硬打。<br>· 走完后对身边 <b>2 格</b>内的我方机体放一次周身冲击（必中）。打完就退开，别一直贴着。<br>· 它不能被拉、推；眩晕能让它停一回合。'},
 };
 /* ---------- 战斗 ---------- */
 const THEMES = [
@@ -7763,7 +7848,7 @@ function runEnemyLv(kind, layer = RUN.layer){
 const ELITE_UNITS = ['captain','venom','beetle','regen','funnel','berserker'];
 const STAGE_KIND = {N:'battle', E:'elite', G:'guard', S:'source', C:'chase', F:'final'};
 const KIND_CODE = {battle:'N', elite:'E', guard:'G', source:'S', chase:'C', final:'F'};
-const KIND_NAME = {battle:'作战', elite:'精英作战', guard:'出口守军', source:'侵蚀源', chase:'追击战', final:'终点 · 迷宫之主'};
+const KIND_NAME = {battle:'作战', elite:'精英作战', guard:'出口守军', source:'侵蚀源', chase:'追击战', final:'终点'};
 const STAGE_POOL = {N:8, E:3, G:2, S:2, C:2};
 /* 作者用关卡编辑器导出的改动，Claude 粘贴到这里（格式见编辑器「导出」）。肉鸽关并入 STAGE_OVERRIDES，原型关在编辑器模块末尾生效。 */
 const LEVEL_EDITS = {};
@@ -7964,7 +8049,7 @@ async function runBattleEnd(win){
   }
   if (RUN.dur <= 0){ runGameOver('作战耐久耗尽'); return; }
   if (kind === 'final'){ if (!win){ runShow(); await dlg(`<div class="eyebrow">终点</div><h2>作战失败</h2><p>${lines.join('<br>')}</p><div class="acts"><button class="btn primary" data-v="ok">继续</button></div>`); } runVictory(); return; }
-  if (kind === 'final' && !win) lines.push('没能击败迷宫之主，但作战耐久还没耗尽，仍然算作通过。');
+  if (kind === 'final' && !win) lines.push('没能击败蓝色大肥鱼，但作战耐久还没耗尽，仍然算作通过。');
   const exp = {battle:5, elite:8, guard:9, source:9, chase:7}[kind] || 5, he = 2 + Math.floor(Math.random() * 4) + (kind === 'elite' ? 3 : 0);
   RUN.he += he;
   RUN.parts.forEach(p => { if (p.k === 'bloodcap') p.value += 2; });
@@ -7980,7 +8065,7 @@ async function runBattleEnd(win){
   if (kind === 'elite' || Math.random() < .35) await givePart(pick(Object.keys(PARTS)), '战利品');
   for (let i = 0; i < (RUN.chestParts || 0); i++) await givePart(pick(Object.keys(PARTS)), '补给箱'); RUN.chestParts = 0;
   if (win && kind === 'elite') await offerRelics(['普通', '稀有'], '精英战');
-  if (win && (kind === 'guard' || kind === 'final')) await offerRelics(['稀有', '传说'], kind === 'final' ? '迷宫之主' : '层底守军');
+  if (win && (kind === 'guard' || kind === 'final')) await offerRelics(['稀有', '传说'], kind === 'final' ? '蓝色大肥鱼' : '层底守军');
   if (RUN.chestRelic){ RUN.chestRelic = false; await offerRelics(['普通'], '补给箱'); }
   addTicket(tcls, '战后');
   await useTicket(RUN.tickets.length - 1);
@@ -7993,7 +8078,7 @@ async function runChase(){
   const cp = stagesOf(RUN.layer, 'chase'); await runBattle('chase', cp.length ? cp[(RUN.seedBase + RUN.layer) % cp.length].code : null);
 }
 async function runFinal(){
-  await passageDlg(`<div class="eyebrow" style="color:var(--enemy)">终点</div><h2>迷宫之主</h2><p>穿过 3 层航区，迷宫最深处的指挥舰在等着你。</p>`, '<button class="btn primary" data-v="ok">出击</button>');   // v0.40.8 出击前可以用招募券
+  await passageDlg(`<div class="eyebrow" style="color:var(--enemy)">终点</div><h2>蓝色大肥鱼</h2><p>穿过 3 层航区，迷宫最深处，一条巨大的蓝色大肥鱼正游向终点。</p>`, '<button class="btn primary" data-v="ok">出击</button>');   // v0.40.8 出击前可以用招募券
   await runBattle('final', 'ISW-4-F-1');
 }
 async function cmdXP(x){
@@ -8019,7 +8104,7 @@ function runPromote(m){
 }
 function runVictory(){
   RUN.over = true; rlog('run_end', runSummary('通关')); rlogFlush(true); runShow();
-  $('#runView').querySelector('.rv-main').innerHTML = `<div class="rv-card" style="grid-column:1/-1"><h3>通关</h3><h2 style="font-family:var(--font-d);font-size:34px;margin:0">迷宫之主被击败</h2>
+  $('#runView').querySelector('.rv-main').innerHTML = `<div class="rv-card" style="grid-column:1/-1"><h3>通关</h3><h2 style="font-family:var(--font-d);font-size:34px;margin:0">蓝色大肥鱼被击败</h2>
     <p>作战 ${RUN.battles} 场 · 剩余作战耐久 ${RUN.dur} · 队伍 ${RUN.units.length} 人${RUN.cmd ? ` · Feena Lv${RUN.cmd.lv}` : ''}</p>
     <p class="small">局外成长树和多结局还没做（占位）。</p><button class="btn primary" id="rvAgain">再来一局</button></div>`;
   $('#rvAgain').onclick = () => { RUN = null; runStartScreen(); };
@@ -8036,7 +8121,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.41.6';
+const GAME_VERSION = 'v0.41.7';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){

@@ -269,6 +269,7 @@ function doHeal(u, w, t){
   log(`${fullName(u)}【${w.name}】${fullName(t)} 回复 ${amt} HP（${t.hp}/${t.maxHp}）`, null, 'ally');
 }
 function pushUnit(att, def, n){
+  if (def.immovable){ log(`${fullName(def)} 纹丝不动`, null, 'sys'); return; }   // v0.41.7 敌方对话（17c）
   const d = dirToward(att, def), [dx,dy] = FACE[d];
   for (let i=0; i<n; i++){
     const nx = def.x + dx, ny = def.y + dy, tiles = tilesOf(def, nx, ny);
@@ -287,6 +288,7 @@ function pushUnit(att, def, n){
   }
 }
 function pullUnit(att, def, n){
+  if (def.immovable){ log(`${fullName(def)} 纹丝不动`, null, 'sys'); return; }   // v0.41.7 敌方对话（17c）
   const [dx,dy] = FACE[dirToward(def, att)];
   let moved = 0;
   for (let i=0; i<n; i++){

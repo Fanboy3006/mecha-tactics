@@ -255,6 +255,7 @@ function draw(now){
     ctx.fillStyle = 'rgba(255,170,160,.95)'; ctx.font = '700 12px "Noto Sans SC", system-ui, sans-serif'; ctx.textAlign = 'center';
     ctx.fillText('防线', (z.x0 + (z.x1-z.x0+1)/2)*TS, z.y0*TS + 16); ctx.textAlign = 'start';
   }
+  Hooks.emit('drawOverlay', {ctx});   // v0.41.7 敌方对话：终点线等（17c）
   if (CMD){
     for (const m of CMD.pending){
       ctx.setLineDash([4,3]); ctx.strokeStyle = 'rgba(255,120,90,.95)'; ctx.lineWidth = 2;

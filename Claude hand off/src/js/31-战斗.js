@@ -63,7 +63,7 @@ function runEnemyLv(kind, layer = RUN.layer){
 const ELITE_UNITS = ['captain','venom','beetle','regen','funnel','berserker'];
 const STAGE_KIND = {N:'battle', E:'elite', G:'guard', S:'source', C:'chase', F:'final'};
 const KIND_CODE = {battle:'N', elite:'E', guard:'G', source:'S', chase:'C', final:'F'};
-const KIND_NAME = {battle:'作战', elite:'精英作战', guard:'出口守军', source:'侵蚀源', chase:'追击战', final:'终点 · 迷宫之主'};
+const KIND_NAME = {battle:'作战', elite:'精英作战', guard:'出口守军', source:'侵蚀源', chase:'追击战', final:'终点'};
 const STAGE_POOL = {N:8, E:3, G:2, S:2, C:2};
 /* 作者用关卡编辑器导出的改动，Claude 粘贴到这里（格式见编辑器「导出」）。肉鸽关并入 STAGE_OVERRIDES，原型关在编辑器模块末尾生效。 */
 const LEVEL_EDITS = {};
@@ -264,7 +264,7 @@ async function runBattleEnd(win){
   }
   if (RUN.dur <= 0){ runGameOver('作战耐久耗尽'); return; }
   if (kind === 'final'){ if (!win){ runShow(); await dlg(`<div class="eyebrow">终点</div><h2>作战失败</h2><p>${lines.join('<br>')}</p><div class="acts"><button class="btn primary" data-v="ok">继续</button></div>`); } runVictory(); return; }
-  if (kind === 'final' && !win) lines.push('没能击败迷宫之主，但作战耐久还没耗尽，仍然算作通过。');
+  if (kind === 'final' && !win) lines.push('没能击败蓝色大肥鱼，但作战耐久还没耗尽，仍然算作通过。');
   const exp = {battle:5, elite:8, guard:9, source:9, chase:7}[kind] || 5, he = 2 + Math.floor(Math.random() * 4) + (kind === 'elite' ? 3 : 0);
   RUN.he += he;
   RUN.parts.forEach(p => { if (p.k === 'bloodcap') p.value += 2; });
@@ -280,7 +280,7 @@ async function runBattleEnd(win){
   if (kind === 'elite' || Math.random() < .35) await givePart(pick(Object.keys(PARTS)), '战利品');
   for (let i = 0; i < (RUN.chestParts || 0); i++) await givePart(pick(Object.keys(PARTS)), '补给箱'); RUN.chestParts = 0;
   if (win && kind === 'elite') await offerRelics(['普通', '稀有'], '精英战');
-  if (win && (kind === 'guard' || kind === 'final')) await offerRelics(['稀有', '传说'], kind === 'final' ? '迷宫之主' : '层底守军');
+  if (win && (kind === 'guard' || kind === 'final')) await offerRelics(['稀有', '传说'], kind === 'final' ? '蓝色大肥鱼' : '层底守军');
   if (RUN.chestRelic){ RUN.chestRelic = false; await offerRelics(['普通'], '补给箱'); }
   addTicket(tcls, '战后');
   await useTicket(RUN.tickets.length - 1);
@@ -293,7 +293,7 @@ async function runChase(){
   const cp = stagesOf(RUN.layer, 'chase'); await runBattle('chase', cp.length ? cp[(RUN.seedBase + RUN.layer) % cp.length].code : null);
 }
 async function runFinal(){
-  await passageDlg(`<div class="eyebrow" style="color:var(--enemy)">终点</div><h2>迷宫之主</h2><p>穿过 3 层航区，迷宫最深处的指挥舰在等着你。</p>`, '<button class="btn primary" data-v="ok">出击</button>');   // v0.40.8 出击前可以用招募券
+  await passageDlg(`<div class="eyebrow" style="color:var(--enemy)">终点</div><h2>蓝色大肥鱼</h2><p>穿过 3 层航区，迷宫最深处，一条巨大的蓝色大肥鱼正游向终点。</p>`, '<button class="btn primary" data-v="ok">出击</button>');   // v0.40.8 出击前可以用招募券
   await runBattle('final', 'ISW-4-F-1');
 }
 async function cmdXP(x){
@@ -319,7 +319,7 @@ function runPromote(m){
 }
 function runVictory(){
   RUN.over = true; rlog('run_end', runSummary('通关')); rlogFlush(true); runShow();
-  $('#runView').querySelector('.rv-main').innerHTML = `<div class="rv-card" style="grid-column:1/-1"><h3>通关</h3><h2 style="font-family:var(--font-d);font-size:34px;margin:0">迷宫之主被击败</h2>
+  $('#runView').querySelector('.rv-main').innerHTML = `<div class="rv-card" style="grid-column:1/-1"><h3>通关</h3><h2 style="font-family:var(--font-d);font-size:34px;margin:0">蓝色大肥鱼被击败</h2>
     <p>作战 ${RUN.battles} 场 · 剩余作战耐久 ${RUN.dur} · 队伍 ${RUN.units.length} 人${RUN.cmd ? ` · Feena Lv${RUN.cmd.lv}` : ''}</p>
     <p class="small">局外成长树和多结局还没做（占位）。</p><button class="btn primary" id="rvAgain">再来一局</button></div>`;
   $('#rvAgain').onclick = () => { RUN = null; runStartScreen(); };

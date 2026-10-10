@@ -6,7 +6,7 @@
      出口守军的关卡池只有在 Boss 模板到位（bossReady）以后才换成 Boss 战，之前继续用原来的随机守军关。
    - 31 里把 BOSS_STAGES 并进 STAGE_OVERRIDES；26 里出口守军优先抽 boss:true 且 bossReady 的关。
    - 敌人字段：lvAdd = 在本关等级上再加几级（Boss / 头目 +2，精锐 +1）；target = 斩首目标 ★；guardZone = 守卫型。 */
-const BOSS_FALLBACK = {gatefort:'fortress', beacon:'skyfort', pylon:'turret', twinA:'berserker', twinB:'artillery', mazelord:'flagship'};
+const BOSS_FALLBACK = {gatefort:'fortress', beacon:'skyfort', pylon:'turret', twinA:'berserker', twinB:'artillery'};
 const bk = k => ENEMY_T[k] ? k : (BOSS_FALLBACK[k] || k);
 const bossReady = st => !!(st && st.bossKeys && st.bossKeys.every(k => ENEMY_T[k]));
 const BOSS_STAGES = {
@@ -52,17 +52,22 @@ const BOSS_STAGES = {
       {t:'hound', x:15, y:6, facing:'left'}, {t:'hound', x:15, y:10, facing:'left'}],
     desc:'<b>关底 Boss：双子</b><br>两台都是 ★，<b>都击破</b>才过关。<br><br>· <b>双子链接</b>：一台被击破后，另一台如果撑到<b>下一个敌方阶段开始</b>，就会把它复活（50% HP）。所以要在<b>同一个我方回合</b>里把两台都收掉。<br>· 双子 A 是近战，会一直冲最近的我方机体；双子 B 是曲射炮台（最小射程 3），蹲在右上高台上不动。<br>· 高台只有右下一条坡道，坡道口有盾卫，旁边还有敌方狙击盯着。飞行机、尖兵的前线中继可以帮你绕过去。<br>· A 只追最近的目标：也可以把它引到 B 附近，用范围攻击一起打。'},
 
-  /* 终点「迷宫之主」——考节奏。指挥舰（3×3，飞行）停在右侧停机坪。HP > 50% 时有屏障、不动；≤ 50% 屏障失效、开始前进，主炮先画预警线再发射。
-     解法：① 尖兵从侧线插中继、精锐前线出场，第 1 阶段就压上去；② 守住中线，等它第 2 阶段自己过来；③ 第 2 阶段躲预警线，或让重装援护硬吃换输出。 */
-  'ISW-4-F-1':{boss:true, bossKeys:['mazelord'], name:'迷宫之主', affix:null, obj:'targets', w:30, h:18,
-    rows:rtRows(30, 18, [['x',0,0,30,1], ['x',0,17,30,1], ['x',7,5,13,2], ['x',7,11,13,2], ['m',20,5,1,1], ['m',20,12,1,1],
-      ['f',9,2,3,2], ['f',9,14,3,2], ['w',12,8,3,2], ['m',16,7,1,1], ['m',16,10,1,1], ['f',2,4,2,1], ['f',2,13,2,1], ['f',23,1,2,2], ['f',23,15,2,2]]),
-    spots:[[1,2],[1,8],[1,14],[3,6],[3,11]],
+  /* 终点「蓝色大肥鱼」——作者 10-09 定，取代原来的迷宫之主（敌方对话写了第一版场地，关卡对话可以随意改）。
+     大肥鱼（3×3）从左边缘出发，每个敌方阶段向右走 2 格，不看地形和控制区，路线上的单位敌我不分直接碾碎；右边缘碰到地图边 = 失败。
+     HP、装甲、防御都极高；走完后对身边 2 格放周身冲击。行为在 17c（ai:'lane'），模板在 04 的 ENEMY_T.bluefish。
+     鱼道（第 7–9 行）整条保持平原。解法（作者定）：纯数值硬打；无视防御 / 特殊伤害 / 按比例的伤害特别有效。 */
+  'ISW-4-F-1':{boss:true, bossKeys:['bluefish'], name:'蓝色大肥鱼', affix:null, obj:'targets', w:30, h:18,
+    rows:rtRows(30, 18, [['x',0,0,30,1], ['x',0,17,30,1],
+      ['f',6,3,3,2], ['f',6,13,3,2], ['m',11,4,1,2], ['m',11,12,1,2], ['f',15,2,2,2], ['f',15,14,2,2], ['c',17,5,2,1], ['c',17,12,2,1],
+      ['m',20,4,2,1], ['m',20,13,2,1], ['w',24,2,3,2], ['w',24,14,3,2]]),
+    spots:[[2,3],[2,13],[5,1],[5,15],[9,2],[9,14]],
     enemies:[
-      {t:bk('mazelord'), x:25, y:7, facing:'left', lvAdd:2, target:true},
-      {t:'captain', x:21, y:8, facing:'left', lvAdd:2}, {t:'sniper', x:21, y:2, facing:'left', lvAdd:1}, {t:'sniper', x:21, y:15, facing:'left', lvAdd:1},
-      {t:'shield', x:19, y:8, facing:'left', lvAdd:1}, {t:'shield', x:19, y:9, facing:'left', lvAdd:1}, {t:'venom', x:22, y:12, facing:'left', lvAdd:2}],
-    waves:[{at:3, enemies:[{t:'funnel', x:27, y:3, facing:'left'}, {t:'berserker', x:27, y:13, facing:'left'}]},
-           {at:5, enemies:[{t:'skyfort', x:26, y:2, facing:'left'}, {t:'venom', x:27, y:14, facing:'left'}]}],
-    desc:'<b>最终 Boss：迷宫之主</b><br>击破指挥舰（★）就通关。<br><br>· <b>第 1 阶段</b>（HP 一半以上）：有能量屏障（低威力的攻击无效，只挡几次），停在右边停机坪不动，第 3、5 回合会叫来增援。<br>· <b>第 2 阶段</b>（HP 一半以下）：屏障失效、开始往前压；主炮会先在地上画出一条<b>预警线</b>，下个敌方阶段发射。<br>· 三条战线汇合到停机坪。可以让尖兵从上下侧线插中继、让精锐直接在前线出场，也可以守住中线等它自己过来。'},
+      {t:'bluefish', x:0, y:7, facing:'right', lvAdd:2, target:true},
+      {t:'grunt', x:10, y:8, facing:'left'}, {t:'grunt', x:19, y:7, facing:'left'},
+      {t:'shield', x:13, y:5, facing:'left', lvAdd:1}, {t:'shield', x:13, y:11, facing:'left', lvAdd:1},
+      {t:'berserker', x:18, y:3, facing:'left', lvAdd:2}, {t:'venom', x:18, y:13, facing:'left', lvAdd:2},
+      {t:'sniper', x:27, y:4, facing:'left', guardZone:6, lvAdd:1}, {t:'sniper', x:27, y:12, facing:'left', guardZone:6, lvAdd:1}],
+    waves:[{at:3, enemies:[{t:'funnel', x:27, y:2, facing:'left'}, {t:'captain', x:27, y:14, facing:'left'}]},
+           {at:6, enemies:[{t:'skyfort', x:25, y:1, facing:'left'}, {t:'venom', x:27, y:15, facing:'left'}]}],
+    desc:'<b>最终 Boss：蓝色大肥鱼</b><br>击破大肥鱼（★）就通关；它的右边缘碰到地图右边（蓝色<b>终点</b>线）就<b>失败</b>。<br><br>· 它每个敌方阶段向右走 <b>2 格</b>（淡蓝色是下一步要走的格子），<b>不看地形和控制区</b>，路线上的单位<b>敌我不分直接碾碎</b>——别站在鱼道上，敌人挡路也会被它压扁。<br>· HP、装甲、防御都<b>极高</b>，普通武器只能刮一点。<b>无视防御</b>、<b>特殊伤害</b>、<b>按比例的伤害</b>（斩首、传送斩等）特别有效；练度够也可以硬打。<br>· 走完后对身边 <b>2 格</b>内的我方机体放一次周身冲击（必中）。打完就退开，别一直贴着。<br>· 它不能被拉、推；眩晕能让它停一回合。'},
 };

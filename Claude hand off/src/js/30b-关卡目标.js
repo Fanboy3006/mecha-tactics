@@ -9,7 +9,8 @@ const ENEMY_TIER = {
 };
 for (const k of ENEMY_TIER.头目) if (ENEMY_T[k]) ENEMY_T[k].weak = {...(ENEMY_T[k].weak || {}), 范围:-50};   // 范围护壁
 for (const k of Object.keys(ENEMY_T)) ENEMY_T[k].key = k;   // v0.35 单位上记住模板键，方便按梯队判断
-const tierOfEnemy = k => ENEMY_BOSS.includes(k) || k === 'flagship' ? 'Boss' : Object.keys(ENEMY_TIER).find(t => ENEMY_TIER[t].includes(k)) || '杂兵';
+const BOSS_SPECIAL = ['flagship','bluefish'];   // 不进随机 Boss 池、但算 Boss 梯队的（手工关专用）
+const tierOfEnemy = k => ENEMY_BOSS.includes(k) || BOSS_SPECIAL.includes(k) ? 'Boss' : Object.keys(ENEMY_TIER).find(t => ENEMY_TIER[t].includes(k)) || '杂兵';
 const TIER_LV = {杂兵:0, 精锐:1, 头目:2, Boss:2};
 /* ---------- v0.37 新伤害公式：防御 / 觉醒属性，旧武器威力换算 ----------
    新公式：伤害 =（威力 − 装甲）×（1 +（攻击能力值 − 防御值）/ 100）。

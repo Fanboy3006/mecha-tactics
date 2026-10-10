@@ -53,6 +53,7 @@ async function endTurn(){
 }
 async function aiAct(e){
   if (e.stunned){ e.stunned = false; e.acted = true; log(`${fullName(e)} 被骇入，本阶段无法行动`, null, 'sys'); await sleep(250); return; }
+  if (e.ai && ENEMY_AI[e.ai]) return ENEMY_AI[e.ai](e);   // v0.41.7 敌方对话：特殊行为的敌人（17c，例如蓝色大肥鱼）
   const tiles = reach(e), players = units.filter(u => u.side === 'ally');
   if (!players.length) return;
   /* v0.30 统一 AI（作者 10-05 定）：
