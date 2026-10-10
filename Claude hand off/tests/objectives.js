@@ -35,6 +35,10 @@ const fs = require('fs');
   p = await start('targets');
   const tg = await p.evaluate(() => { const g = window.__game, ts = g.units.filter(u => u.target); const n = ts.length, star = ts.every(u => u.badgeList && u.badgeList.length), far = ts.every(u => u.x + u.w >= g.LV.w - 2), boss = ts.every(u => u.mech === g.data.ENEMY_T.fortress.mech), guard = ts.every(u => u.guardZone); ts.forEach(u => { u.hp = 0; }); g.checkEnd(); return {n, star, far, boss, guard, over:g.over, type:g.LV.victory.type}; });
   check('斩首（v0.41.9）：第 1 层 1 个带 ★ 的重装要塞，贴着最右边、守卫型，打掉就胜利', tg.type === 'targets' && tg.n === 1 && tg.star && tg.far && tg.boss && tg.guard && tg.over, JSON.stringify(tg));
+  const noStar = await p.evaluate(() => { const g = window.__game; return Object.values(g.STAGES).filter(st => { const r = g.buildStage(st); return r.obj === 'targets' && !r.waves.some(w => w.enemies.some(e => e.target)); }).map(st => st.code); });
+  check('所有斩首关都至少有 1 个 ★（v0.42.1：ISW-1-N-7 开局即胜的 bug）', !noStar.length, JSON.stringify(noStar));
+  const n7 = await p.evaluate(async () => { const g = window.__game; g.runBattle('battle', 'ISW-1-N-7'); await new Promise(r => setTimeout(r, 500)); document.querySelector('#btnForm') && document.querySelector('#btnForm').click(); await new Promise(r => setTimeout(r, 800)); return {type:g.LV.victory.type, over:g.over, foes:g.units.filter(u => u.side === 'enemy').length}; });
+  check('ISW-1-N-7 开局不会直接胜利（全歼）', n7.type === 'annihilate' && !n7.over && n7.foes > 0, JSON.stringify(n7));
   await p.close();
   // 突破
   p = await start('reach');

@@ -69,7 +69,7 @@ const STAGE_POOL = {N:8, E:3, G:2, S:2, C:2};
 const LEVEL_EDITS = {};
 const STAGE_OVERRIDES = {
   // 例：'ISW-1-N-1': {name:'起始回廊', enemies:[{t:'grunt', x:20, y:7}, {t:'grunt', x:21, y:9}], desc:'教学用的第一战'},
-  'ISW-1-N-7': {why:'作者反馈太简单（反馈表第 20 条）：第 1 波加指挥官机，第 2 波提前到第 2 回合，新增第 3 波',
+  'ISW-1-N-7': {why:'作者反馈太简单（反馈表第 20 条）：第 1 波加指挥官机，第 2 波提前到第 2 回合，新增第 3 波', obj:'annihilate',   // v0.42.1 固定全歼：随机抽到斩首时手工敌人里没有 ★，开局就判胜（作者 10-10 报的 bug）
     enemies:[{t:'berserker', x:17, y:8, facing:'left', lv:1}, {t:'drone', x:23, y:2, facing:'left', lv:1}, {t:'funnel', x:18, y:7, facing:'left', lv:1}, {t:'bomber', x:18, y:6, facing:'left', lv:1}, {t:'captain', x:25, y:8, facing:'left', lv:3}],
     waves:[{at:2, enemies:[{t:'bomber', x:23, y:9, facing:'left', lv:1}, {t:'bomber', x:21, y:12, facing:'left', lv:1}, {t:'artillery', x:23, y:8, facing:'left', lv:1}, {t:'venom', x:23, y:14, facing:'left', lv:3}]},
            {at:4, enemies:[{t:'berserker', x:25, y:12, facing:'left', lv:1}, {t:'berserker', x:25, y:14, facing:'left', lv:1}, {t:'tank', x:23, y:0, facing:'left', lv:1}]}]},
@@ -109,7 +109,7 @@ function buildStage(st, extra = 0){
   const W = st.w || (kind === 'final' ? 30 : 26), H = st.h || (kind === 'final' ? 18 : 16);
   const g = st.rows ? st.rows.map(row => [...row]) : genArena(st.seed, W, H);
   const theme = THEMES[st.theme % THEMES.length], lv = runEnemyLv(kind, st.layer);
-  const obj = stageObj(st), L = st.layer, T = (tier, n) => tierPick(r, theme, tier, n, L), boss = () => ENEMY_BOSS[Math.floor(r() * ENEMY_BOSS.length)];
+  let obj = stageObj(st); const L = st.layer, T = (tier, n) => tierPick(r, theme, tier, n, L), boss = () => ENEMY_BOSS[Math.floor(r() * ENEMY_BOSS.length)];
   /* v0.32 按梯队配兵：杂兵给 AOE 清，精锐各有克制，头目带范围护壁要集火 / 近卫补刀 */
   let keys = [], later = [], targets = 0, tkeys = [], gkeys = [];
   if (!st.enemies){
@@ -167,8 +167,10 @@ function buildStage(st, extra = 0){
   });
   enemies.push(...place(keys, false));
   const waves = [{at:null, enemies}];
+  /* v0.42.1 保险：斩首关一个 ★ 都没有（手工写死敌人、没标 target 的关）就改成全歼，不然开局就判胜 */
   if (st.waves) st.waves.forEach((wv, i) => { occ.length = 0; waves.push({at:wv.at || 3 + i*2, enemies:wv.enemies.map(e => ({t:e.t, x:e.x, y:e.y, facing:e.facing || 'left', lv:e.lv || lv + (e.lvAdd || 0), ...pass(e)}))}); });
   else later.forEach((list, i) => { occ.length = 0; waves.push({at:3 + i*2, enemies:place(list, true)}); });
+  if (obj === 'targets' && !waves.some(w => w.enemies.some(e => e.target))) obj = 'annihilate';
   for (const e of waves.flatMap(w => w.enemies)){ const t = ENEMY_T[e.t]; for (let j=0;j<t.h;j++) for (let i=0;i<t.w;i++) if (g[e.y+j] && (['c','x','v'].includes(g[e.y+j][e.x+i]) || (!t.flying && g[e.y+j][e.x+i] === 'w'))) g[e.y+j][e.x+i] = '.'; }
   const my = Math.floor(H/2);
   const spots = st.spots || [[2,my],[2,my-2],[2,my+2],[4,my-1],[4,my+1],[1,my-4],[1,my+4],[4,my-3],[4,my+3]].map(([x,y]) => [x, clamp(y,0,H-2)]);
