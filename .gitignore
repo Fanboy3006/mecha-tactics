@@ -29,3 +29,6 @@ audio/SUNO/*.download
 
 # 本地 Claude Code 配置（里面有 DeepSeek key）
 .claude/settings.local.json
+
+# 世界观设定原稿（作者 10-10：可以给本地 DeepSeek 读，但仓库是公开的，不进仓库）
+设定/
