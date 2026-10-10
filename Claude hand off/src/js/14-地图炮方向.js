@@ -1,7 +1,7 @@
 /* ---------- 地图炮方向 ---------- */
 function unitsOnTiles(path, u, w){
   const hit = [];
-  for (const [x,y] of path){ const o = occupant(x,y); if (o && o !== u && !hit.includes(o) && (!w || !w.iff || (o.side !== u.side && o.side !== 'neutral'))) hit.push(o); }
+  for (const [x,y] of path){ const o = occupant(x,y); if (o && o !== u && !hit.includes(o) && (!w || !mapIff(u, w) || (o.side !== u.side && o.side !== 'neutral'))) hit.push(o); }
   return hit;
 }
 function mapDirs(u, w){

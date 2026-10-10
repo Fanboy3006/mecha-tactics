@@ -72,7 +72,7 @@ function unitCardHTML(u){
   if (u && u.side === 'neutral') return `<h3>单位情报</h3><div class="u-head"><h2>陨石残骸</h2></div>${bar('HP',u.hp,u.maxHp)}<p class="small">挡住所有单位的移动和直射（不挡打向空中目标的直射）。双方都可以攻击它，HP 归零后消失。</p>`;
   if (!u) return `<h3>单位情报</h3><p class="hint">点击地图上的任意单位查看数据。机体脚下的地面环表示敌我（我方方形、敌方圆形），机体剪影按「战斗分类」区分，胸口核心的颜色就是分类色（近卫橙红、尖兵黄、指挥紫、重装蓝、狙击粉、特种青）。地面环边上的黄色三角是朝向，右上角白色小三角表示飞行，半透明表示隐身。</p>`;
   const ter = terrainOf(u);
-  const st = [['移动',u.mov],['装甲', effArmor(u) !== u.armor ? `${effArmor(u)}（+30%）` : u.armor],['命中', u.aim ?? 160],['回避', u.noEvade ? '—' : `${100 + 2 * (Math.max(0, u.eva - (u.dodgePen || 0)) + (u.moveEva || 0))}${u.moveEva ? `（+${2 * u.moveEva}）` : ''}${u.dodgePen ? `（疲劳 −${2 * u.dodgePen}）` : ''}`],['朝向',FACE_ARROW[u.facing]],['体积',`${u.w}×${u.h}`],['格斗',u.melee],['射击',u.shoot],['防御',u.defense || 0],['觉醒',u.awaken ?? 100],['等级',u.lv]]
+  const st = [['移动',u.mov],['装甲', effArmor(u) !== u.armor ? `${effArmor(u)}（+30%）` : u.armor],['命中', u.aim ?? 160],['回避', u.noEvade ? '—' : `${100 + 2 * (Math.max(0, u.eva - (u.dodgePen || 0)) + (u.moveEva || 0))}${u.moveEva ? `（+${2 * u.moveEva}）` : ''}${u.dodgePen ? `（疲劳 −${2 * u.dodgePen}）` : ''}`],['朝向',FACE_ARROW[u.facing]],['体积',`${u.w}×${u.h}`],['格斗',u.melee],['射击',u.shoot],['防御',u.defense || 0],['觉醒', abilOn(u, 'seed') || awGain(u) ? seedTxt(u).replace(/^觉醒 /, '') : (u.awaken ?? 100)],['等级',u.lv]]
     .map(([k,v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
   const affixH = u.side === 'enemy' && LV && LV.affix ? `<div class="abil"><div><b>精英词缀【${LV.affix.name}】</b>${LV.affix.desc}</div></div>` : '';   // v0.34.2 词缀写进敌人面板
   const traitH = (u.trait ? `<div class="abil"><div style="${hasTrait(u, u.trait) ? '' : 'opacity:.55'}"><b>个人特技 · ${ABIL[u.trait].name}${hasTrait(u, u.trait) ? '' : `（Lv${TRAIT_LV} 解锁）`}</b>${ABIL[u.trait].desc}${hasTrait(u,'moveEva') && u.moveEva ? `（当前 +${u.moveEva}）` : ''}${hasTrait(u,'steadfast') && !u.movedThisRound ? '（生效中）' : ''}</div></div>` : '') + affixH;
@@ -162,7 +162,7 @@ function actionHTML(){
         }).join('');
         if (S.weapon.smoke) return `<h3>${S.weapon.name}</h3><p class="small">烟雾覆盖 (${S.dir.box[0]}, ${S.dir.box[1]}) 起的 ${S.weapon.size}×${S.weapon.size}，持续 ${S.weapon.smoke} 回合；里面现在有 ${S.dir.hit.length} 台机体。从烟雾里开火或打烟雾里的目标，命中 −${SMOKE_HIT}。</p><div class="acts"><button class="btn primary" data-a="mapfire">放烟雾</button><button class="btn" data-a="back-weapon">换武器</button></div>`;   // v0.40.11
         const ff = S.dir.hit.some(t => t.side === 'ally');
-        detail = `<p class="small">${S.dir.land ? `落点 (${S.dir.land[0]}, ${S.dir.land[1]})，沿途` : '范围内'} ${S.dir.hit.length} 个单位${S.weapon.iff ? '（敌我识别，只打敌机）' : ''}：</p>
+        detail = `<p class="small">${S.dir.land ? `落点 (${S.dir.land[0]}, ${S.dir.land[1]})，沿途` : '范围内'} ${S.dir.hit.length} 个单位${mapIff(S.sel, S.weapon) ? '（敌我识别，只打敌机）' : ''}：</p>
           ${rows ? `<ul class="hitlist">${rows}</ul>` : '<p class="small">沿途没有单位。</p>'}
           ${ff ? '<p class="small warn">注意：路径上有友军，会被一起击中。</p>' : ''}
           <div class="acts"><button class="btn primary" data-a="mapfire">发射【${S.weapon.name}】</button></div>`;

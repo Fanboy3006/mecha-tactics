@@ -47,7 +47,7 @@ async function strikeCore(att, w, def, reaction, {skipConsume=false, zone=null, 
   const after = () => {
     att.firedTurn = turn;
     if (!counter){ att.hotTurn = turn; if (hasTrait(att,'extended')) att.extStack = 0; }
-    if (hasTrait(def,'extended')) def.extStack = Math.min(3, (def.extStack || 0) + 1);
+    if (hasTrait(def,'extended')) def.extStack = Math.min(extMax(def), (def.extStack || 0) + 1);   // v0.41.4 史黛拉 SEED 后上限 5（17b）
     if (!isSure(w) && hasTrait(def,'lucky')) def.luckyPhase = phaseNo;
     if (!def.hitLog || def.hitLog.turn !== turn) def.hitLog = {turn, by:new Set()};
     def.hitLog.by.add(att.uid);
@@ -344,6 +344,7 @@ const supportTxt = (w, u) => w.heal ? `回复最大 HP 的 ${u && tierUp(u, w) ?
 function castSupport(u, w){
   consume(w);
   const ts = supportTargets(u, w);
+  if (w.awakenAdd){ fx('pulse', {b:cpx(u), r:TS*3, color:'#ff9ad0', dur:520}); awakenCall(u, w, ts); return; }   // v0.41.4 卡嘉莉「奥布之狮的号令」（17b）
   fx('pulse', {b:cpx(u), r:TS*(effRange(u, w)[1] + .5), color: w.foe ? '#ff9a8a' : '#9fe0b8', dur:520});
   if (w.heal){
     const parts = [];

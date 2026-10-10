@@ -184,6 +184,61 @@ Hooks.on('strikeResolved', c => {
   log(`${fullName(c.def)} 被【${c.w.name}】标记：破防 −${mp}%（合计 −${Math.min(100, breakSum(c.def))}%）`, null, c.att.side);
 }, '洛克昂 TRANS-AM 狙击：打中过就挂破防');
 
+/* ===== 克莱因派（v0.41.4，作者 10-09） =====
+   SEED（能力 seed）：觉醒值在战斗中成长，成长量记在 u.awG（按 BATTLE_ID 区分，换场归零；模板的 awaken 不改）。
+   - 我方阶段开始（第 2 回合起）：在场每个克莱因派 +SEED_TURN；卡嘉莉「奥布之狮」4 格内的其他克莱因派再 +ORB_TURN；
+   - 克莱因派击破敌机：在场每个克莱因派 +SEED_KILL；
+   - 卡嘉莉「奥布之狮的号令」：全图我方 +5（她 SEED 后 +8），别的势力也吃（只加觉醒值，没有 SEED）；
+   - 本场累计 +SEED_NEED 触发 SEED，之后不再成长；拉克丝（endlessSeed）不封顶。
+   SEED 后：闪避 + 觉醒 × SEED_EVA（03 TRAIT_FX.seed）；重装改成防御 + 觉醒 × SEED_DEF（03 REDUCTIONS seedDef）。
+   个人效果：卡嘉莉 光环内友军受到伤害 −5%、号令 +8；史黛拉 强化人上限 5 层、毁灭·全方位炮击不伤友军（seedIff）。 */
+const SEED_NEED = 50, SEED_TURN = 5, SEED_KILL = 3, SEED_EVA = .15, SEED_DEF = .25, ORB_R = 4, ORB_TURN = 1;
+const isHeavy = u => !!u && (u.tags || {}).战斗分类 === '重装';
+const awGain = u => !!u && u.awB === BATTLE_ID ? (u.awG || 0) : 0;
+const awakenOf = u => (u.awaken ?? 100) + awGain(u);
+const seedActive = u => !!u && abilOn(u, 'seed') && u.seedB === BATTLE_ID;
+const seedDefOf = u => seedActive(u) && isHeavy(u) ? Math.round(awakenOf(u) * SEED_DEF) : 0;
+const endless = u => !!u && u.trait === 'endlessSeed';
+const extMax = u => seedActive(u) ? 5 : 3;
+const mapIff = (u, w) => !!w && (w.iff || (w.seedIff && seedActive(u)));
+const kleinField = side => units.filter(u => u.side === side && u.hp > 0 && !u.commandOnly && abilOn(u, 'seed'));
+function addAwaken(u, n, why){
+  if (u.awB !== BATTLE_ID){ u.awB = BATTLE_ID; u.awG = 0; }
+  const seeds = abilOn(u, 'seed');
+  if (seeds && seedActive(u) && !endless(u)) return 0;
+  const add = seeds && !endless(u) ? Math.min(n, SEED_NEED - u.awG) : n;
+  if (add <= 0) return 0;
+  u.awG += add;
+  if (seeds && !seedActive(u) && u.awG >= SEED_NEED){
+    u.seedB = BATTLE_ID;
+    addFloat(u, 'SEED', '#ff9ad0'); fx('pulse', {b:cpx(u), r:TS*1.5, color:'#ff9ad0', dur:600});
+    log(`${fullName(u)}【SEED】觉醒！觉醒 ${awakenOf(u)}：${isHeavy(u) ? `防御 +${seedDefOf(u)}` : `闪避 +${Math.round(awakenOf(u) * SEED_EVA)}`}${endless(u) ? '（觉醒继续成长）' : ''}`, null, u.side);
+  }
+  return add;
+}
+const seedTxt = u => `觉醒 ${awakenOf(u)}${abilOn(u, 'seed') ? (seedActive(u) ? ' · SEED' : ` · SEED ${awGain(u)}/${SEED_NEED}`) : (awGain(u) ? `（+${awGain(u)}）` : '')}`;
+Hooks.on('phaseStart', c => {
+  if (c.side !== 'ally' || c.turn <= 1) return;
+  for (const side of ['ally', 'enemy']) for (const u of kleinField(side)){
+    const orb = units.some(o => o !== u && o.side === u.side && o.hp > 0 && hasTrait(o, 'orbLion') && distU(o, u) <= ORB_R);
+    addAwaken(u, SEED_TURN + (orb ? ORB_TURN : 0));
+  }
+}, '克莱因派 SEED：我方阶段开始觉醒 +5（奥布之狮 4 格内 +1）');
+Hooks.on('unitDestroyed', c => {
+  const by = c.by;
+  if (!by || by.side === c.unit.side || c.unit.side === 'neutral' || !inFaction(by, '克莱因派')) return;
+  const ks = kleinField(by.side); if (!ks.length) return;
+  ks.forEach(u => addAwaken(u, SEED_KILL));
+  log(`${fullName(by)} 击破敌机：在场克莱因派觉醒 +${SEED_KILL}`, null, by.side);
+}, '克莱因派 SEED：击破敌机后在场每人觉醒 +3');
+/* 卡嘉莉「奥布之狮的号令」：17 的 castSupport 看到 awakenAdd 就交给这里 */
+function awakenCall(u, w, ts){
+  const n = seedActive(u) ? (w.awakenSeed || w.awakenAdd) : w.awakenAdd;
+  const got = ts.map(a => [a, addAwaken(a, n)]).filter(([, k]) => k > 0);
+  got.forEach(([a, k]) => addFloat(a, `觉醒 +${k}`, '#ff9ad0'));
+  log(`${fullName(u)}【${w.name}】全军觉醒 +${n}${got.length ? '：' + got.map(([a, k]) => `${fullName(a)} +${k}`).join('、') : '（大家的 SEED 都已经觉醒）'}`, null, u.side);
+}
+
 /* 测试接口：角色机制的函数（tests/moon.js 等用；window.__game 归规则对话，所以单独挂一个） */
 window.__chars = {autoWeapon:u => autoWeapon(u), echoWeapon:u => echoWeapon(u), attackTilesOf, pickOf, setPick:k => { FEENA_PICK = k; }, canSwitchPick, chainStepOf, effMov, zocRadius,
-  strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d), smokeHit, inSmoke, evadeN, evadeCdCut, get SMOKES(){ return SMOKES; }, inMaoZone, ignoresLos, linkSupport:(a, t) => linkSupport(a, t), activateTA, taActive, taAfter, canTA, purgeStun, collideDmg, isAlone, lockStrikeW};
+  strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d), smokeHit, inSmoke, evadeN, evadeCdCut, get SMOKES(){ return SMOKES; }, inMaoZone, ignoresLos, linkSupport:(a, t) => linkSupport(a, t), activateTA, taActive, taAfter, canTA, purgeStun, collideDmg, isAlone, lockStrikeW, awakenOf, awGain, seedActive, seedDefOf, addAwaken, extMax, mapIff, awakenCall:(u, w) => awakenCall(u, w, supportTargets(u, w)), hitRate, emit:(n, c) => Hooks.emit(n, c), unitsOnTiles};

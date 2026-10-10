@@ -27,11 +27,13 @@ const ABIL = {
   gnShield:{name:'GN 全盾·哈罗', desc:'本回合没有移动时（架设狙击），正面受到的伤害 −30%。'},
   guard:{name:'援护防御', desc:'敌方阶段友军被攻击时，只要援护者用移动力能走到它旁边（援护范围 = 移动力覆盖范围），就可以代为承受并自动防御，每个敌方阶段 2 次。援护会挡下这一整轮攻击，包括对方随后的援护攻击。'},
   /* ---- v0.16 新角色：个人特技 ---- */
-  seed:{name:'SEED', desc:'HP 低于 70%，或者 2 格内有 3 台以上敌机时觉醒：命中 +20、闪避 +20、暴击 +15。'},
-  orbLion:{name:'奥布之狮', desc:'光环：2 格内其他友军命中 +10、受到的伤害 −5%。'},
+  seed:{name:'SEED', desc:'（克莱因派）觉醒值在战斗中成长：我方阶段开始 +5（第 2 回合起），克莱因派击破敌机后在场每人 +3。本场累计 +50 时 SEED 觉醒，之后不再成长：闪避 + 觉醒 × 0.15（重装改成防御 + 觉醒 × 0.25）。'},
+  endlessSeed:{name:'无尽的 SEED', desc:'拉克丝的觉醒成长没有上限：SEED 觉醒后仍然每回合 +5、击破 +3，闪避和「射击 + 觉醒」的大招跟着一直变强。'},
+  duelPride:{name:'决斗者的骄傲', desc:'目标 2 格内没有其他敌机时（一对一），伤害 +20%；Lv30 起 +35%。'},
+  orbLion:{name:'奥布之狮', desc:'4 格内的其他克莱因派，我方阶段开始时觉醒多 +1。卡嘉莉 SEED 觉醒后：4 格内其他友军受到的伤害 −5%（防御 +5）。'},
   erratic:{name:'手感不稳', desc:'直射 / 曲射命中 −10，但暴击 +20。'},
   focusFire:{name:'集火', desc:'攻击本回合已经被其他友军攻击过的敌机时，伤害 +20%。'},
-  extended:{name:'强化人', desc:'每被攻击一次（无论是否命中）叠 1 层，最多 3 层；下一次主动攻击每层伤害 +15%，攻击后清空。'},
+  extended:{name:'强化人', desc:'每被攻击一次（无论是否命中，援护防御也算）叠 1 层，最多 3 层；下一次主动攻击每层伤害 +15%，攻击后清空。SEED 暴走后最多 5 层。'},
   jetStream:{name:'喷射气流', desc:'主动攻击时，目标每有 1 台其他友军相邻，伤害 +15%（最多 +45%）。'},
   trio:{name:'M1 小队', desc:'3 格内每有 1 名其他 M1 小队成员，命中 +10、闪避 +10。'},
   zero:{name:'ZERO 系统', desc:'命中 +15、闪避 +15；暴击伤害倍率由 ×1.2 变为 ×1.5。'},
@@ -88,12 +90,12 @@ const ABIL = {
   superSoldier:{name:'超兵反射', lv:20, desc:'（Lv20）闪避 +15；Lv30 起 +25。'},
 };
 /* 普通档晋升被动挂在哪台机体上（月华再生本来就是被动武装，不在这里） */
-const PROMO_PASSIVE = {CB5:'gnArmsGuard', M2:'ironField', M4:'zanshin', S3:'lunaPower', S4:'shihoOver', S6:'jetLink', S7:'suppress', S8:'dataLink', A4:'darkSword', A5:'psyRes', U1:'falkeHunt', U8:'laserGuide', CB3:'superSoldier'};
+const PROMO_PASSIVE = {CB5:'gnArmsGuard', M2:'ironField', M4:'zanshin', S3:'lunaPower', A4:'darkSword', A5:'psyRes', U1:'falkeHunt', U8:'laserGuide', CB3:'superSoldier'};
 const L30 = u => u.side === 'ally' && u.lv >= 30;
 /* 特技 / 能力的数值效果：hit / eva / crit / dmg（伤害%）/ red（减伤%）/ armorPct，可以是常数或函数 (自己, 对方, 武器, 选项)；aura 是光环 */
 const TRAIT_FX = {
-  seed:{hit:u => seedOn(u) ? 20 : 0, eva:u => seedOn(u) ? 20 : 0, crit:u => seedOn(u) ? 15 : 0},
-  orbLion:{aura:{r:2, hit:10, red:5}},
+  seed:{eva:u => seedActive(u) && !isHeavy(u) ? Math.round(awakenOf(u) * SEED_EVA) : 0},   // v0.41.4 克莱因派（17b）
+  orbLion:{aura:{r:4, red:src => seedActive(src) ? 5 : 0}},   // v0.41.4 r 和 17b 的 ORB_R 一致（这里在加载时求值，不能引用 17b 的常量）
   erratic:{hit:(u,o,w) => w && (w.fire === 'direct' || w.fire === 'indirect') ? -10 : 0, crit:(u,o,w) => w && (w.fire === 'direct' || w.fire === 'indirect') ? 20 : 0},
   focusFire:{dmg:(u,d) => d && d.hitLog && d.hitLog.turn === turn && [...d.hitLog.by].some(id => id !== u.uid) ? 20 : 0},
   extended:{dmg:(u,d,w,o) => o && o.counter ? 0 : 15 * (u.extStack || 0)},
@@ -103,6 +105,7 @@ const TRAIT_FX = {
   silentBlade:{dmg:(u,d,w,o) => o && o.counter ? 30 : 0},
   spaceHeart:{eva:u => Math.min(20, 5 * foesNear(u, 3))},   // v0.40.19 流星小队不要辅助：改成自己用
   loneWolf:{dmg:u => isAlone(u) ? 20 : 0, eva:u => isAlone(u) ? 15 : 0},   // v0.40.19 流星小队（17b）
+  duelPride:{dmg:(u,d) => d && !units.some(e => e !== d && e.side === d.side && e.hp > 0 && distU(e, d) <= 2) ? (L30(u) ? 35 : 20) : 0},   // v0.41.4 伊萨克
   justice:{dmg:(u,d) => d && !units.some(e => e !== d && e.side === d.side && e.hp > 0 && distU(e, d) <= 2) ? 25 : 0},
   lightning:{crit:(u,d,w) => w && w.fire === 'melee' && (u.lastMove || 0) >= 3 ? 30 : 0},
   lucky:{eva:u => u.luckyPhase !== phaseNo ? 30 : 0},
@@ -153,7 +156,6 @@ function tfx(u, field, other, w, o){
 }
 const distFrom = (u, d, o) => o && o.from ? distU(u, d, o.from[0], o.from[1]) : distU(u, d);
 const foesNear = (u, r) => units.filter(e => e.side !== u.side && e.side !== 'neutral' && e.hp > 0 && distU(u, e) <= r).length;
-const seedOn = u => u.hp < u.maxHp * .7 || foesNear(u, 2) >= 3;
 const trioN = u => units.filter(a => a !== u && a.side === u.side && a.hp > 0 && hasTrait(a,'trio') && distU(a, u) <= 3).length;
 const gamblerProc = u => hasTrait(u,'gambler') && Math.random() < .5;
 const critMul = u => (hasTrait(u,'zero') ? 2.5 : 2) + buffSum(u,'critX');   // v0.40.11 好运加护：暴击倍率 +1   // v0.37 暴击：武器威力 ×2（零式 ×2.5；赌神触发时 ×4）
@@ -219,6 +221,9 @@ const REDUCTIONS = [
   {id:'buffDef', name:'防御增益', stage:2,   // v0.40.10 角色对话：月光祝福 Lv20+、战地急救加防御；拘束减防御（负数）
     applies:c => buffSum(c.def,'def') !== 0,
     def:c => buffSum(c.def,'def')},
+  {id:'seedDef', name:'SEED 防御', stage:2,   // v0.41.4 克莱因派：重装 SEED 后防御 + 觉醒 × 0.25（17b）
+    applies:c => seedDefOf(c.def) > 0,
+    def:c => seedDefOf(c.def)},
   {id:'softRed', name:'减伤（特技 / 增益）', stage:2,
     applies:c => softRed(c) > 0,
     def:c => Math.min(90, softRed(c))},

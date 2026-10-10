@@ -44,31 +44,20 @@ const fs = require('fs');
   }
   check('刹那一回合 DASH 2 次（共行动 3 次）', dashes === 2, `DASH ${dashes} 次`);
 
-  /* 3. 援护攻击：希尔妲攻击后，射程内的志保弹窗询问，空格 = 伤害最高的武装 */
-  await setup('trial_S4', `const a = g.units.find(x => x.mech === 'S6'), s = g.units.find(x => x.mech === 'S4'), e = g.units.filter(x => x.side === 'enemy')[0];
+  /* 3. 援护攻击：伊萨克攻击后，射程内的露娜弹窗询问（v0.41.4 克莱因派换人），空格 = 伤害最高的武装 */
+  await setup('trial_S3', `const a = g.units.find(x => x.mech === 'S4'), s = g.units.find(x => x.mech === 'S3'), e = g.units.filter(x => x.side === 'enemy')[0];
     e.x = 10; e.y = 6; e.maxHp = e.hp = 999999; a.x = 9; a.y = 6; s.x = 6; s.y = 6; g.units.filter(x => x.side === 'enemy').slice(1).forEach((o, i) => { o.x = 20; o.y = i; }); return true;`);
-  await attack('S6', 0, false); await settle(1200);
+  await attack('S4', 0, false); await settle(1200);
   const dlg = await p.evaluate(() => !document.querySelector('#reactModal').hidden && document.querySelector('#reactDlg').innerText.includes('援护攻击'));
   check('我方攻击后弹出援护攻击询问', dlg);
   if (dlg){ await p.keyboard.press(' '); await settle(1200); }
-  st = await p.evaluate(() => { const g = window.__game, s = g.units.find(x => x.mech === 'S4'); return {sup: s.supTurn === g.turn, log: document.querySelector('#log').innerText.includes('援护攻击')}; });
+  st = await p.evaluate(() => { const g = window.__game, s = g.units.find(x => x.mech === 'S3'); return {sup: s.supTurn === g.turn, log: document.querySelector('#log').innerText.includes('援护攻击')}; });
   check('空格默认执行援护攻击', st.sup && st.log, JSON.stringify(st));
 
-  /* 4. 重装都有援护防御；卡嘉莉的援护防御在我方被反击时也能用 */
-  const ab = await p.evaluate(() => { const T = window.__game.data.ALLY_T; return ['M2','S2','A4'].map(m => T.find(t => t.mech === m).abilities.includes('guard')).every(Boolean) && T.find(t => t.mech === 'S2').abilities.includes('guardAtk'); });
-  check('三台重装都有援护防御，卡嘉莉另有进攻援护', ab);
-  const mate = await setup('trial_S2', `const s = g.units.find(x => x.mech === 'S2'), a = g.units.find(x => x.side === 'ally' && x.mech !== 'S2'), es = g.units.filter(x => x.side === 'enemy');
-    const e = es.find(x => x.weapons.some(w => w.fire === 'melee')) || es[0];
-    a.x = 8; a.y = 6; s.x = 8; s.y = 7; e.x = 9; e.y = 6; e.maxHp = e.hp = 999999; es.filter(x => x !== e).forEach((o, i) => { o.x = 20; o.y = i; });
-    a.weapons = a.weapons.filter(w => w.fire === 'melee'); return a.mech + ':' + es.indexOf(e);`);
-  const [mm, ei] = mate.split(':');
-  await attack(mm, +ei, false);
-  let sawGuard = false;
-  for (let k = 0; k < 20 && !sawGuard; k++){ await p.waitForTimeout(150); sawGuard = await p.evaluate(() => !document.querySelector('#reactModal').hidden && document.querySelector('#reactDlg').innerText.includes('进攻援护')); if (!sawGuard && await p.evaluate(() => !document.querySelector('#reactModal').hidden)) await p.click('#reactDlg [data-sp="no"]').catch(() => {}); }
-  check('卡嘉莉相邻的友军被反击时弹出「进攻援护」', sawGuard, `攻击者 ${mm}`);
-  if (sawGuard){ await p.click('#reactDlg [data-g="1"]'); await settle(1000); }
-  const gl = await p.evaluate(() => window.__game.units.find(x => x.mech === 'S2').guardLeft);
-  check('进攻援护消耗 1 次', gl === 1, `剩 ${gl}`);
+  /* 4. 重装都有援护防御（v0.41.4：卡嘉莉改指挥，进攻援护去掉；史黛拉改重装） */
+  const ab = await p.evaluate(() => { const T = window.__game.data.ALLY_T; return ['M2','S5','A4'].map(m => T.find(t => t.mech === m).abilities.includes('guard')).every(Boolean) && !T.find(t => t.mech === 'S2').abilities.includes('guard'); });
+  check('三台重装都有援护防御，卡嘉莉（指挥）没有', ab);
+  // 进攻援护（guardAtk）原来只有卡嘉莉有；v0.41.4 她改成指挥，现在没有我方机体带它，测试去掉
   // 敌方援护：狙击机能找到援护机会
   const es = await p.evaluate(() => { const g = window.__game; return g.data.ENEMY_T.sniper.abilities.includes('supportAtk') && g.data.ENEMY_T.funnel.abilities.includes('supportAtk'); });
   check('敌方狙击机 / 浮游炮母机带援护攻击', es);

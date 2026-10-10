@@ -86,52 +86,43 @@ const ALLY_T = [
     wp({name:'GN 大型光束剑', power:2000, stat:'格斗', fire:'melee', range:[1,2], dmgType:'光束'}),
   ]},
   /* ================= v0.16 新势力 ================= */
-  /* ---- 克莱因派（SEED） ---- */
-  {pilot:'拉克丝', mech:'S1', short:'S1', mechName:'自由', trait:'seed', canFly:true, tags:{势力:'克莱因派', 远近分类:'远程', 战斗分类:'特种'}, hp:5200, armor:700, eva:35, mov:6, melee:150, shoot:170, flying:true, w:1, h:1, abilities:[], weapons:[
+  /* ---- 克莱因派（SEED；v0.41.4 角色对话按势力重设计，作者 10-09 定：五人，围绕 SEED 觉醒） ----
+     全员能力 seed：觉醒初值低（70，拉克丝 90），我方阶段开始 +5（第 2 回合起），克莱因派击破敌机后在场每人 +3；
+     本场累计 +50 触发 SEED，之后不再涨（拉克丝无上限）。SEED 后闪避 + 觉醒 × 0.15；重装改成防御 + 觉醒 × 0.25。机制在 17b。 */
+  {pilot:'拉克丝', mech:'S1', short:'S1', mechName:'自由', trait:'endlessSeed', canFly:true, tags:{势力:'克莱因派', 远近分类:'远程', 战斗分类:'特种'}, hp:5200, armor:700, eva:35, mov:6, melee:150, shoot:170, awaken:90, flying:true, w:1, h:1, abilities:['seed'], weapons:[
     wp({name:'光束军刀', power:3100, stat:'格斗', fire:'melee', dmgType:'光束'}),
     wp({name:'高能光束步枪', power:2700, fire:'direct', range:[1,5], dmgType:'光束'}),
     wp({name:'电磁炮', power:2550, fire:'direct', range:[2,6]}),
-    wp({name:'METEOR 全弹发射', power:2600, statMul:1.2, fire:'direct', range:[2,6], special:'lock', lockN:5, cd:2, unlock:20, dmgType:'光束',
+    wp({name:'METEOR 全弹发射', power:2100, stat:'射击+觉醒', fire:'direct', range:[2,6], special:'lock', lockN:5, cd:2, unlock:20, dmgType:'光束',
         upgrades:[{lv:30, lockN:8, disarm:true, note:'Lv30：最多锁定 8 台；被命中的目标「武装损坏」，下一个敌方阶段不能攻击'}],
-        desc:'多重锁定：在射程内选择最多 5 台敌机（直射，需要视线），逐一攻击。目标不能反击，也不能选择防御或回避。'}),
-    wp({name:'超级 DRAGOON', power:1350, statMul:1.5, fire:'indirect', range:[2,8], special:'funnel', hits:8, cd:2, unlock:30, startCd:4, dmgType:'光束',
-        desc:'浮游炮：发射后从 8 个随机方向攻击 8 次，目标闪避减半。不需要视线。Lv30 解锁。'}),
+        desc:'多重锁定：在射程内选择最多 5 台敌机（直射，需要视线），逐一攻击。目标不能反击，也不能选择防御或回避。SEED：攻击能力值 = 射击 + 觉醒（拉克丝的觉醒没有上限，越打越痛）。'}),
+    wp({name:'超级 DRAGOON', power:1250, stat:'射击+觉醒', fire:'indirect', range:[2,8], special:'funnel', hits:8, cd:2, unlock:30, startCd:4, dmgType:'光束',
+        desc:'浮游炮：发射后从 8 个随机方向攻击 8 次，目标闪避减半。不需要视线。SEED：攻击能力值 = 射击 + 觉醒。Lv30 解锁。'}),
   ]},
-  {pilot:'卡嘉莉', mech:'S2', short:'S2', mechName:'晓', trait:'orbLion', canFly:true, tags:{势力:'克莱因派', 远近分类:'远程', 战斗分类:'重装'}, hp:7000, armor:1200, eva:10, mov:5, melee:130, shoot:140, flying:false, w:1, h:1, abilities:['beamReflect'], weapons:[
-    wp({name:'光束步枪', power:1700, fire:'direct', range:[1,4], dmgType:'光束'}),
-    wp({name:'光束军刀', power:1900, stat:'格斗', fire:'melee', dmgType:'光束'}),
-    wp({name:'DRAGOON', power:600, fire:'indirect', range:[2,6], special:'funnel', hits:8, cd:2, dmgType:'光束',
-        desc:'浮游炮：发射后从 8 个随机方向攻击 8 次，目标闪避减半；每段按随机方向算正面 / 侧面 / 背面加成，不附加破防。不需要视线。'}),
+  {pilot:'卡嘉莉', mech:'S2', short:'S2', mechName:'晓', trait:'orbLion', canFly:true, tags:{势力:'克莱因派', 远近分类:'远程', 战斗分类:'指挥'}, hp:5000, armor:700, eva:20, mov:5, melee:120, shoot:145, awaken:70, defense:85, flying:false, w:1, h:1, abilities:['seed','beamReflect'], weapons:[
+    wp({name:'光束步枪', power:1500, fire:'direct', range:[1,4], dmgType:'光束'}),
+    wp({name:'光束军刀', power:1600, stat:'格斗', fire:'melee', dmgType:'光束'}),
+    wp({name:'DRAGOON', power:500, fire:'indirect', range:[2,6], special:'funnel', hits:8, cd:2, dmgType:'光束',
+        desc:'浮游炮：发射后从 8 个随机方向攻击 8 次，目标闪避减半；每段按随机方向算正面 / 侧面 / 背面加成。不需要视线。'}),
+    wp({name:'奥布之狮的号令', fire:'support', range:[0,99], self:true, awakenAdd:5, awakenSeed:8, cd:3, dmgType:'—',
+        desc:'全图我方（含自己）觉醒 +5；卡嘉莉 SEED 后改成 +8。克莱因派涨的觉醒算进 SEED 进度；别的势力只加觉醒值（加强「属性 + 觉醒」的大招）。'}),
     wp({name:'八咫之守', fire:'support', range:[0,3], buff:{beamRed:40}, cd:2, unlock:20, startCd:2, dmgType:'—',
         desc:'3 格内的其他友军光束减伤 40%，持续到下一个我方阶段开始。'}),
   ]},
-  {pilot:'露娜玛丽亚', mech:'S3', short:'S3', mechName:'脉冲', trait:'erratic', canFly:true, tags:{势力:'克莱因派', 远近分类:'远程', 战斗分类:'尖兵'}, hp:4600, armor:400, eva:30, mov:7, melee:130, shoot:140, flying:true, w:1, h:1, abilities:['coreSplit'], weapons:[
-    wp({name:'光束步枪', power:1600, fire:'direct', range:[1,5], dmgType:'光束'}),
-    wp({name:'剑装·对舰刀', power:2600, stat:'格斗', fire:'melee', dmgType:'光束'}),
-    wp({name:'炮装·高能光束炮', power:2800, fire:'direct', range:[2,7], afterMove:false, dmgType:'光束'}),
+  {pilot:'露娜玛丽亚', mech:'S3', short:'S3', mechName:'脉冲', trait:'focusFire', canFly:true, tags:{势力:'克莱因派', 远近分类:'远程', 战斗分类:'狙击'}, hp:4000, armor:300, eva:15, mov:5, melee:90, shoot:165, awaken:70, defense:75, flying:false, w:1, h:1, abilities:['seed'], weapons:[
+    wp({name:'炮装·高能光束炮', power:2350, fire:'direct', range:[3,8], hit:120, afterMove:false, dmgType:'光束'}),
+    wp({name:'光束步枪', power:1150, fire:'direct', range:[1,3], dmgType:'光束'}),
+    wp({name:'剑装·对舰刀', power:1300, stat:'格斗', fire:'melee', dmgType:'光束'}),
   ]},
-  {pilot:'志保', mech:'S4', short:'S4', mechName:'DEEP Arms', trait:'focusFire', tags:{势力:'克莱因派', 远近分类:'远程', 战斗分类:'狙击'}, hp:4200, armor:400, eva:15, mov:5, melee:90, shoot:160, flying:false, w:1, h:1, abilities:[], weapons:[
-    wp({name:'双联光束炮', power:2800, fire:'direct', range:[2,7], hit:115, afterMove:false, dmgType:'光束'}),
-    wp({name:'光束突击步枪', power:1400, fire:'direct', range:[1,4], dmgType:'光束'}),
-    wp({name:'光束军刀', power:1400, stat:'格斗', fire:'melee', dmgType:'光束'}),
+  {pilot:'伊萨克', mech:'S4', short:'S4', mechName:'决斗', trait:'duelPride', tags:{势力:'克莱因派', 远近分类:'近战', 战斗分类:'近卫'}, hp:5000, armor:700, eva:25, mov:6, melee:160, shoot:110, awaken:70, defense:95, flying:false, w:1, h:1, abilities:['seed'], weapons:[
+    wp({name:'光束军刀', power:2100, stat:'格斗', fire:'melee', range:[1,2], dmgType:'光束'}),
+    wp({name:'光束步枪', power:1300, fire:'direct', range:[1,3], dmgType:'光束'}),
   ]},
-  {pilot:'史黛拉', mech:'S5', short:'S5', mechName:'盖亚', trait:'extended', tags:{势力:'克莱因派', 远近分类:'近战', 战斗分类:'近卫'}, hp:4800, armor:600, eva:30, mov:6, melee:165, shoot:120, flying:false, w:1, h:1, abilities:['beastMode'], weapons:[
-    wp({name:'光束翼刃', power:2600, stat:'格斗', fire:'melee', critMod:10, dmgType:'光束'}),
+  {pilot:'史黛拉', mech:'S5', short:'S5', mechName:'盖亚', trait:'extended', tags:{势力:'克莱因派', 远近分类:'近战', 战斗分类:'重装'}, hp:8500, armor:1300, eva:10, mov:5, melee:150, shoot:140, awaken:70, defense:110, flying:false, w:1, h:1, abilities:['seed','beastMode'], weapons:[
+    wp({name:'光束翼刃', power:2400, stat:'格斗', fire:'melee', range:[1,2], critMod:10, dmgType:'光束'}),
     wp({name:'光束突击炮', power:1500, fire:'direct', range:[1,3], dmgType:'光束'}),
-    wp({name:'毁灭·全方位炮击', power:4000, statMul:1.2, v37:true, fire:'map', shape:'burst', rad:3, afterMove:false, cd:3, unlock:20, dmgType:'光束',
-        upgrades:[{lv:30, rad:4, note:'Lv30：半径 4'}], desc:'以自身为中心，3 格内的所有单位（包括友军）受到攻击。'}),
-  ]},
-  {pilot:'希尔妲', mech:'S6', short:'S6', mechName:'DOM', trait:'jetStream', tags:{势力:'克莱因派', 远近分类:'近战', 战斗分类:'近卫'}, hp:5500, armor:800, eva:20, mov:6, melee:150, shoot:130, flying:false, w:1, h:1, abilities:[], weapons:[
-    wp({name:'光束军刀', power:2300, stat:'格斗', fire:'melee', dmgType:'光束'}),
-    wp({name:'巨型光束火箭筒', power:2400, fire:'direct', range:[2,5], dmgType:'光束'}),
-  ]},
-  {pilot:'阿莎琪', mech:'S7', short:'S7', mechName:'M1 异端', trait:'trio', tags:{势力:'克莱因派', 远近分类:'远程', 战斗分类:'尖兵'}, hp:3800, armor:300, eva:30, mov:7, melee:110, shoot:125, flying:false, w:1, h:1, abilities:[], weapons:[
-    wp({name:'光束步枪', power:1400, fire:'direct', range:[1,5], dmgType:'光束'}),
-    wp({name:'光束军刀', power:1500, stat:'格斗', fire:'melee', dmgType:'光束'}),
-  ]},
-  {pilot:'茱莉', mech:'S8', short:'S8', mechName:'M1 异端', trait:'trio', tags:{势力:'克莱因派', 远近分类:'远程', 战斗分类:'指挥'}, hp:3800, armor:300, eva:25, mov:6, melee:100, shoot:130, flying:false, w:1, h:1, abilities:[], weapons:[
-    wp({name:'光束步枪', power:1400, fire:'direct', range:[1,5], dmgType:'光束'}),
-    wp({name:'光束军刀', power:1300, stat:'格斗', fire:'melee', dmgType:'光束'}),
+    wp({name:'毁灭·全方位炮击', power:2750, stat:'射击+觉醒', fire:'map', shape:'burst', rad:3, seedIff:true, afterMove:false, cd:3, unlock:20, dmgType:'光束',
+        upgrades:[{lv:30, rad:4, note:'Lv30：半径 4'}], desc:'以自身为中心，3 格内的所有单位（包括友军）受到攻击。SEED 暴走后只打敌机。攻击能力值 = 射击 + 觉醒。'}),
   ]},
   /* ---- 流星小队（高达 W；v0.40.19 角色对话按势力重设计，作者 10-08 定：原「预防者」改名，杰克斯、诺茵暂时删除，五人、不要辅助） ----
      五个驾驶员各自潜入、各自为战：全员「单独行动」（2 格内没有友军时伤害 +20%、闪避 +15），全员可以全图部署（24b 的 GLOBAL_DEPLOY）。
@@ -278,9 +269,9 @@ const PROMO_WEAPONS = {
    - Lv20 大招：Lv20 打 Lv12 盾卫（装甲 600、防御 87）。骨干单体约 10000，精锐约 12000；地图炮约 0.7–0.8 倍，多重锁定每个目标约 0.5 倍，多段全中约 1.5 倍；
    - Lv30 大招：Lv30 打 Lv20 指挥官机（装甲 600、防御 118）。单体约 20000–26000，范围约 14000–18000。
    大招倍率 statMul：Lv20 大招 ×1.2、Lv30 大招 ×1.5（大招随等级成长更快）；
-   觉醒系大招（门之力、TRANS-AM、量子化、λ 驱动、满月）改用「属性 + 觉醒」，不再乘 statMul。觉醒初值：雷萨 140、Feena 150、刹那 130、宗介 130、洛克昂 110，其他 100。
+   觉醒系大招（门之力、TRANS-AM、量子化、λ 驱动、满月）改用「属性 + 觉醒」，不再乘 statMul。觉醒初值：雷萨 140、Feena 150、刹那 130、宗介 130、洛克昂 110，克莱因派 70（拉克丝 90，战斗中会成长，见 17b），其他 100。
    开场冷却 startCd：Lv20 大招默认 3；Lv30 大招 4；传送斩 2；被动（残月的余响、月华再生）0；增益类（八咫之守、马格纳克队支援）2。 */
-const NEW_FORMULA = ['W2','W3','W4','W5','CB2','CB3','CB4','CB5','B1','M1','M2','M3','M4','M5','A1','A2','A3','A4','A5','U1','U2','U6','U7','U8','CB1','S1','W1'];   // v0.40.13 秘银整体按新公式重写   // v0.40.11 ATX 整体按新公式重写   // v0.40.10 月球王国整体按新公式重写
+const NEW_FORMULA = ['W2','W3','W4','W5','CB2','CB3','CB4','CB5','B1','M1','M2','M3','M4','M5','A1','A2','A3','A4','A5','U1','U2','U6','U7','U8','CB1','S1','W1','S2','S3','S4','S5'];   // v0.41.4 克莱因派整体按新公式重写   // v0.40.13 秘银整体按新公式重写   // v0.40.11 ATX 整体按新公式重写   // v0.40.10 月球王国整体按新公式重写
 ALLY_T.forEach(t => {
   if (PROMO_WEAPONS[t.mech]) t.weapons.push(...PROMO_WEAPONS[t.mech]);
   if (NEW_FORMULA.includes(t.mech)) t.weapons.forEach(w => { w.v37 = true; });
@@ -291,7 +282,6 @@ ALLY_T.forEach(t => {
   if (cls === '狙击'){ add('supportAtk'); add('overwatch'); }   // v0.38 压制射击
   if (cls === '尖兵'){ add('zocFree'); add('relay'); }   // v0.36 ZOC：尖兵无视控制区；v0.39 前线中继
   if (cls === '重装') add('guard');
-  if (t.mech === 'S2') add('guardAtk');
   /* v0.30 友军加强（作者试玩）：近卫威力 +20%、初始近战射程至少 2；不能移动后使用的武器（地图炮除外）威力 +25%；刹那、雷萨、Nagi 单独调整 */
   t.weapons.forEach(w => {
     if (cls === '近卫' && w.fire === 'melee' && w.unlock <= 1 && w.range[1] < 2) w.range = [w.range[0], 2];
