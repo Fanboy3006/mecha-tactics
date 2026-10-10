@@ -26,3 +26,6 @@ audio/*.wav
 audio/*.flac
 audio/本地音乐/
 audio/SUNO/*.download
+
+# 本地 Claude Code 配置（里面有 DeepSeek key）
+.claude/settings.local.json
