@@ -42,6 +42,7 @@ window.__runbot = async function(maxSteps, squad){
         return (can ? 100 : 0) - threat * (u.hp < u.maxHp*.5 ? 25 : 12) - Math.min(...ds) * 2 + (t.x === u.x && t.y === u.y ? 1 : 0);
       };
       const best = S.reach.slice().sort((a,b) => score(b) - score(a))[0];
+      if (!best){ g.onAction && g.onAction('wait'); continue; }   // 没有可去的格子（偶发）：跳过这台
       g.onTile(best.x, best.y);
       for (let k = 0; k < 200 && S.mode === 'busy'; k++) await new Promise(r => setTimeout(r, 25));   // v0.40.20 路上挨敌方压制射击时移动是异步的
       if (!S.sel || !g.units.includes(u) || u.hp <= 0) continue;
