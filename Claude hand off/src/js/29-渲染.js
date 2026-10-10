@@ -2,6 +2,7 @@
 function runRender(){
   audioScene('map');
   if (!RUN){ return; }
+  runSave();   // v0.42 存档（27）
   const v = $('#runView'); v.hidden = false;
   const cmdTxt = RUN.cmd ? `Feena Lv${RUN.cmd.lv}` : '—';
   const bar = `<div class="rv-bar"><span class="ttl">混沌迷宫</span>

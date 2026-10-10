@@ -7482,6 +7482,32 @@ function runOpen(){
   if (RUN && !RUN.over){ runShow(); return; }
   runStartScreen();
 }
+/* ---------- 存档（作者 10-10）----------
+   在大地图上空闲时（不在走格子 / 战斗 / 结算中）自动存一份到这台浏览器（localStorage）；一局结束就删掉。
+   打到一半关掉页面：回到上一次在大地图上的状态（那一战重打）。只有一个存档位。 */
+const RUN_SAVE_KEY = 'mecha-tactics-run-save';
+function runSave(){
+  if (!RUN) return;
+  try {
+    if (RUN.over){ localStorage.removeItem(RUN_SAVE_KEY); return; }
+    if (runBusy || RUN_BATTLE || !RUN.map) return;
+    const data = JSON.stringify({v:GAME_VERSION, at:Date.now(), run:RUN}, (k, v) => v instanceof Set ? {__set:[...v]} : v);
+    localStorage.setItem(RUN_SAVE_KEY, data);
+  } catch(e){}
+}
+function runSaveInfo(){
+  try { const o = JSON.parse(localStorage.getItem(RUN_SAVE_KEY) || 'null'); return o && o.run && !o.run.over ? o : null; } catch(e){ return null; }
+}
+function runSaveLoad(){
+  try {
+    const o = JSON.parse(localStorage.getItem(RUN_SAVE_KEY) || 'null', (k, v) => v && typeof v === 'object' && Array.isArray(v.__set) ? new Set(v.__set) : v);
+    if (!o || !o.run) return false;
+    RUN = o.run; RUN.usingPart = null;
+    runLog(`读取存档（${new Date(o.at).toLocaleString()}${o.v !== GAME_VERSION ? `，存档版本 ${o.v}` : ''}）`);
+    return true;
+  } catch(e){ return false; }
+}
+function runSaveClear(){ try { localStorage.removeItem(RUN_SAVE_KEY); } catch(e){} }
 function runHide(){ $('#runView').hidden = true; }
 function runShow(){ $('#runView').hidden = false; runRender(); }
 /* 确认框：不用浏览器自带的确认弹窗——claude.ai 页面和桌面应用里它会被拦截、直接当成「取消」，按钮就像没反应 */
@@ -7498,6 +7524,18 @@ function dlg(html, wide){
 async function runStartScreen(){
   audioScene('menu');
   $('#runView').hidden = false; $('#runView').innerHTML = '';
+  const sv = runSaveInfo();
+  if (sv){
+    const r = sv.run, sq = r.squad === 'moon' ? '月之国分队' : CLASSES.includes(r.squad) ? `${r.squad}分队` : `${r.squad}势力分队`;
+    const c = await dlg(`<div class="eyebrow" style="color:var(--accent)">肉鸽模式 · 存档</div><h2>继续上次的一局？</h2>
+      <p>${sq} · 第 ${r.layer} 层 · 部队 Lv${r.lvl} · 角色 ${r.units.length} 名 · 作战耐久 ${r.dur}</p>
+      <p class="small">保存于 ${new Date(sv.at).toLocaleString()}${sv.v !== GAME_VERSION ? `（存档来自 ${sv.v}，现在是 ${GAME_VERSION}，可能有些内容对不上）` : ''}。如果是打到一半关掉的，那一战要重打。</p>
+      <div class="acts"><button class="btn primary" data-v="load">继续</button><button class="btn" data-v="new">开始新的一局</button><button class="btn" data-v="cancel">返回</button></div>`);
+    if (c === 'cancel'){ runHide(); startLevel('tut1'); return; }
+    if (c === 'load' && runSaveLoad()){ level = 'roguelike'; runShow(); return; }
+    if (c === 'new' && !(await ask('开始新的一局？', '上一局的存档会被覆盖。', '开始新的一局'))) return runStartScreen();
+    runSaveClear();
+  }
   const squads = [...(CMD_ENABLED ? [{id:'moon', name:'月之国分队', desc:'Feena 担任指挥官（不出场）：英雄无敌 3 式成长，战斗中可以下达【陨石召唤】，升级时学习二级技能。不送角色。'}] : []),   // v0.40.13 指挥官系统关闭（DLC）
     ...CLASSES.map(c => ({id:c, name:`${c}分队`, desc:`开局从${c}角色里选一名 Lv20（免费）。`})),
     ...FACTIONS.map(f => ({id:f, name:`${f}势力分队`, desc:`开局从${f}的角色里选一名 Lv20（免费）。`, fac:true}))];   // v0.26 势力分队
@@ -7641,6 +7679,7 @@ function partTargets(p){
 function runRender(){
   audioScene('map');
   if (!RUN){ return; }
+  runSave();   // v0.42 存档（27）
   const v = $('#runView'); v.hidden = false;
   const cmdTxt = RUN.cmd ? `Feena Lv${RUN.cmd.lv}` : '—';
   const bar = `<div class="rv-bar"><span class="ttl">混沌迷宫</span>
@@ -8454,7 +8493,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.42.1';
+const GAME_VERSION = 'v0.42.2';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){
