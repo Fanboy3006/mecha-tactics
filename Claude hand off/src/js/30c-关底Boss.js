@@ -1,7 +1,7 @@
 /* ---------- 肉鸽关底 Boss（关卡对话维护，作者 2026-10-08：「关底需要有特色、存在不同解法的 Boss」） ----------
    设计见 docs/肉鸽关底Boss设计.md。作者定：保留两个出口（Boss 战可选，靠奖励吸引）；不做「突破过关」；四个 Boss 都做。
    - 这里只写场地、站位、增援、目标（关卡对话的地盘）；Boss 自己的能力和数值归规则对话（需求单 #10）。
-   - 每个 Boss 用的新模板（gatefort / beacon / pylon / twinA / twinB / mazelord）由规则对话加进 ENEMY_T。
+   - 每个 Boss 用的新模板（gatefort / beacon / pylon / twinA / twinB）由敌方设计对话加进 ENEMY_T（终点的 bluefish 已加，v0.41.7）。
      还没加的时候用 BOSS_FALLBACK 里的现有模板顶上，地图照样能打（测试用）；
      出口守军的关卡池只有在 Boss 模板到位（bossReady）以后才换成 Boss 战，之前继续用原来的随机守军关。
    - 31 里把 BOSS_STAGES 并进 STAGE_OVERRIDES；26 里出口守军优先抽 boss:true 且 bossReady 的关。
