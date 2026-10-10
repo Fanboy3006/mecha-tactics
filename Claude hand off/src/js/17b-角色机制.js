@@ -335,6 +335,15 @@ async function bounceChain(u, w, first){
   return n;
 }
 
+/* ===== 影世界（v0.41.8） ===== */
+/* 雷萨的传送斩也是门之力：每次使用（命中与否、反击也算，只要传送了）反噬 +portal.cost（25），和指令「传送」共用；反噬 ≥100 时不能用（13 的 wStatus）。 */
+function gambleBacklash(u){
+  if (!u.portal) return;
+  u.backlash = (u.backlash || 0) + u.portal.cost;
+  addFloat(u, `反噬 ${u.backlash}`, '#c9a8ff');
+  log(`${fullName(u)} 传送斩用了门之力：反噬值 ${u.backlash}/100`, null, u.side);
+}
+
 /* 测试接口：角色机制的函数（tests/moon.js 等用；window.__game 归规则对话，所以单独挂一个） */
 window.__chars = {autoWeapon:u => autoWeapon(u), echoWeapon:u => echoWeapon(u), attackTilesOf, pickOf, setPick:k => { FEENA_PICK = k; }, canSwitchPick, chainStepOf, effMov, zocRadius,
   strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d), smokeHit, inSmoke, evadeN, evadeCdCut, get SMOKES(){ return SMOKES; }, inMaoZone, ignoresLos, linkSupport:(a, t) => linkSupport(a, t), activateTA, taActive, taAfter, canTA, purgeStun, collideDmg, isAlone, lockStrikeW, awakenOf, awGain, seedActive, seedDefOf, addAwaken, extMax, mapIff, awakenCall:(u, w) => awakenCall(u, w, supportTargets(u, w)), hitRate, emit:(n, c) => Hooks.emit(n, c), unitsOnTiles, summonTiles, startSummon, pickSummonTile, placeSummons, shadowPulse, isSummon, bounceChain:(u, w, t) => bounceChain(u, w, t)};

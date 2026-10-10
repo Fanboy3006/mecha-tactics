@@ -149,7 +149,7 @@ async function strikeCore(att, w, def, reaction, {skipConsume=false, zone=null, 
       if (att.hp <= 0) destroy(att, def);
     }
   }
-  if (w.special === 'gamble' && att.hp > 0){ await sleep(300); teleport(att, def, killedTiles); if (def.hp > 0) att.facing = dirToward(att, def); refresh(); }
+  if (w.special === 'gamble' && att.hp > 0){ await sleep(300); teleport(att, def, killedTiles); gambleBacklash(att); /* v0.41.8 传送斩也用门之力：反噬 +25（17b） */ if (def.hp > 0) att.facing = dirToward(att, def); refresh(); }
   turnDef();
   await sleep(460);
 }

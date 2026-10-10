@@ -2219,7 +2219,7 @@ const ALLY_T = [
   {pilot:'雷萨', mech:'B1', short:'B1', trait:'portalTrait', portal:{range:7, cost:25}, tags:{势力:'影世界', 远近分类:'近战', 战斗分类:'近卫'}, hp:5000, armor:1000, eva:15, mov:5, melee:160, shoot:100, awaken:140, flying:false, w:1, h:1, abilities:[], weapons:[
     wp({name:'近战斩击', power:2350, stat:'格斗', fire:'melee', range:[1,1]}),
     wp({name:'传送斩', stat:'格斗', fire:'melee', range:[1,4], critMod:-10, unlock:20, startCd:2, ignoreDef:true, special:'gamble', upgrades:[{lv:30, range:[1,Infinity], note:'Lv30 起射程变为全图'}],
-        desc:'命中后 50% 造成 12000 伤害、50% 造成目标当前 HP 90% 的伤害；无视防御。无论是否命中都会传送到目标旁（击破时占据目标位置）。'}),
+        desc:'命中后 50% 造成 12000 伤害、50% 造成目标当前 HP 90% 的伤害；无视防御。无论是否命中都会传送到目标旁（击破时占据目标位置）。也是门之力：每次使用反噬 +25（和「传送」共用），反噬 ≥100 时不能使用。'}),
   ]},
   {pilot:'蕾卡', mech:'B2', short:'B2', trait:'moveEva', canFly:true, tags:{势力:'影世界', 远近分类:'远程', 战斗分类:'尖兵'}, hp:4500, armor:0, eva:40, mov:7, melee:100, shoot:130, flying:true, w:1, h:1, abilities:[], weapons:[
     wp({name:'直射炮', power:2000, fire:'direct', range:[1,5]}),
@@ -3437,7 +3437,8 @@ function cutCd(u, n = 1){
 }
 function wStatus(u, w, {moved=false, counter=false} = {}){
   if (u.lv < w.unlock) return `Lv${w.unlock} 解锁`;
-  if (w.taOnly && !taActive(u)) return 'TRANS-AM 中才能用';   // v0.40.16 天人（17b）
+  if (w.taOnly && !taActive(u)) return 'TRANS-AM 中才能用';
+  if (w.special === 'gamble' && u.portal && (u.backlash || 0) >= 100) return '反噬已满（≥100）';   // v0.41.8 传送斩和传送共用反噬   // v0.40.16 天人（17b）
   const sw = startWait(u, w) > 0 ? `第 ${readyTurnOf(u, w)} 回合起` : '';
   if (hasTrait(u,'autoCast') && !counter) return `${sw}行动结束后自动释放`;
   if (w.fire === 'passive') return `被动 · ${sw}行动结束后自动释放`;
@@ -3952,7 +3953,7 @@ async function strikeCore(att, w, def, reaction, {skipConsume=false, zone=null, 
       if (att.hp <= 0) destroy(att, def);
     }
   }
-  if (w.special === 'gamble' && att.hp > 0){ await sleep(300); teleport(att, def, killedTiles); if (def.hp > 0) att.facing = dirToward(att, def); refresh(); }
+  if (w.special === 'gamble' && att.hp > 0){ await sleep(300); teleport(att, def, killedTiles); gambleBacklash(att); /* v0.41.8 传送斩也用门之力：反噬 +25（17b） */ if (def.hp > 0) att.facing = dirToward(att, def); refresh(); }
   turnDef();
   await sleep(460);
 }
@@ -4499,6 +4500,15 @@ async function bounceChain(u, w, first){
   if (n) log(`${fullName(u)}【${w.name}】一共弹跳 ${n} 次`, null, u.side);
   refresh(); checkEnd();
   return n;
+}
+
+/* ===== 影世界（v0.41.8） ===== */
+/* 雷萨的传送斩也是门之力：每次使用（命中与否、反击也算，只要传送了）反噬 +portal.cost（25），和指令「传送」共用；反噬 ≥100 时不能用（13 的 wStatus）。 */
+function gambleBacklash(u){
+  if (!u.portal) return;
+  u.backlash = (u.backlash || 0) + u.portal.cost;
+  addFloat(u, `反噬 ${u.backlash}`, '#c9a8ff');
+  log(`${fullName(u)} 传送斩用了门之力：反噬值 ${u.backlash}/100`, null, u.side);
 }
 
 /* 测试接口：角色机制的函数（tests/moon.js 等用；window.__game 归规则对话，所以单独挂一个） */
@@ -8135,7 +8145,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.41.7';
+const GAME_VERSION = 'v0.41.8';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){

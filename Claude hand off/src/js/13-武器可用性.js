@@ -16,7 +16,8 @@ function cutCd(u, n = 1){
 }
 function wStatus(u, w, {moved=false, counter=false} = {}){
   if (u.lv < w.unlock) return `Lv${w.unlock} 解锁`;
-  if (w.taOnly && !taActive(u)) return 'TRANS-AM 中才能用';   // v0.40.16 天人（17b）
+  if (w.taOnly && !taActive(u)) return 'TRANS-AM 中才能用';
+  if (w.special === 'gamble' && u.portal && (u.backlash || 0) >= 100) return '反噬已满（≥100）';   // v0.41.8 传送斩和传送共用反噬   // v0.40.16 天人（17b）
   const sw = startWait(u, w) > 0 ? `第 ${readyTurnOf(u, w)} 回合起` : '';
   if (hasTrait(u,'autoCast') && !counter) return `${sw}行动结束后自动释放`;
   if (w.fire === 'passive') return `被动 · ${sw}行动结束后自动释放`;
