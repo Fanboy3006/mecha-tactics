@@ -1,4 +1,4 @@
-/* v0.37 伤害公式：（威力 − 装甲）×（1 +（攻击能力值 − 防御值）/ 100），命中后最少 10；暴击威力 ×2；赌神 ×4 */
+/* v0.37 伤害公式：（威力 − 装甲）× 系数（攻击能力值 − 防御值）；v0.42 系数 = x>0 ? 1+3x/(x+200) : 1+x/100，命中后最少 10；暴击威力 ×2；赌神 ×4 */
 const { chromium } = require('playwright');
 const fs = require('fs');
 (async () => {
@@ -11,6 +11,7 @@ const fs = require('fs');
   await p.waitForTimeout(300);
   await p.evaluate(() => window.__game.startLevel('tut1')); await p.waitForTimeout(300);
   const r = await p.evaluate(() => {
+    const K = x => x > 0 ? 1 + 3 * x / (x + 200) : 1 + x / 100;
     const g = window.__game, D = g.data, us = g.units, out = {};
     for (let y = 0; y < g.map.length; y++) for (let x = 0; x < g.map[y].length; x++) g.map[y][x] = 'plain';
     us.length = 0;
@@ -19,17 +20,17 @@ const fs = require('fs');
     const b1 = A('B1'), w = b1.weapons.find(x => x.fire === 'melee' && x.unlock <= 1 && !x.special);
     const grunt = E('grunt');
     const atk = b1.melee, W = g.wPow(b1, w), Ar = grunt.armor, Df = grunt.defense;
-    const exp = Math.max(10, Math.round(Math.max(0, W - Ar) * (1 + (atk + 100 - Df) / 100)));   // 近卫打杂兵：压制杂兵 +100
+    const exp = Math.max(10, Math.round(Math.max(0, W - Ar) * K(atk + 100 - Df)));   // 近卫打杂兵：压制杂兵 +100
     const c = g.damageCalc(b1, w, grunt, {zone:'front'});
     out.base = {exp, got:c.dmg, W, Ar, atk, Df};
-    out.disp = g.dispPow(b1, w) === Math.round(W * (1 + atk / 100));
+    out.disp = g.dispPow(b1, w) === Math.round(W * K(atk));
     const cc = g.damageCalc(b1, w, grunt, {zone:'front', crit:true});
-    out.crit = cc.dmg === Math.max(10, Math.round(Math.max(0, W * 2 - Ar) * (1 + (atk + 100 - Df) / 100)));
+    out.crit = cc.dmg === Math.max(10, Math.round(Math.max(0, W * 2 - Ar) * K(atk + 100 - Df)));
     // 保底 10：防御值远高于攻击
     grunt.defense = 1000; out.floor = g.damageCalc(b1, w, grunt, {zone:'front'}).dmg === 10; grunt.defense = Df;
     // 防御姿态：防御值 +50
     const dg = g.damageCalc(b1, w, grunt, {zone:'front', reaction:'defend'}).dmg;
-    out.defend = dg === Math.max(10, Math.round(Math.max(0, W - Ar) * (1 + (atk + 100 - Df - 50) / 100)));
+    out.defend = dg === Math.max(10, Math.round(Math.max(0, W - Ar) * K(atk + 100 - Df - 50)));
     // 属性：防御、觉醒，没有技量
     out.stats = b1.defense > 0 && b1.awaken === 140 && b1.skill === undefined && grunt.defense > 0;
     // 两项属性相加
@@ -43,8 +44,8 @@ const fs = require('fs');
     out.x4 = g4 > g2 * 1.9;
     return out;
   });
-  check('基本公式：（威力 − 装甲）×（1 +（攻击 − 防御）/100）', r.base.exp === r.base.got, JSON.stringify(r.base));
-  check('面板攻击力 = 威力 ×（1 + 攻击/100）', r.disp);
+  check('基本公式：（威力 − 装甲）× 系数（攻击 − 防御）', r.base.exp === r.base.got, JSON.stringify(r.base));
+  check('面板攻击力 = 威力 × 系数（攻击）', r.disp);
   check('暴击：武器威力 ×2', r.crit);
   check('命中后最少 10 点', r.floor);
   check('防御姿态：防御值 +50', r.defend);

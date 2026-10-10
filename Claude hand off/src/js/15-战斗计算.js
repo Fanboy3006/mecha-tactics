@@ -35,7 +35,7 @@ function critRate(w, att, def, opts = {}){
 const tierUp = (u, w) => !!u && u.side === 'ally' && w.unlock === 20 && u.lv >= 30 && (TIER[u.mech] === 'S' || TIER[u.mech] === 'A') && !(w.upgrades || []).some(x => x.power != null);
 const wPow = (u, w) => Math.round(wv(u, w, 'power') * (tierUp(u, w) ? 1.3 : 1) * taPowMul(u));   // v0.40.16 TRANS-AM 威力 ×1.3（17b）
 /* ---------- v0.37 伤害公式（作者 2026-10-07 定） ----------
-   伤害 =（武器威力 − 装甲）×（1 +（攻击能力值 − 防御值）/ 100），命中后最少 10 点。
+   伤害 =（武器威力 − 装甲）× 系数（攻击能力值 − 防御值），命中后最少 10 点；系数见 statCoef（v0.42 改成平滑曲线）。
    - 武器威力：武器 / 晋升强化 × 弱点或抗性 × 暴击（×2；零式 ×2.5；赌神 ×4）；
    - 装甲：effArmor × 破防，侧击 / 背击无视一部分；多段攻击每段都扣；
    - 攻击能力值：武器对应的属性（格斗 / 射击 / 觉醒，可以写成「格斗+觉醒」相加）× 大招倍率 statMul，再加特技、增益、藏品、压制杂兵、肉鸽；
@@ -46,9 +46,14 @@ const wPow = (u, w) => Math.round(wv(u, w, 'power') * (tierUp(u, w) ? 1.3 : 1) *
 const STAT_KEY = {格斗:'melee', 射击:'shoot', 觉醒:'awaken', 防御:'defense'};
 const statNames = w => String(w.stat || '射击').split('+');
 const statVal = (u, k) => STAT_KEY[k] === 'awaken' ? awakenOf(u) : (u[STAT_KEY[k]] ?? 100);   // v0.41.4 卫星国防军：觉醒值在战斗中成长（17b）
+/* v0.42 系数曲线（作者 10-10：伤害太爆，大招双属性涨得太快）：攻击 − 防御 = x。
+   x ≤ 0 照旧 1 + x/100；x > 0 改成 1 + 3x/(x+200)，越往上越平，上限趋近 4。
+   参照：x=126（普通 Lv10 打杂兵）2.26→2.16；x=161 2.61→2.34；x=300 4.0→2.8；x=409 5.09→3.01。 */
+const COEF_CAP = 3, COEF_K = 200;
+const statCoef = x => x > 0 ? 1 + COEF_CAP * x / (x + COEF_K) : 1 + x / 100;
 const atkStat = (u, w) => Math.round(statNames(w).reduce((a, k) => a + statVal(u, k), 0) * (w.statMul || 1));
 /* 面板上显示的攻击力：对 0 装甲、0 防御目标的不暴击伤害 */
-const dispPow = (u, w, power = wPow(u, w)) => Math.round(power * (1 + atkStat(u, w) / 100));
+const dispPow = (u, w, power = wPow(u, w)) => Math.round(power * statCoef(atkStat(u, w)));
 function dmgCore(att, w, def, o = {}){
   const c = {att, def, w, reaction:o.reaction || null, preview:o.preview !== false, crit:!!o.crit, zone:o.zone || null, counter:!!o.counter, defMul:defMul(def), steps:[], nullified:false, reflect:0};
   const special = w.dmgType === '特殊', ign = !!w.ignoreDef, useStat = o.useStat !== false;
@@ -88,10 +93,10 @@ function dmgCore(att, w, def, o = {}){
     }
     if (c.defMul < 1 && D){ D = Math.round(D * c.defMul); dn.push(`破防 ×${+c.defMul.toFixed(2)}`); }
   }
-  const coef = 1 + (atk - D) / 100, base = Math.max(0, W - A);
+  const coef = statCoef(atk - D), base = Math.max(0, W - A);
   c.dmg = Math.max(10, Math.round(base * coef));
   c.steps.push(`威力 ${W}${A ? ` − 装甲 ${A}` : ''} = ${base}${wn.length > 1 ? `（${wn.join('，')}）` : ''}`);
-  c.steps.push(`×（1 +（攻击 ${atk} − 防御 ${D}）/ 100）= ×${+coef.toFixed(2)}${an.length || dn.length ? `（攻击：${an.join('、') || '0'}；防御：${dn.join('、') || '0'}）` : ''}`);
+  c.steps.push(`× 系数（攻击 ${atk} − 防御 ${D}）= ×${+coef.toFixed(2)}${an.length || dn.length ? `（攻击：${an.join('、') || '0'}；防御：${dn.join('、') || '0'}）` : ''}`);
   c.steps.push(`= ${c.dmg}${base * coef < 10 ? '（命中后最少 10）' : ''}`);
   if (c.reflectPts) c.reflect = Math.round(base * c.reflectPts / 100 / 2);
   Hooks.emit('damageGenerated', c);

@@ -25,8 +25,8 @@ const DEF_BY_TIER = {杂兵:50, 精锐:65, 头目:80, Boss:95};
 const NEW_POWER = new Set(['W2','W3','W4','W5','CB2','CB3','CB4','CB5','B1','M1','M2','M3','M4','M5','A1','A2','A3','A4','A5','U1','U2','U6','U7','U8','CB1','S1','W1','S2','S3','S4','S5','B3','B4']);   // v0.40.4 角色对话：精锐已按新公式重写（其他角色重写过的单把武器带 v37:true）
 function convPow(P, statRef, multi, noDef, Aref, Dref){
   const old = P + (multi ? .5 : 5) * statRef;
-  if (noDef) return Math.max(1, Math.round(old / (1 + statRef / 100)));
-  const coef = Math.max(.3, 1 + (statRef - Dref) / 100);
+  if (noDef) return Math.max(1, Math.round(old / statCoef(statRef)));
+  const coef = Math.max(.3, statCoef(statRef - Dref));
   return Math.max(1, Math.round((old - Aref) / coef + Aref));
 }
 function convWeapons(ws, t, lvAdd, Aref, Dref){
