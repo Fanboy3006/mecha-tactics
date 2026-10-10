@@ -72,6 +72,9 @@ function onTile(x,y){
     case 'menu': case 'weapon':
       if (u){ S.inspect = u; refresh(); }
       break;
+    case 'summon':   // v0.41.5 维诺：点空地选 / 取消布置位置（17b）
+      if (pickSummonTile(x, y)) refresh(); else if (u){ S.inspect = u; refresh(); }
+      break;
     case 'lock':
       if (u && targetsFor(S.sel, S.weapon).includes(u)) toggleLock(u);
       else if (u){ S.inspect = u; refresh(); }
@@ -145,6 +148,7 @@ async function onAction(a){
     const t = S.target, w = S.weapon, r = aiReaction(t, u, w);
     S.mode = 'busy'; refresh();
     await battle(u, w, t, r.reaction, r.weapon);
+    if (!over && w.bounce) await bounceChain(u, w, t);   // v0.41.5 货车「连锁投掷」（17b）
     if (!over && u.hp > 0 && t.hp > 0) await supportAttack(u, t);
     const foesLeft = units.some(e => e.side !== u.side);
     if (!over && u.hp > 0 && t.hp <= 0 && foesLeft){
@@ -178,6 +182,12 @@ async function onAction(a){
     for (const t of ts){ if (over || u.hp <= 0) break; if (t.hp > 0) await strike(u, sw, t, null, {skipConsume:true}); }
     refresh(); checkEnd();
     if (!over && u.hp > 0) await afterAttack(u); else if (!over){ clearSel(); refresh(); }
+  }
+  else if (a === 'summon-go'){   // v0.41.5 维诺「影之种」
+    const w = S.weapon, picks = [...(S.sumPick || [])]; if (!picks.length) return;
+    S.mode = 'busy'; refresh();
+    placeSummons(u, w, picks); await sleep(400);
+    await finish(u);
   }
   else if (a === 'cast'){
     const w = S.weapon; S.mode = 'busy'; refresh();
@@ -243,6 +253,7 @@ $('#actionCard').addEventListener('click', e => {
     S.weapon = S.sel.weapons[+b.dataset.w];
     if (S.weapon.fire === 'map'){ S.dirs = mapDirs(S.sel, S.weapon); S.dir = S.weapon.shape === 'burst' ? S.dirs[0] : null; S.mode = S.weapon.shape === 'burst' ? 'mapconfirm' : 'mapdir'; }
     else if (S.weapon.special === 'lock'){ S.locks = []; S.atkTiles = atkTilesFor(S.sel, S.weapon); S.mode = 'lock'; }
+    else if (S.weapon.special === 'summon') startSummon(S.sel, S.weapon);   // v0.41.5 维诺（17b）
     else if (S.weapon.fire === 'support'){ S.mode = 'support'; }
     else if (S.weapon.fire === 'heal'){ S.mode = 'heal'; }
     else if (S.weapon.fire === 'device'){ S.mode = 'hack'; }
@@ -413,8 +424,8 @@ let RUN = null;
 const RM = () => (LV && LV.run && RUN) ? RUN.mods : null;
 const TIER = {
   B1:'S', A1:'S', CB1:'S', S1:'S', W1:'S', U7:'S', M1:'S',
-  B2:'A', M2:'A', M3:'A', U2:'A', CB2:'A', CB4:'A', S2:'A', S5:'A', W2:'A', W3:'A', W4:'A', W5:'A', A2:'A', A3:'A', U6:'A',
-  M4:'B', M5:'B', CB3:'B', CB5:'B', S3:'B', S4:'B', A4:'B', A5:'B', U1:'B', U8:'B',
+  B2:'A', B4:'A', M2:'A', M3:'A', U2:'A', CB2:'A', CB4:'A', S2:'A', S5:'A', W2:'A', W3:'A', W4:'A', W5:'A', A2:'A', A3:'A', U6:'A',
+  M4:'B', M5:'B', B3:'B', CB3:'B', CB5:'B', S3:'B', S4:'B', A4:'B', A5:'B', U1:'B', U8:'B',
 };
 const TIER_NAME = {S:'精锐', A:'骨干', B:'普通'};
 const PRICE = {S:{rec:5, p20:3, p30:4}, A:{rec:3, p20:2, p30:3}, B:{rec:0, p20:1, p30:2}};

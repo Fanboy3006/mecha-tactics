@@ -340,7 +340,8 @@ const BUFF_NAME = {hit:'命中', eva:'闪避', crit:'暴击', dmg:'伤害', red:
 const BUFF_PCT = ['dmg','red','physRed','beamRed','armorPct'];
 const buffTxt = b => Object.entries(b).filter(([k]) => BUFF_NAME[k]).map(([k,v]) => BUFF_PCT.includes(k) && k !== 'dmg' && k !== 'armorPct' ? `${BUFF_NAME[k]} ${v}%` : `${BUFF_NAME[k]} ${v > 0 ? '+' : ''}${v}${BUFF_PCT.includes(k) ? '%' : ''}`).join('、');
 const supBuff = (u, w) => { const b = wv(u, w, 'buff') || {eva:15, hit:15}; /* v0.40.10 增益可以随等级升级（月光祝福） */ return tierUp(u, w) ? Object.fromEntries(Object.entries(b).map(([k,v]) => [k, Math.round(v * 1.5)])) : b; };
-const supportTxt = (w, u) => w.heal ? `回复最大 HP 的 ${u && tierUp(u, w) ? Math.round(w.heal * 1.5) : w.heal}%` : buffTxt(u ? supBuff(u, w) : (w.buff || {eva:15, hit:15}));
+const supportTxt = (w, u) => w.summonN ? `布置 ${w.summonN} 个影之种` : w.awakenAdd ? `觉醒 +${u && seedActive(u) ? (w.awakenSeed || w.awakenAdd) : w.awakenAdd}` : w.heal ?   // v0.41.4 / v0.41.5 号令、影之种
+   `回复最大 HP 的 ${u && tierUp(u, w) ? Math.round(w.heal * 1.5) : w.heal}%` : buffTxt(u ? supBuff(u, w) : (w.buff || {eva:15, hit:15}));
 function castSupport(u, w){
   consume(w);
   const ts = supportTargets(u, w);

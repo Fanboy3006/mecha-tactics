@@ -170,10 +170,16 @@ function actionHTML(){
       return `<h3>地图炮 · ${S.weapon.name}</h3>${burst ? '' : `<div class="pad">${pad}</div>`}${detail}
         <div class="acts"><button class="btn" data-a="back-weapon">换武器</button></div>`;
     }
+    case 'summon': {   // v0.41.5 维诺「影之种」（17b）
+      const sw = S.weapon, n = sw.summonN || 2, k = (S.sumPick || []).length;
+      return `<h3>${sw.name}</h3><p class="hint">紫色格是可布置的空地（菱形 ${effRange(u, sw)[1]} 格）。点选最多 ${n} 格，再点一次取消；亮框是影之种脉冲的 3×3 范围。<br>每个我方阶段结束时，3×3 内的敌机受到威力 ${sw.power} 的特殊伤害、装甲 −100（无限叠加）；持续 ${sw.summonLife || 3} 回合。</p>
+        <p class="small">已选 ${k} / ${n}</p>
+        <div class="acts"><button class="btn primary" data-a="summon-go" ${k ? '' : 'disabled'}>布置</button><button class="btn" data-a="back-weapon">换武器</button></div>`;
+    }
     case 'support': {
       const ts = supportTargets(u, S.weapon);
       const sw = S.weapon;
-      return `<h3>${sw.name}</h3><p class="hint">${sw.foe ? '红' : '绿'}色是作用范围（菱形 ${effRange(u, sw)[1]} 格${sw.self ? '，包括自己' : '，不含自己'}）。效果：${sw.foe ? '敌机 ' : ''}${supportTxt(sw, u)}${sw.heal ? '' : '，持续到下一个我方阶段开始'}。</p>
+      return `<h3>${sw.name}</h3><p class="hint">${sw.foe ? '红' : '绿'}色是作用范围（菱形 ${effRange(u, sw)[1]} 格${sw.self ? '，包括自己' : '，不含自己'}）。效果：${sw.foe ? '敌机 ' : ''}${supportTxt(sw, u)}${sw.heal || sw.awakenAdd ? '' : '，持续到下一个我方阶段开始'}。</p>
         ${ts.length ? `<ul class="hitlist">${ts.map(a => `<li><span class="${a.side}">${fullName(a)}</span><span>${sw.heal ? `HP ${a.hp}/${a.maxHp}` : supportTxt(sw, u)}</span></li>`).join('')}</ul>` : `<p class="small">范围内没有${sw.foe ? '敌机' : '友军'}，施放后不会有效果。</p>`}
         <div class="acts"><button class="btn primary" data-a="cast">施放</button><button class="btn" data-a="back-weapon">换武器</button></div>`;
     }

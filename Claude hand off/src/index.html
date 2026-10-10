@@ -1957,6 +1957,8 @@ const ABIL = {
   frontArmor:{name:'正面装甲', desc:'从正面受到的伤害 −50%（百分比减免阶段）。侧面、背面不生效。这台机体不会回避，也不会防御。'},
   dodgeFatigue:{name:'闪避疲劳', desc:'通用规则（所有会回避的单位）：同一回合内每完全闪避一次攻击，闪避 −10，下一个我方阶段开始时恢复。'},
   portalTrait:{name:'门之力', desc:'指令「传送」：移动到 7 格内任意空地，代替本回合移动。每次反噬 +25，反噬 ≥100 时不能使用。（之后还会改动 / 升级）'},
+  shadowSeed:{name:'影之种', desc:'不能攻击。每回合在 5 格内布置 2 个影之种：HP 1、没有控制区，持续 3 回合；我方阶段结束时对周围 3×3 的敌机造成威力 1000 的特殊伤害，并让它们装甲 −100（整场有效，无限叠加）。'},
+  chainThrow:{name:'连锁投掷', desc:'大招「连锁投掷」命中后会在目标附近继续弹跳：每跳一次搜索范围 −1（4 → 3 → 2 → 1），每一跳伤害相同、必中，不会打同一台敌机两次。'},
   moveEva:{name:'游刃有余', desc:'行动结束时，本回合没用完的移动力每 1 点转为闪避 +5，持续到下一个我方阶段开始。'},
   autoCast:{name:'月光共鸣（暂名）', desc:'不能主动使用武器，我方阶段每次行动结束后自动释放携带的技能。<b>只能携带一个技能</b>（出击前在编队里选，或第 1 回合行动前在指令面板切换）：月光祝福，或者残月的余响（Lv20 解锁；Lv30 起满月·月蚀冷却好时优先释放）。'},
   steadfast:{name:'不动如山', desc:'本回合没有移动时，装甲 +30%，援护次数 +1。'},
@@ -2224,6 +2226,19 @@ const ALLY_T = [
     wp({name:'影凤凰', power:2400, statMul:1.2, v37:true, fire:'map', range:[1,4], unlock:20, afterMove:false, dmgType:'特殊',
         desc:'选 8 个方向之一，冲到第 5 格（必须是合法落点），攻击沿途 4 格内所有单位，包括友军。必中，不能被反击。'}),
   ]},
+  /* 维诺（v0.41.5 新增，作者 10-09）：影世界普通特种，不能攻击；每回合在 5 格内布置 2 个「影之种」（召唤物，HP 1、没有控制区，持续 3 回合）。
+     影之种在我方阶段结束时自爆式脉冲：周围 3×3 的敌机受到威力 1000 的特殊伤害，并且装甲 −100（整场、无限叠加，最低到 0）。机制在 17b。 */
+  {pilot:'维诺', mech:'B3', short:'B3', trait:'shadowSeed', tags:{势力:'影世界', 远近分类:'远程', 战斗分类:'特种'}, hp:4800, armor:500, eva:25, mov:6, melee:140, shoot:130, defense:85, flying:false, w:1, h:1, abilities:[], weapons:[
+    wp({name:'影之种', fire:'support', special:'summon', range:[0,5], summonN:2, summonLife:3, power:1000, dmgType:'特殊',
+        desc:'在 5 格内的空地布置 2 个影之种（HP 1、没有控制区、不能行动，持续 3 回合）。每个我方阶段结束时，影之种对周围 3×3 的敌机造成威力 1000 的特殊伤害（攻击能力值 = 维诺的射击），并让它们装甲 −100（整场有效，无限叠加）。布置算本回合的行动，可以先移动再布置。'}),
+  ]},
+  /* 比格特拉克（v0.41.5 新增，作者 10-09）：影世界骨干。大招「连锁投掷」：命中第一个目标后，在它 4 格内找下一个没被打过的敌机继续打（同样伤害、必中），
+     每跳一次搜索范围 −1（4 → 3 → 2 → 1），找不到就停。职业暂定特种（作者没指定）。机制在 17b。 */
+  {pilot:'比格特拉克', mech:'B4', short:'B4', trait:'chainThrow', tags:{势力:'影世界', 远近分类:'远程', 战斗分类:'特种'}, hp:5400, armor:600, eva:25, mov:6, melee:140, shoot:150, defense:85, flying:false, w:1, h:1, abilities:[], weapons:[
+    wp({name:'抛射弹', power:2400, fire:'indirect', range:[2,4]}),
+    wp({name:'连锁投掷', power:1600, statMul:1.2, fire:'indirect', range:[1,5], hit:120, cd:5, unlock:20, dmgType:'特殊', bounce:4, noCounter:true,
+        desc:'丢向 5 格内的一台敌机，造成特殊伤害（只会被护盾类效果抵消），目标不能反击。命中后在它 4 格内找下一台没被打过的敌机，造成同样的伤害（必中）；每跳一次搜索范围 −1（4 → 3 → 2 → 1），找不到敌机就停。'}),
+  ]},
   /* ===== 月球王国（v0.40.10 角色对话按势力重设计，作者 10-08 定） =====
      以 Feena 为核心的坚守队伍：Feena 20 级前靠阿布拉德扛、Iris 修；20 级后 Feena 带「残月的余响」负责输出。
      Feena 是全队唯一的精锐；阿布拉德、Iris 骨干；Nagi、苏菲普通。 */
@@ -2481,7 +2496,7 @@ const PROMO_WEAPONS = {
    大招倍率 statMul：Lv20 大招 ×1.2、Lv30 大招 ×1.5（大招随等级成长更快）；
    觉醒系大招（门之力、TRANS-AM、量子化、λ 驱动、满月）改用「属性 + 觉醒」，不再乘 statMul。觉醒初值：雷萨 140、Feena 150、刹那 130、宗介 130、洛克昂 110，克莱因派 70（拉克丝 90，战斗中会成长，见 17b），其他 100。
    开场冷却 startCd：Lv20 大招默认 3；Lv30 大招 4；传送斩 2；被动（残月的余响、月华再生）0；增益类（八咫之守、马格纳克队支援）2。 */
-const NEW_FORMULA = ['W2','W3','W4','W5','CB2','CB3','CB4','CB5','B1','M1','M2','M3','M4','M5','A1','A2','A3','A4','A5','U1','U2','U6','U7','U8','CB1','S1','W1','S2','S3','S4','S5'];   // v0.41.4 克莱因派整体按新公式重写   // v0.40.13 秘银整体按新公式重写   // v0.40.11 ATX 整体按新公式重写   // v0.40.10 月球王国整体按新公式重写
+const NEW_FORMULA = ['W2','W3','W4','W5','CB2','CB3','CB4','CB5','B1','M1','M2','M3','M4','M5','A1','A2','A3','A4','A5','U1','U2','U6','U7','U8','CB1','S1','W1','S2','S3','S4','S5','B3','B4'];   // v0.41.4 克莱因派整体按新公式重写   // v0.40.13 秘银整体按新公式重写   // v0.40.11 ATX 整体按新公式重写   // v0.40.10 月球王国整体按新公式重写
 ALLY_T.forEach(t => {
   if (PROMO_WEAPONS[t.mech]) t.weapons.push(...PROMO_WEAPONS[t.mech]);
   if (NEW_FORMULA.includes(t.mech)) t.weapons.forEach(w => { w.v37 = true; });
@@ -3079,6 +3094,8 @@ Hooks.on('turnEnd', () => {
 // e：敌人（Lv20）；mates：同行的队友；hurt：队友开局只剩一半 HP；feat：地形特征；hint：这一关想让你试的东西
 const TRIALS = {
   B1:{e:['grunt','grunt','artillery','fortress'], hint:'用「传送」越过敌阵直接贴到炮击机身边；Lv20 的传送斩适合对付高 HP 的重装要塞；Lv30 解锁「影界·万刃归一」，传送进敌阵中心再发动。'},
+  B3:{e:['tank','tank','shield','grunt','grunt'], cluster:true, hint:'维诺不能攻击：移动后用「影之种」在 5 格内放 2 个召唤物，我方阶段结束时它们对周围 3×3 的敌机造成特殊伤害并让装甲 −100（无限叠加）。连着几回合放在同一群敌人身边，装甲会被削到 0，队友再上。影之种只有 1 点血，敌人会去打它，也能当诱饵。'},
+  B4:{e:['grunt','grunt','grunt','grunt','drone','drone'], cluster:true, hint:'比格特拉克的「抛射弹」是 2–4 格曲射。Lv20「连锁投掷」打中第一台后会在它 4 格内弹向下一台，每跳范围 −1（4→3→2→1）：敌人越挤，弹得越多。冷却 5 回合。'},
   B2:{e:['hound','hound','drone','drone','fighter'], feat:'forest', hint:'少走几步，把剩余移动力转成闪避（游刃有余）；Lv20 影凤凰是特殊伤害，一次贯穿一排。'},
   M1:{e:['grunt','grunt','raider','raider','shield'], mates:['M2','M4'], hint:'Feena 不能主动攻击，待机后自动施放携带的技能。<b>只能带一个</b>：第 1 回合在指令面板切换「月光祝福」（Lv20 起加防御、暴击）或「残月的余响」。余响的范围 = 自身 4 格 + 4 格内月球王国队友<b>此刻实际打得到的格子</b>：先让阿布拉德、Nagi 摆好位置和朝向，Feena 最后行动。'},
   M2:{e:['raider','raider','berserker','grunt'], mates:['M3'], hint:'原地不动时装甲 +30%、援护次数 +1；Lv20「铁壁领域」不动时控制区扩大到 2 格，敌人很难绕过他去打 Iris。Lv20 螺旋式打桩机无视减免。'},
@@ -3518,7 +3535,7 @@ function mapDirs(u, w){
 const buffSum = (u, k) => u.buffs.reduce((a,b) => a + (b[k] || 0), 0) + ((u.relicMods && u.relicMods[k]) || 0);   // v0.31 藏品的常驻加成也算进来
 const TRAIT_LV = 10;
 const hasTrait = (u, k) => !!u && u.trait === k && (u.lv >= TRAIT_LV || u.forceTrait);
-const effArmor = u => Math.round(u.armor * (hasTrait(u,'steadfast') && !u.movedThisRound ? 1.3 : 1) * Math.max(0, 1 + (buffSum(u,'armorPct') + tfx(u,'armorPct'))/100));
+const effArmor = u => Math.max(0, Math.round(u.armor * (hasTrait(u,'steadfast') && !u.movedThisRound ? 1.3 : 1) * Math.max(0, 1 + (buffSum(u,'armorPct') + tfx(u,'armorPct'))/100)) - (u.armorCut || 0));   // v0.41.5 维诺「影之种」装甲 −100（17b）
 const BREAK = {side:10, back:20};
 const breakSum = u => (u.debuffs || []).reduce((a,b) => a + b.pct, 0);
 const defMul = u => Math.max(0, 1 - breakSum(u)/100);
@@ -4120,7 +4137,8 @@ const BUFF_NAME = {hit:'命中', eva:'闪避', crit:'暴击', dmg:'伤害', red:
 const BUFF_PCT = ['dmg','red','physRed','beamRed','armorPct'];
 const buffTxt = b => Object.entries(b).filter(([k]) => BUFF_NAME[k]).map(([k,v]) => BUFF_PCT.includes(k) && k !== 'dmg' && k !== 'armorPct' ? `${BUFF_NAME[k]} ${v}%` : `${BUFF_NAME[k]} ${v > 0 ? '+' : ''}${v}${BUFF_PCT.includes(k) ? '%' : ''}`).join('、');
 const supBuff = (u, w) => { const b = wv(u, w, 'buff') || {eva:15, hit:15}; /* v0.40.10 增益可以随等级升级（月光祝福） */ return tierUp(u, w) ? Object.fromEntries(Object.entries(b).map(([k,v]) => [k, Math.round(v * 1.5)])) : b; };
-const supportTxt = (w, u) => w.heal ? `回复最大 HP 的 ${u && tierUp(u, w) ? Math.round(w.heal * 1.5) : w.heal}%` : buffTxt(u ? supBuff(u, w) : (w.buff || {eva:15, hit:15}));
+const supportTxt = (w, u) => w.summonN ? `布置 ${w.summonN} 个影之种` : w.awakenAdd ? `觉醒 +${u && seedActive(u) ? (w.awakenSeed || w.awakenAdd) : w.awakenAdd}` : w.heal ?   // v0.41.4 / v0.41.5 号令、影之种
+   `回复最大 HP 的 ${u && tierUp(u, w) ? Math.round(w.heal * 1.5) : w.heal}%` : buffTxt(u ? supBuff(u, w) : (w.buff || {eva:15, hit:15}));
 function castSupport(u, w){
   consume(w);
   const ts = supportTargets(u, w);
@@ -4203,7 +4221,7 @@ function placeSmoke(u, w, dir){
   log(`${fullName(u)}【${w.name}】在 (${dir.box[0]}, ${dir.box[1]}) 放下 ${w.size}×${w.size} 烟雾，持续到第 ${turn + w.smoke} 回合我方阶段开始：里外开火命中 −${SMOKE_HIT}`, null, u.side);
 }
 function drawSmoke(ctx){
-  drawMaoZone(ctx);
+  drawMaoZone(ctx); drawSummon(ctx);   // v0.41.5 维诺布置召唤物时的可选格
   for (const u of units) if (u.hp > 0 && taActive(u)){ ctx.strokeStyle = 'rgba(255,90,122,.85)'; ctx.lineWidth = 2; ctx.strokeRect(u.x*TS + 2, u.y*TS + 2, u.w*TS - 4, u.h*TS - 4); }   // TRANS-AM 红框   // 秘银：毛的指挥范围（20 只调 drawSmoke 一个入口）
   if (!SMOKES.length) return;
   ctx.fillStyle = 'rgba(200,205,215,.38)';
@@ -4309,7 +4327,7 @@ Hooks.on('phaseStart', c => { if (c.side === 'enemy') units.forEach(u => { if (u
 /* ===== 流星小队（v0.40.19） ===== */
 /* 单独行动：身边 2 格内没有其他（活着的）友军时成立。03 的 TRAIT_FX.loneWolf 读它（伤害 +20%、闪避 +15）。 */
 const LONE_R = 2;
-const isAlone = u => !!u && !units.some(a => a !== u && a.side === u.side && a.hp > 0 && distU(a, u) <= LONE_R);
+const isAlone = u => !!u && !units.some(a => a !== u && a.side === u.side && a.hp > 0 && !a.isSummon && distU(a, u) <= LONE_R);   // v0.41.5 维诺的召唤物不算
 
 /* ===== v0.41.1 需求单 #14：射程形状改了以后，用别的办法加强狙击大招（作者 10-09：射程不变） =====
    洛克昂 TRANS-AM 狙击 = 多重锁定 + 每个目标多段判定：武器写 special:'lock' + lockHits（段数）/ lockStep；
@@ -4379,9 +4397,105 @@ function awakenCall(u, w, ts){
   log(`${fullName(u)}【${w.name}】全军觉醒 +${n}${got.length ? '：' + got.map(([a, k]) => `${fullName(a)} +${k}`).join('、') : '（大家的 SEED 都已经觉醒）'}`, null, u.side);
 }
 
+/* ===== 影世界·维诺（v0.41.5，作者 10-09） =====
+   武器 special:'summon'（影之种）：选中后进入 S.mode 'summon'，在 5 格（菱形）内点选最多 summonN 个空地，按「布置」放下，算本回合行动。
+   影之种：我方召唤物，HP 1、闪避 0、没有控制区（summon）、不能行动、不能反击；从布置那回合起持续 summonLife 回合。
+   每个我方阶段结束（敌方阶段开始）时：周围 3×3 的敌机受到威力 1000 的特殊伤害（攻击能力值 = 维诺布置时的射击），
+   并且装甲 −SHADOW_CUT（u.armorCut，整场有效，无限叠加；15 的 effArmor 扣，最低 0）。最后一次脉冲后消散。
+   召唤物不算「场上的我方机体」：不占出击上限、不影响败北判定、不算流星小队的「身边友军」。 */
+const SHADOW_CUT = 100, SHADOW_R = 1;
+const SUMMON_T = {pilot:'影之种', mech:'影种', short:'种', trait:null, tags:{势力:'影世界', 远近分类:'远程', 战斗分类:'召唤物'}, hp:1, armor:0, eva:0, mov:0, melee:0, shoot:100, defense:0, awaken:100, flying:false, w:1, h:1, abilities:['summon'], weapons:[]};
+const SHADOW_W = {name:'影之种·脉冲', fire:'map', dmgType:'特殊', stat:'射击', critMod:0, special:null, range:[0, 1], power:1000};
+const isSummon = u => !!u && !!u.isSummon;
+function summonTiles(u, w){
+  const r = effRange(u, w)[1], out = [], probe = {...SUMMON_T, side:u.side};
+  for (let y = Math.max(0, u.y - r); y <= Math.min(MH - 1, u.y + r); y++) for (let x = Math.max(0, u.x - r); x <= Math.min(MW - 1, u.x + r); x++)
+    if (Math.abs(x - u.x) + Math.abs(y - u.y) <= r && !occupant(x, y) && canStand(probe, x, y)) out.push({x, y});
+  return out;
+}
+function startSummon(u, w){ S.sumTiles = summonTiles(u, w); S.sumPick = []; S.mode = 'summon'; }
+function pickSummonTile(x, y){
+  const i = S.sumPick.findIndex(t => t.x === x && t.y === y);
+  if (i >= 0){ S.sumPick.splice(i, 1); return true; }
+  if (!S.sumTiles.some(t => t.x === x && t.y === y)) return false;
+  if (S.sumPick.length >= (S.weapon.summonN || 2)) S.sumPick.shift();
+  S.sumPick.push({x, y}); return true;
+}
+function placeSummons(u, w, picks){
+  consume(w);
+  const made = [];
+  for (const {x, y} of picks){
+    if (occupant(x, y)) continue;
+    const s = makeUnit(SUMMON_T, u.side, x, y);
+    Object.assign(s, {isSummon:true, owner:u.uid, shoot:u.shoot, pow:w.power || 1000, until:turn + (w.summonLife || 3), acted:true, moved:true, lv:u.lv});
+    units.push(s); made.push(s);
+    fx('warp', {b:cpx(s), out:true, dur:360});
+  }
+  log(`${fullName(u)}【${w.name}】布置了 ${made.length} 个影之种${made.length ? '（' + made.map(s => `(${s.x}, ${s.y})`).join('、') + `），持续到第 ${turn + (w.summonLife || 3) - 1} 回合` : ''}`, null, u.side);
+  return made;
+}
+function shadowPulse(side){
+  for (const s of units.filter(o => isSummon(o) && o.side === side && o.hp > 0)){
+    const hit = units.filter(e => e.side !== s.side && e.side !== 'neutral' && e.hp > 0 && tilesOf(e).some(([x, y]) => Math.max(Math.abs(x - s.x), Math.abs(y - s.y)) <= SHADOW_R));
+    fx('pulse', {b:cpx(s), r:TS*1.5, color:'#a87cff', dur:420});
+    const parts = [];
+    for (const e of hit){
+      const d = reduceOnly(s, SHADOW_W, e, s.pow, null, null, false, false, {useStat:true});
+      e.hp = Math.max(0, e.hp - d); e.armorCut = (e.armorCut || 0) + SHADOW_CUT;
+      addFloat(e, String(d), '#c9a8ff');
+      parts.push(`${fullName(e)} −${d}（装甲 −${e.armorCut}）`);
+      if (e.hp <= 0) destroy(e, s);
+    }
+    log(`影之种 (${s.x}, ${s.y}) 脉冲：${parts.length ? parts.join('，') : '周围没有敌机'}`, null, s.side);
+    if (turn >= s.until - 1){ units = units.filter(o => o !== s); log(`影之种 (${s.x}, ${s.y}) 消散`, null, 'sys'); }
+  }
+  checkEnd();
+}
+Hooks.on('phaseStart', c => {
+  if (c.side === 'ally') units.forEach(u => { if (isSummon(u)) u.acted = u.moved = true; });
+  else shadowPulse('ally');
+}, '维诺「影之种」：我方阶段结束时脉冲；召唤物不能行动');
+function drawSummon(ctx){
+  if (S.mode !== 'summon') return;
+  ctx.fillStyle = 'rgba(168,124,255,.30)';
+  for (const t of S.sumTiles || []) ctx.fillRect(t.x*TS + 1, t.y*TS + 1, TS - 1, TS - 1);
+  ctx.strokeStyle = 'rgba(200,170,255,.95)'; ctx.lineWidth = 2;
+  for (const t of S.sumPick || []){ ctx.fillStyle = 'rgba(168,124,255,.65)'; ctx.fillRect(t.x*TS + 1, t.y*TS + 1, TS - 1, TS - 1); ctx.strokeRect((t.x - 1)*TS + 1, (t.y - 1)*TS + 1, 3*TS - 2, 3*TS - 2); }
+}
+
+/* ===== 影世界·比格特拉克（v0.41.5，作者 10-09） =====
+   「连锁投掷」（武器 bounce:N）：第一下走正常攻击（battle，有命中判定、目标不能反击）。打中了才弹跳：
+   从上一个目标的位置找 N 格内（distU）最近的、还没被这次投掷打过的敌机，造成同样的伤害（必中，不暴击，按新目标算装甲 / 防御）；
+   每跳一次 N −1，N 到 0 或找不到敌机就停。22 的 fire 在 battle 之后调 bounceChain。 */
+Hooks.on('strikeResolved', c => { if (c.w.bounce && !c.counter) c.att.bounceHit = c.hit ? BATTLE_ID + ':' + turn : null; }, '比格特拉克「连锁投掷」：记下第一下有没有打中');
+function bounceNext(from, side, r, done){
+  return units.filter(e => e.side !== side && e.side !== 'neutral' && e.hp > 0 && !done.has(e) && distU(from, e) <= r)
+    .sort((a, b) => distU(from, a) - distU(from, b) || a.hp - b.hp)[0] || null;
+}
+async function bounceChain(u, w, first){
+  if (u.bounceHit !== BATTLE_ID + ':' + turn) return 0;
+  u.bounceHit = null;
+  const done = new Set([first]); let from = {x:first.x, y:first.y, w:first.w, h:first.h}, r = w.bounce, n = 0;
+  while (r > 0 && !over){
+    const e = bounceNext(from, u.side, r, done);
+    if (!e) break;
+    done.add(e); n++;
+    fx('pulse', {b:cpx(e), r:TS, color:'#c9a8ff', dur:300}); await sleep(220);
+    const d = damageCalc(u, w, e, {preview:false}).dmg;
+    e.hp = Math.max(0, e.hp - d); addFloat(e, String(d), '#c9a8ff');
+    log(`${fullName(u)}【${w.name}】弹到 ${fullName(e)}（搜索 ${r} 格）：${d}`, null, u.side);
+    from = {x:e.x, y:e.y, w:e.w, h:e.h};
+    if (e.hp <= 0) destroy(e, u);
+    r--;
+  }
+  if (n) log(`${fullName(u)}【${w.name}】一共弹跳 ${n} 次`, null, u.side);
+  refresh(); checkEnd();
+  return n;
+}
+
 /* 测试接口：角色机制的函数（tests/moon.js 等用；window.__game 归规则对话，所以单独挂一个） */
 window.__chars = {autoWeapon:u => autoWeapon(u), echoWeapon:u => echoWeapon(u), attackTilesOf, pickOf, setPick:k => { FEENA_PICK = k; }, canSwitchPick, chainStepOf, effMov, zocRadius,
-  strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d), smokeHit, inSmoke, evadeN, evadeCdCut, get SMOKES(){ return SMOKES; }, inMaoZone, ignoresLos, linkSupport:(a, t) => linkSupport(a, t), activateTA, taActive, taAfter, canTA, purgeStun, collideDmg, isAlone, lockStrikeW, awakenOf, awGain, seedActive, seedDefOf, addAwaken, extMax, mapIff, awakenCall:(u, w) => awakenCall(u, w, supportTargets(u, w)), hitRate, emit:(n, c) => Hooks.emit(n, c), unitsOnTiles};
+  strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d), smokeHit, inSmoke, evadeN, evadeCdCut, get SMOKES(){ return SMOKES; }, inMaoZone, ignoresLos, linkSupport:(a, t) => linkSupport(a, t), activateTA, taActive, taAfter, canTA, purgeStun, collideDmg, isAlone, lockStrikeW, awakenOf, awGain, seedActive, seedDefOf, addAwaken, extMax, mapIff, awakenCall:(u, w) => awakenCall(u, w, supportTargets(u, w)), hitRate, emit:(n, c) => Hooks.emit(n, c), unitsOnTiles, summonTiles, startSummon, pickSummonTile, placeSummons, shadowPulse, isSummon, bounceChain:(u, w, t) => bounceChain(u, w, t)};
 /* ---------- 回合流程 ---------- */
 function fireTip(key){
   if (!LV || !LV.tips) return;
@@ -4542,7 +4656,7 @@ function checkEnd(){
     if (req.every(inZone)) return victory();
     return;
   }
-  const allies = units.filter(u => u.side === 'ally'), foes = units.filter(u => u.side === 'enemy');
+  const allies = units.filter(u => u.side === 'ally' && !u.isSummon), foes = units.filter(u => u.side === 'enemy');
   if (!allies.length) return defeat();   // v0.39.1 场上一台都没有就算输（机库里还有人也一样，作者 10-07 定）
   /* v0.32 关卡目标 */
   if (LV && LV.victory.type === 'survive') return;   // 坚守：撑够回合数才算赢（见 30b），敌人打光也会继续增援
@@ -6037,10 +6151,16 @@ function actionHTML(){
       return `<h3>地图炮 · ${S.weapon.name}</h3>${burst ? '' : `<div class="pad">${pad}</div>`}${detail}
         <div class="acts"><button class="btn" data-a="back-weapon">换武器</button></div>`;
     }
+    case 'summon': {   // v0.41.5 维诺「影之种」（17b）
+      const sw = S.weapon, n = sw.summonN || 2, k = (S.sumPick || []).length;
+      return `<h3>${sw.name}</h3><p class="hint">紫色格是可布置的空地（菱形 ${effRange(u, sw)[1]} 格）。点选最多 ${n} 格，再点一次取消；亮框是影之种脉冲的 3×3 范围。<br>每个我方阶段结束时，3×3 内的敌机受到威力 ${sw.power} 的特殊伤害、装甲 −100（无限叠加）；持续 ${sw.summonLife || 3} 回合。</p>
+        <p class="small">已选 ${k} / ${n}</p>
+        <div class="acts"><button class="btn primary" data-a="summon-go" ${k ? '' : 'disabled'}>布置</button><button class="btn" data-a="back-weapon">换武器</button></div>`;
+    }
     case 'support': {
       const ts = supportTargets(u, S.weapon);
       const sw = S.weapon;
-      return `<h3>${sw.name}</h3><p class="hint">${sw.foe ? '红' : '绿'}色是作用范围（菱形 ${effRange(u, sw)[1]} 格${sw.self ? '，包括自己' : '，不含自己'}）。效果：${sw.foe ? '敌机 ' : ''}${supportTxt(sw, u)}${sw.heal ? '' : '，持续到下一个我方阶段开始'}。</p>
+      return `<h3>${sw.name}</h3><p class="hint">${sw.foe ? '红' : '绿'}色是作用范围（菱形 ${effRange(u, sw)[1]} 格${sw.self ? '，包括自己' : '，不含自己'}）。效果：${sw.foe ? '敌机 ' : ''}${supportTxt(sw, u)}${sw.heal || sw.awakenAdd ? '' : '，持续到下一个我方阶段开始'}。</p>
         ${ts.length ? `<ul class="hitlist">${ts.map(a => `<li><span class="${a.side}">${fullName(a)}</span><span>${sw.heal ? `HP ${a.hp}/${a.maxHp}` : supportTxt(sw, u)}</span></li>`).join('')}</ul>` : `<p class="small">范围内没有${sw.foe ? '敌机' : '友军'}，施放后不会有效果。</p>`}
         <div class="acts"><button class="btn primary" data-a="cast">施放</button><button class="btn" data-a="back-weapon">换武器</button></div>`;
     }
@@ -6254,6 +6374,9 @@ function onTile(x,y){
     case 'menu': case 'weapon':
       if (u){ S.inspect = u; refresh(); }
       break;
+    case 'summon':   // v0.41.5 维诺：点空地选 / 取消布置位置（17b）
+      if (pickSummonTile(x, y)) refresh(); else if (u){ S.inspect = u; refresh(); }
+      break;
     case 'lock':
       if (u && targetsFor(S.sel, S.weapon).includes(u)) toggleLock(u);
       else if (u){ S.inspect = u; refresh(); }
@@ -6327,6 +6450,7 @@ async function onAction(a){
     const t = S.target, w = S.weapon, r = aiReaction(t, u, w);
     S.mode = 'busy'; refresh();
     await battle(u, w, t, r.reaction, r.weapon);
+    if (!over && w.bounce) await bounceChain(u, w, t);   // v0.41.5 货车「连锁投掷」（17b）
     if (!over && u.hp > 0 && t.hp > 0) await supportAttack(u, t);
     const foesLeft = units.some(e => e.side !== u.side);
     if (!over && u.hp > 0 && t.hp <= 0 && foesLeft){
@@ -6360,6 +6484,12 @@ async function onAction(a){
     for (const t of ts){ if (over || u.hp <= 0) break; if (t.hp > 0) await strike(u, sw, t, null, {skipConsume:true}); }
     refresh(); checkEnd();
     if (!over && u.hp > 0) await afterAttack(u); else if (!over){ clearSel(); refresh(); }
+  }
+  else if (a === 'summon-go'){   // v0.41.5 维诺「影之种」
+    const w = S.weapon, picks = [...(S.sumPick || [])]; if (!picks.length) return;
+    S.mode = 'busy'; refresh();
+    placeSummons(u, w, picks); await sleep(400);
+    await finish(u);
   }
   else if (a === 'cast'){
     const w = S.weapon; S.mode = 'busy'; refresh();
@@ -6425,6 +6555,7 @@ $('#actionCard').addEventListener('click', e => {
     S.weapon = S.sel.weapons[+b.dataset.w];
     if (S.weapon.fire === 'map'){ S.dirs = mapDirs(S.sel, S.weapon); S.dir = S.weapon.shape === 'burst' ? S.dirs[0] : null; S.mode = S.weapon.shape === 'burst' ? 'mapconfirm' : 'mapdir'; }
     else if (S.weapon.special === 'lock'){ S.locks = []; S.atkTiles = atkTilesFor(S.sel, S.weapon); S.mode = 'lock'; }
+    else if (S.weapon.special === 'summon') startSummon(S.sel, S.weapon);   // v0.41.5 维诺（17b）
     else if (S.weapon.fire === 'support'){ S.mode = 'support'; }
     else if (S.weapon.fire === 'heal'){ S.mode = 'heal'; }
     else if (S.weapon.fire === 'device'){ S.mode = 'hack'; }
@@ -6595,8 +6726,8 @@ let RUN = null;
 const RM = () => (LV && LV.run && RUN) ? RUN.mods : null;
 const TIER = {
   B1:'S', A1:'S', CB1:'S', S1:'S', W1:'S', U7:'S', M1:'S',
-  B2:'A', M2:'A', M3:'A', U2:'A', CB2:'A', CB4:'A', S2:'A', S5:'A', W2:'A', W3:'A', W4:'A', W5:'A', A2:'A', A3:'A', U6:'A',
-  M4:'B', M5:'B', CB3:'B', CB5:'B', S3:'B', S4:'B', A4:'B', A5:'B', U1:'B', U8:'B',
+  B2:'A', B4:'A', M2:'A', M3:'A', U2:'A', CB2:'A', CB4:'A', S2:'A', S5:'A', W2:'A', W3:'A', W4:'A', W5:'A', A2:'A', A3:'A', U6:'A',
+  M4:'B', M5:'B', B3:'B', CB3:'B', CB5:'B', S3:'B', S4:'B', A4:'B', A5:'B', U1:'B', U8:'B',
 };
 const TIER_NAME = {S:'精锐', A:'骨干', B:'普通'};
 const PRICE = {S:{rec:5, p20:3, p30:4}, A:{rec:3, p20:2, p30:3}, B:{rec:0, p20:1, p30:2}};
@@ -6863,7 +6994,7 @@ const RELAY_R = 2, RETREAT_R = 4;
 const GLOBAL_DEPLOY = ['W1','W2','W3','W4','W5'];   // 全图部署名单：v0.40.19 角色对话定为流星小队五人（作者 10-08）
 ALLY_T.forEach(t => { if (GLOBAL_DEPLOY.includes(t.mech) && !t.abilities.includes('globalDeploy')) t.abilities.push('globalDeploy'); });
 const hangarOn = () => !!(LV && LV.hangar);
-const fieldAllies = () => units.filter(u => u.side === 'ally' && u.hp > 0 && !u.commandOnly);
+const fieldAllies = () => units.filter(u => u.side === 'ally' && u.hp > 0 && !u.commandOnly && !u.isSummon);   // v0.41.5 召唤物不占出击上限
 const fieldCap = () => (LV && LV.maxDeploy) || 99;
 function baseDeploySet(){
   const s = new Set();
@@ -7431,7 +7562,7 @@ const TIER_LV = {杂兵:0, 精锐:1, 头目:2, Boss:2};
    角色对话以后按新公式重新写某个角色的武器时，把它的机体代号加进 NEW_POWER，它就不再换算。 */
 const DEF_BY_CLASS = {重装:110, 近卫:95, 特种:85, 指挥:80, 狙击:75, 尖兵:75};
 const DEF_BY_TIER = {杂兵:50, 精锐:65, 头目:80, Boss:95};
-const NEW_POWER = new Set(['W2','W3','W4','W5','CB2','CB3','CB4','CB5','B1','M1','M2','M3','M4','M5','A1','A2','A3','A4','A5','U1','U2','U6','U7','U8','CB1','S1','W1','S2','S3','S4','S5']);   // v0.40.4 角色对话：精锐已按新公式重写（其他角色重写过的单把武器带 v37:true）
+const NEW_POWER = new Set(['W2','W3','W4','W5','CB2','CB3','CB4','CB5','B1','M1','M2','M3','M4','M5','A1','A2','A3','A4','A5','U1','U2','U6','U7','U8','CB1','S1','W1','S2','S3','S4','S5','B3','B4']);   // v0.40.4 角色对话：精锐已按新公式重写（其他角色重写过的单把武器带 v37:true）
 function convPow(P, statRef, multi, noDef, Aref, Dref){
   const old = P + (multi ? .5 : 5) * statRef;
   if (noDef) return Math.max(1, Math.round(old / (1 + statRef / 100)));
@@ -7919,7 +8050,7 @@ function runGameOver(why){
    每一局的事件都记在 RUN.events：本地浏览器里保留最近 20 局；
    在 claude.ai 里打开且有写入权限时，同时上传到这个页面的数据库 runlogs/<玩家>/runs/<局 id>，
    作者（页面所有者）能看到所有人的记录。没有权限或单独打开 html 时，用「下载」导出发回来。 */
-const GAME_VERSION = 'v0.41.4';
+const GAME_VERSION = 'v0.41.5';
 document.querySelectorAll('.gv').forEach(e => { e.textContent = GAME_VERSION; });   // 顶栏和规则面板的版本号跟着 GAME_VERSION 走
 const RLOG_KEY = 'mecha-tactics-runlogs';
 function rlog(type, data){

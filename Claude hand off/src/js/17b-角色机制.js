@@ -63,7 +63,7 @@ function placeSmoke(u, w, dir){
   log(`${fullName(u)}【${w.name}】在 (${dir.box[0]}, ${dir.box[1]}) 放下 ${w.size}×${w.size} 烟雾，持续到第 ${turn + w.smoke} 回合我方阶段开始：里外开火命中 −${SMOKE_HIT}`, null, u.side);
 }
 function drawSmoke(ctx){
-  drawMaoZone(ctx);
+  drawMaoZone(ctx); drawSummon(ctx);   // v0.41.5 维诺布置召唤物时的可选格
   for (const u of units) if (u.hp > 0 && taActive(u)){ ctx.strokeStyle = 'rgba(255,90,122,.85)'; ctx.lineWidth = 2; ctx.strokeRect(u.x*TS + 2, u.y*TS + 2, u.w*TS - 4, u.h*TS - 4); }   // TRANS-AM 红框   // 秘银：毛的指挥范围（20 只调 drawSmoke 一个入口）
   if (!SMOKES.length) return;
   ctx.fillStyle = 'rgba(200,205,215,.38)';
@@ -169,7 +169,7 @@ Hooks.on('phaseStart', c => { if (c.side === 'enemy') units.forEach(u => { if (u
 /* ===== 流星小队（v0.40.19） ===== */
 /* 单独行动：身边 2 格内没有其他（活着的）友军时成立。03 的 TRAIT_FX.loneWolf 读它（伤害 +20%、闪避 +15）。 */
 const LONE_R = 2;
-const isAlone = u => !!u && !units.some(a => a !== u && a.side === u.side && a.hp > 0 && distU(a, u) <= LONE_R);
+const isAlone = u => !!u && !units.some(a => a !== u && a.side === u.side && a.hp > 0 && !a.isSummon && distU(a, u) <= LONE_R);   // v0.41.5 维诺的召唤物不算
 
 /* ===== v0.41.1 需求单 #14：射程形状改了以后，用别的办法加强狙击大招（作者 10-09：射程不变） =====
    洛克昂 TRANS-AM 狙击 = 多重锁定 + 每个目标多段判定：武器写 special:'lock' + lockHits（段数）/ lockStep；
@@ -239,6 +239,102 @@ function awakenCall(u, w, ts){
   log(`${fullName(u)}【${w.name}】全军觉醒 +${n}${got.length ? '：' + got.map(([a, k]) => `${fullName(a)} +${k}`).join('、') : '（大家的 SEED 都已经觉醒）'}`, null, u.side);
 }
 
+/* ===== 影世界·维诺（v0.41.5，作者 10-09） =====
+   武器 special:'summon'（影之种）：选中后进入 S.mode 'summon'，在 5 格（菱形）内点选最多 summonN 个空地，按「布置」放下，算本回合行动。
+   影之种：我方召唤物，HP 1、闪避 0、没有控制区（summon）、不能行动、不能反击；从布置那回合起持续 summonLife 回合。
+   每个我方阶段结束（敌方阶段开始）时：周围 3×3 的敌机受到威力 1000 的特殊伤害（攻击能力值 = 维诺布置时的射击），
+   并且装甲 −SHADOW_CUT（u.armorCut，整场有效，无限叠加；15 的 effArmor 扣，最低 0）。最后一次脉冲后消散。
+   召唤物不算「场上的我方机体」：不占出击上限、不影响败北判定、不算流星小队的「身边友军」。 */
+const SHADOW_CUT = 100, SHADOW_R = 1;
+const SUMMON_T = {pilot:'影之种', mech:'影种', short:'种', trait:null, tags:{势力:'影世界', 远近分类:'远程', 战斗分类:'召唤物'}, hp:1, armor:0, eva:0, mov:0, melee:0, shoot:100, defense:0, awaken:100, flying:false, w:1, h:1, abilities:['summon'], weapons:[]};
+const SHADOW_W = {name:'影之种·脉冲', fire:'map', dmgType:'特殊', stat:'射击', critMod:0, special:null, range:[0, 1], power:1000};
+const isSummon = u => !!u && !!u.isSummon;
+function summonTiles(u, w){
+  const r = effRange(u, w)[1], out = [], probe = {...SUMMON_T, side:u.side};
+  for (let y = Math.max(0, u.y - r); y <= Math.min(MH - 1, u.y + r); y++) for (let x = Math.max(0, u.x - r); x <= Math.min(MW - 1, u.x + r); x++)
+    if (Math.abs(x - u.x) + Math.abs(y - u.y) <= r && !occupant(x, y) && canStand(probe, x, y)) out.push({x, y});
+  return out;
+}
+function startSummon(u, w){ S.sumTiles = summonTiles(u, w); S.sumPick = []; S.mode = 'summon'; }
+function pickSummonTile(x, y){
+  const i = S.sumPick.findIndex(t => t.x === x && t.y === y);
+  if (i >= 0){ S.sumPick.splice(i, 1); return true; }
+  if (!S.sumTiles.some(t => t.x === x && t.y === y)) return false;
+  if (S.sumPick.length >= (S.weapon.summonN || 2)) S.sumPick.shift();
+  S.sumPick.push({x, y}); return true;
+}
+function placeSummons(u, w, picks){
+  consume(w);
+  const made = [];
+  for (const {x, y} of picks){
+    if (occupant(x, y)) continue;
+    const s = makeUnit(SUMMON_T, u.side, x, y);
+    Object.assign(s, {isSummon:true, owner:u.uid, shoot:u.shoot, pow:w.power || 1000, until:turn + (w.summonLife || 3), acted:true, moved:true, lv:u.lv});
+    units.push(s); made.push(s);
+    fx('warp', {b:cpx(s), out:true, dur:360});
+  }
+  log(`${fullName(u)}【${w.name}】布置了 ${made.length} 个影之种${made.length ? '（' + made.map(s => `(${s.x}, ${s.y})`).join('、') + `），持续到第 ${turn + (w.summonLife || 3) - 1} 回合` : ''}`, null, u.side);
+  return made;
+}
+function shadowPulse(side){
+  for (const s of units.filter(o => isSummon(o) && o.side === side && o.hp > 0)){
+    const hit = units.filter(e => e.side !== s.side && e.side !== 'neutral' && e.hp > 0 && tilesOf(e).some(([x, y]) => Math.max(Math.abs(x - s.x), Math.abs(y - s.y)) <= SHADOW_R));
+    fx('pulse', {b:cpx(s), r:TS*1.5, color:'#a87cff', dur:420});
+    const parts = [];
+    for (const e of hit){
+      const d = reduceOnly(s, SHADOW_W, e, s.pow, null, null, false, false, {useStat:true});
+      e.hp = Math.max(0, e.hp - d); e.armorCut = (e.armorCut || 0) + SHADOW_CUT;
+      addFloat(e, String(d), '#c9a8ff');
+      parts.push(`${fullName(e)} −${d}（装甲 −${e.armorCut}）`);
+      if (e.hp <= 0) destroy(e, s);
+    }
+    log(`影之种 (${s.x}, ${s.y}) 脉冲：${parts.length ? parts.join('，') : '周围没有敌机'}`, null, s.side);
+    if (turn >= s.until - 1){ units = units.filter(o => o !== s); log(`影之种 (${s.x}, ${s.y}) 消散`, null, 'sys'); }
+  }
+  checkEnd();
+}
+Hooks.on('phaseStart', c => {
+  if (c.side === 'ally') units.forEach(u => { if (isSummon(u)) u.acted = u.moved = true; });
+  else shadowPulse('ally');
+}, '维诺「影之种」：我方阶段结束时脉冲；召唤物不能行动');
+function drawSummon(ctx){
+  if (S.mode !== 'summon') return;
+  ctx.fillStyle = 'rgba(168,124,255,.30)';
+  for (const t of S.sumTiles || []) ctx.fillRect(t.x*TS + 1, t.y*TS + 1, TS - 1, TS - 1);
+  ctx.strokeStyle = 'rgba(200,170,255,.95)'; ctx.lineWidth = 2;
+  for (const t of S.sumPick || []){ ctx.fillStyle = 'rgba(168,124,255,.65)'; ctx.fillRect(t.x*TS + 1, t.y*TS + 1, TS - 1, TS - 1); ctx.strokeRect((t.x - 1)*TS + 1, (t.y - 1)*TS + 1, 3*TS - 2, 3*TS - 2); }
+}
+
+/* ===== 影世界·比格特拉克（v0.41.5，作者 10-09） =====
+   「连锁投掷」（武器 bounce:N）：第一下走正常攻击（battle，有命中判定、目标不能反击）。打中了才弹跳：
+   从上一个目标的位置找 N 格内（distU）最近的、还没被这次投掷打过的敌机，造成同样的伤害（必中，不暴击，按新目标算装甲 / 防御）；
+   每跳一次 N −1，N 到 0 或找不到敌机就停。22 的 fire 在 battle 之后调 bounceChain。 */
+Hooks.on('strikeResolved', c => { if (c.w.bounce && !c.counter) c.att.bounceHit = c.hit ? BATTLE_ID + ':' + turn : null; }, '比格特拉克「连锁投掷」：记下第一下有没有打中');
+function bounceNext(from, side, r, done){
+  return units.filter(e => e.side !== side && e.side !== 'neutral' && e.hp > 0 && !done.has(e) && distU(from, e) <= r)
+    .sort((a, b) => distU(from, a) - distU(from, b) || a.hp - b.hp)[0] || null;
+}
+async function bounceChain(u, w, first){
+  if (u.bounceHit !== BATTLE_ID + ':' + turn) return 0;
+  u.bounceHit = null;
+  const done = new Set([first]); let from = {x:first.x, y:first.y, w:first.w, h:first.h}, r = w.bounce, n = 0;
+  while (r > 0 && !over){
+    const e = bounceNext(from, u.side, r, done);
+    if (!e) break;
+    done.add(e); n++;
+    fx('pulse', {b:cpx(e), r:TS, color:'#c9a8ff', dur:300}); await sleep(220);
+    const d = damageCalc(u, w, e, {preview:false}).dmg;
+    e.hp = Math.max(0, e.hp - d); addFloat(e, String(d), '#c9a8ff');
+    log(`${fullName(u)}【${w.name}】弹到 ${fullName(e)}（搜索 ${r} 格）：${d}`, null, u.side);
+    from = {x:e.x, y:e.y, w:e.w, h:e.h};
+    if (e.hp <= 0) destroy(e, u);
+    r--;
+  }
+  if (n) log(`${fullName(u)}【${w.name}】一共弹跳 ${n} 次`, null, u.side);
+  refresh(); checkEnd();
+  return n;
+}
+
 /* 测试接口：角色机制的函数（tests/moon.js 等用；window.__game 归规则对话，所以单独挂一个） */
 window.__chars = {autoWeapon:u => autoWeapon(u), echoWeapon:u => echoWeapon(u), attackTilesOf, pickOf, setPick:k => { FEENA_PICK = k; }, canSwitchPick, chainStepOf, effMov, zocRadius,
-  strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d), smokeHit, inSmoke, evadeN, evadeCdCut, get SMOKES(){ return SMOKES; }, inMaoZone, ignoresLos, linkSupport:(a, t) => linkSupport(a, t), activateTA, taActive, taAfter, canTA, purgeStun, collideDmg, isAlone, lockStrikeW, awakenOf, awGain, seedActive, seedDefOf, addAwaken, extMax, mapIff, awakenCall:(u, w) => awakenCall(u, w, supportTargets(u, w)), hitRate, emit:(n, c) => Hooks.emit(n, c), unitsOnTiles};
+  strike:(a, w, d) => strike(a, w, d, null), healTargets:(u, w) => healTargets(u, w), supBuff:(u, w) => supBuff(u, w), mapAttack:(u, w, d) => mapAttack(u, w, d), smokeHit, inSmoke, evadeN, evadeCdCut, get SMOKES(){ return SMOKES; }, inMaoZone, ignoresLos, linkSupport:(a, t) => linkSupport(a, t), activateTA, taActive, taAfter, canTA, purgeStun, collideDmg, isAlone, lockStrikeW, awakenOf, awGain, seedActive, seedDefOf, addAwaken, extMax, mapIff, awakenCall:(u, w) => awakenCall(u, w, supportTargets(u, w)), hitRate, emit:(n, c) => Hooks.emit(n, c), unitsOnTiles, summonTiles, startSummon, pickSummonTile, placeSummons, shadowPulse, isSummon, bounceChain:(u, w, t) => bounceChain(u, w, t)};

@@ -14,6 +14,19 @@ const ALLY_T = [
     wp({name:'影凤凰', power:2400, statMul:1.2, v37:true, fire:'map', range:[1,4], unlock:20, afterMove:false, dmgType:'特殊',
         desc:'选 8 个方向之一，冲到第 5 格（必须是合法落点），攻击沿途 4 格内所有单位，包括友军。必中，不能被反击。'}),
   ]},
+  /* 维诺（v0.41.5 新增，作者 10-09）：影世界普通特种，不能攻击；每回合在 5 格内布置 2 个「影之种」（召唤物，HP 1、没有控制区，持续 3 回合）。
+     影之种在我方阶段结束时自爆式脉冲：周围 3×3 的敌机受到威力 1000 的特殊伤害，并且装甲 −100（整场、无限叠加，最低到 0）。机制在 17b。 */
+  {pilot:'维诺', mech:'B3', short:'B3', trait:'shadowSeed', tags:{势力:'影世界', 远近分类:'远程', 战斗分类:'特种'}, hp:4800, armor:500, eva:25, mov:6, melee:140, shoot:130, defense:85, flying:false, w:1, h:1, abilities:[], weapons:[
+    wp({name:'影之种', fire:'support', special:'summon', range:[0,5], summonN:2, summonLife:3, power:1000, dmgType:'特殊',
+        desc:'在 5 格内的空地布置 2 个影之种（HP 1、没有控制区、不能行动，持续 3 回合）。每个我方阶段结束时，影之种对周围 3×3 的敌机造成威力 1000 的特殊伤害（攻击能力值 = 维诺的射击），并让它们装甲 −100（整场有效，无限叠加）。布置算本回合的行动，可以先移动再布置。'}),
+  ]},
+  /* 比格特拉克（v0.41.5 新增，作者 10-09）：影世界骨干。大招「连锁投掷」：命中第一个目标后，在它 4 格内找下一个没被打过的敌机继续打（同样伤害、必中），
+     每跳一次搜索范围 −1（4 → 3 → 2 → 1），找不到就停。职业暂定特种（作者没指定）。机制在 17b。 */
+  {pilot:'比格特拉克', mech:'B4', short:'B4', trait:'chainThrow', tags:{势力:'影世界', 远近分类:'远程', 战斗分类:'特种'}, hp:5400, armor:600, eva:25, mov:6, melee:140, shoot:150, defense:85, flying:false, w:1, h:1, abilities:[], weapons:[
+    wp({name:'抛射弹', power:2400, fire:'indirect', range:[2,4]}),
+    wp({name:'连锁投掷', power:1600, statMul:1.2, fire:'indirect', range:[1,5], hit:120, cd:5, unlock:20, dmgType:'特殊', bounce:4, noCounter:true,
+        desc:'丢向 5 格内的一台敌机，造成特殊伤害（只会被护盾类效果抵消），目标不能反击。命中后在它 4 格内找下一台没被打过的敌机，造成同样的伤害（必中）；每跳一次搜索范围 −1（4 → 3 → 2 → 1），找不到敌机就停。'}),
+  ]},
   /* ===== 月球王国（v0.40.10 角色对话按势力重设计，作者 10-08 定） =====
      以 Feena 为核心的坚守队伍：Feena 20 级前靠阿布拉德扛、Iris 修；20 级后 Feena 带「残月的余响」负责输出。
      Feena 是全队唯一的精锐；阿布拉德、Iris 骨干；Nagi、苏菲普通。 */
@@ -271,7 +284,7 @@ const PROMO_WEAPONS = {
    大招倍率 statMul：Lv20 大招 ×1.2、Lv30 大招 ×1.5（大招随等级成长更快）；
    觉醒系大招（门之力、TRANS-AM、量子化、λ 驱动、满月）改用「属性 + 觉醒」，不再乘 statMul。觉醒初值：雷萨 140、Feena 150、刹那 130、宗介 130、洛克昂 110，克莱因派 70（拉克丝 90，战斗中会成长，见 17b），其他 100。
    开场冷却 startCd：Lv20 大招默认 3；Lv30 大招 4；传送斩 2；被动（残月的余响、月华再生）0；增益类（八咫之守、马格纳克队支援）2。 */
-const NEW_FORMULA = ['W2','W3','W4','W5','CB2','CB3','CB4','CB5','B1','M1','M2','M3','M4','M5','A1','A2','A3','A4','A5','U1','U2','U6','U7','U8','CB1','S1','W1','S2','S3','S4','S5'];   // v0.41.4 克莱因派整体按新公式重写   // v0.40.13 秘银整体按新公式重写   // v0.40.11 ATX 整体按新公式重写   // v0.40.10 月球王国整体按新公式重写
+const NEW_FORMULA = ['W2','W3','W4','W5','CB2','CB3','CB4','CB5','B1','M1','M2','M3','M4','M5','A1','A2','A3','A4','A5','U1','U2','U6','U7','U8','CB1','S1','W1','S2','S3','S4','S5','B3','B4'];   // v0.41.4 克莱因派整体按新公式重写   // v0.40.13 秘银整体按新公式重写   // v0.40.11 ATX 整体按新公式重写   // v0.40.10 月球王国整体按新公式重写
 ALLY_T.forEach(t => {
   if (PROMO_WEAPONS[t.mech]) t.weapons.push(...PROMO_WEAPONS[t.mech]);
   if (NEW_FORMULA.includes(t.mech)) t.weapons.forEach(w => { w.v37 = true; });

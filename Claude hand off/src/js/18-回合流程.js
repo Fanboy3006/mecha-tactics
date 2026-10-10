@@ -158,7 +158,7 @@ function checkEnd(){
     if (req.every(inZone)) return victory();
     return;
   }
-  const allies = units.filter(u => u.side === 'ally'), foes = units.filter(u => u.side === 'enemy');
+  const allies = units.filter(u => u.side === 'ally' && !u.isSummon), foes = units.filter(u => u.side === 'enemy');
   if (!allies.length) return defeat();   // v0.39.1 场上一台都没有就算输（机库里还有人也一样，作者 10-07 定）
   /* v0.32 关卡目标 */
   if (LV && LV.victory.type === 'survive') return;   // 坚守：撑够回合数才算赢（见 30b），敌人打光也会继续增援

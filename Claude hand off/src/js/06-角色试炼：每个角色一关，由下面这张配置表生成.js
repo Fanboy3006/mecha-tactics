@@ -2,6 +2,8 @@
 // e：敌人（Lv20）；mates：同行的队友；hurt：队友开局只剩一半 HP；feat：地形特征；hint：这一关想让你试的东西
 const TRIALS = {
   B1:{e:['grunt','grunt','artillery','fortress'], hint:'用「传送」越过敌阵直接贴到炮击机身边；Lv20 的传送斩适合对付高 HP 的重装要塞；Lv30 解锁「影界·万刃归一」，传送进敌阵中心再发动。'},
+  B3:{e:['tank','tank','shield','grunt','grunt'], cluster:true, hint:'维诺不能攻击：移动后用「影之种」在 5 格内放 2 个召唤物，我方阶段结束时它们对周围 3×3 的敌机造成特殊伤害并让装甲 −100（无限叠加）。连着几回合放在同一群敌人身边，装甲会被削到 0，队友再上。影之种只有 1 点血，敌人会去打它，也能当诱饵。'},
+  B4:{e:['grunt','grunt','grunt','grunt','drone','drone'], cluster:true, hint:'比格特拉克的「抛射弹」是 2–4 格曲射。Lv20「连锁投掷」打中第一台后会在它 4 格内弹向下一台，每跳范围 −1（4→3→2→1）：敌人越挤，弹得越多。冷却 5 回合。'},
   B2:{e:['hound','hound','drone','drone','fighter'], feat:'forest', hint:'少走几步，把剩余移动力转成闪避（游刃有余）；Lv20 影凤凰是特殊伤害，一次贯穿一排。'},
   M1:{e:['grunt','grunt','raider','raider','shield'], mates:['M2','M4'], hint:'Feena 不能主动攻击，待机后自动施放携带的技能。<b>只能带一个</b>：第 1 回合在指令面板切换「月光祝福」（Lv20 起加防御、暴击）或「残月的余响」。余响的范围 = 自身 4 格 + 4 格内月球王国队友<b>此刻实际打得到的格子</b>：先让阿布拉德、Nagi 摆好位置和朝向，Feena 最后行动。'},
   M2:{e:['raider','raider','berserker','grunt'], mates:['M3'], hint:'原地不动时装甲 +30%、援护次数 +1；Lv20「铁壁领域」不动时控制区扩大到 2 格，敌人很难绕过他去打 Iris。Lv20 螺旋式打桩机无视减免。'},
